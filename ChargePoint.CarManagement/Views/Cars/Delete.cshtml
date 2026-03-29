@@ -1,0 +1,91 @@
+﻿@model ChargePoint.CarManagement.Models.Car
+
+@{
+    ViewData["Title"] = "Xóa xe";
+}
+
+<div class="container">
+    <h1 class="mb-4 text-danger">
+        <i class="fas fa-trash-alt"></i> Xóa xe
+    </h1>
+
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i> 
+        <strong>Cảnh báo!</strong> Bạn có chắc chắn muốn xóa xe này?
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.Stt)</dt>
+                        <dd class="col-sm-8">@Html.DisplayFor(model => model.Stt)</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.TenXe)</dt>
+                        <dd class="col-sm-8">@Html.DisplayFor(model => model.TenXe)</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.SoLuong)</dt>
+                        <dd class="col-sm-8">@Html.DisplayFor(model => model.SoLuong)</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.MauXe)</dt>
+                        <dd class="col-sm-8">@Html.DisplayFor(model => model.MauXe)</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.SoVIN)</dt>
+                        <dd class="col-sm-8">@Html.DisplayFor(model => model.SoVIN)</dd>
+                    </dl>
+                </div>
+
+                <div class="col-md-6">
+                    <dl class="row">
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.BienSo)</dt>
+                        <dd class="col-sm-8">@Html.DisplayFor(model => model.BienSo)</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.TenKhachHang)</dt>
+                        <dd class="col-sm-8">@Html.DisplayFor(model => model.TenKhachHang)</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.ThongTinChoThue)</dt>
+                        <dd class="col-sm-8">@Html.DisplayFor(model => model.ThongTinChoThue)</dd>
+
+                        <dt class="col-sm-4">@Html.DisplayNameFor(model => model.OdoXe)</dt>
+                        <dd class="col-sm-8">@Html.DisplayFor(model => model.OdoXe) km</dd>
+                    </dl>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.HinhAnhNhanBanGiao) || !string.IsNullOrEmpty(Model.HinhAnhBanGiaoKH))
+            {
+                <hr />
+                <h5>Hình ảnh</h5>
+                <div class="row">
+                    @if (!string.IsNullOrEmpty(Model.HinhAnhNhanBanGiao))
+                    {
+                        <div class="col-md-6">
+                            <img src="@Model.HinhAnhNhanBanGiao" alt="GSM" class="img-thumbnail" style="max-width: 200px;" />
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.HinhAnhBanGiaoKH))
+                    {
+                        <div class="col-md-6">
+                            <img src="@Model.HinhAnhBanGiaoKH" alt="KH" class="img-thumbnail" style="max-width: 200px;" />
+                        </div>
+                    }
+                </div>
+            }
+            
+            <form asp-action="Delete" class="mt-4">
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Xác nhận xóa
+                </button>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Hủy
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+}

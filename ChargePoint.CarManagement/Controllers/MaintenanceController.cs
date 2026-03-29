@@ -1,0 +1,362 @@
+using ChargePoint.CarManagement.Data;
+using ChargePoint.CarManagement.Models;
+using ChargePoint.CarManagement.Models.ViewModels.MaintenanceViewModels;
+using ChargePoint.CarManagement.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+
+namespace ChargePoint.CarManagement.Controllers
+{
+    [Authorize]
+    public class MaintenanceController : Controller
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly IImageUploadService _imageUploadService;
+        private readonly ILogger<MaintenanceController> _logger;
+
+        public MaintenanceController(
+            ApplicationDbContext context,
+            IImageUploadService imageUploadService,
+            ILogger<MaintenanceController> logger)
+        {
+            _context = context;
+            _imageUploadService = imageUploadService;
+            _logger = logger;
+        }
+
+        // GET: Maintenance
+        public async Task<IActionResult> Index()
+        {
+            // Avoid complex nested queries that may use APPLY (not supported by SQLite)
+            var cars = await _context.Cars.OrderBy(c => c.Stt).ToListAsync();
+            var allMaintenanceRecords = await _context.MaintenanceRecords.ToListAsync();
+
+            var carsWithMaintenance = cars.Select(c => new MaintenanceIndexViewModel
+            {
+                Car = c,
+                LastMaintenance = allMaintenanceRecords
+                    .Where(m => m.CarId == c.Id)
+                    .OrderByDescending(m => m.NgayBaoDuong)
+                    .FirstOrDefault(),
+                TotalMaintenances = allMaintenanceRecords.Count(m => m.CarId == c.Id)
+            }).ToList();
+            return View(carsWithMaintenance);
+        }
+
+        // GET: Maintenance/History/5
+        public async Task<IActionResult> History(int? id)
+        {
+            if (id == null)
+                return NotFound();
+
+            var car = await _context.Cars.FindAsync(id);
+            if (car == null)
+                return NotFound();
+
+            var records = await _context.MaintenanceRecords
+                .Where(m => m.CarId == id)
+                .OrderByDescending(m => m.NgayBaoDuong)
+                .ToListAsync();
+
+            return View(new MaintenanceHistoryViewModel
+            {
+                Car = car,
+                MaintenanceRecords = records
+            });
+        }
+
+        // GET: Maintenance/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null)
+                return NotFound();
+
+            var record = await _context.MaintenanceRecords
+                .Include(m => m.Car)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (record == null)
+                return NotFound();
+
+            return View(record);
+        }
+
+        // GET: Maintenance/Create/5 (CarId)
+        public async Task<IActionResult> Create(int? id)
+        {
+            if (id == null)
+            {
+                // Nếu không có CarId, hiển thị dropdown chọn xe
+                var cars = await _context.Cars.OrderBy(c => c.BienSo).ToListAsync();
+                var selectListItems = new SelectList(cars,"Id", "BienSo");
+                return View(new MaintenanceCreateVM
+                {
+                    SelectListCars = selectListItems,
+                    Cars = cars,
+                    MaintenanceRecord = new()
+                });
+            }
+
+            var car = await _context.Cars.FindAsync(id);
+            if (car == null) return NotFound();
+
+            var model = new MaintenanceRecord
+            {
+                CarId = car.Id,
+                NgayBaoDuong = DateTime.Now,
+                SoKmBaoDuong = car.OdoXe,
+                NguoiTao = User.Identity?.Name
+            };
+
+            return View(new MaintenanceCreateVM
+            {
+                MaintenanceRecord = model,
+                Cars = [car],
+            });
+        }
+
+        // POST: Maintenance/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(50 * 1024 * 1024)] // 50MB
+        public async Task<IActionResult> Create(
+            MaintenanceRecord model,
+            List<IFormFile>? HinhAnhChungTuFiles)
+        {
+            // Ensure EF will generate Id - remove any incoming Id validation
+            ModelState.Remove(nameof(MaintenanceRecord.Id));
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var car = await _context.Cars.FindAsync(model.CarId);
+                    if (car == null)
+                    {
+                        ModelState.AddModelError("", "Không tìm thấy xe");
+                        return View(model);
+                    }
+
+                    // Create a new entity instance to avoid inserting with a supplied Id
+                    var newRecord = new MaintenanceRecord
+                    {
+                        CarId = model.CarId,
+                        NgayBaoDuong = model.NgayBaoDuong,
+                        SoKmBaoDuong = model.SoKmBaoDuong,
+                        CapBaoDuong = model.CapBaoDuong,
+                        NgayBaoDuongTiepTheo = model.NgayBaoDuongTiepTheo,
+                        SoKmBaoDuongTiepTheo = model.SoKmBaoDuongTiepTheo,
+                        NoiDungBaoDuong = model.NoiDungBaoDuong,
+                        ChiPhi = model.ChiPhi,
+                        NoiBaoDuong = model.NoiBaoDuong,
+                        GhiChu = model.GhiChu,
+                        NgayTao = DateTime.Now,
+                        NguoiTao = User.Identity?.Name
+                    };
+
+                    // Upload hình ảnh chứng từ (if any)
+                    if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
+                    {
+                        var imageUrls = new List<string>();
+                        var bienSo = car.BienSo ?? "NoPlate";
+
+                        foreach (var file in HinhAnhChungTuFiles)
+                        {
+                            if (file.Length > 0)
+                            {
+                                var url = await _imageUploadService.UploadFileAsync(
+                                    file, bienSo, $"BaoDuong_{newRecord.NgayBaoDuong:yyyyMMdd}");
+                                imageUrls.Add(url);
+                            }
+                        }
+
+                        newRecord.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
+                    }
+
+                    // Cập nhật ODO xe nếu số KM bảo dưỡng lớn hơn
+                    if (newRecord.SoKmBaoDuong > car.OdoXe)
+                    {
+                        car.OdoXe = newRecord.SoKmBaoDuong;
+                        car.NgayCapNhat = DateTime.Now;
+                    }
+
+                    _context.MaintenanceRecords.Add(newRecord);
+                    await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = "Thêm hồ sơ bảo dưỡng thành công!";
+                    return RedirectToAction(nameof(History), new { id = newRecord.CarId });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Lỗi khi tạo hồ sơ bảo dưỡng");
+                    ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
+                }
+            }
+
+            var createVM = new MaintenanceCreateVM
+            {
+                MaintenanceRecord = model,
+                Cars = [await _context.Cars.FindAsync(model.CarId)],
+                SelectListCars = new SelectList(await _context.Cars.OrderBy(c => c.BienSo).ToListAsync(), "Id", "BienSo")
+            };
+            return View(createVM);
+        }
+
+        // GET: Maintenance/Edit/5
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null)
+                return NotFound();
+
+            var record = await _context.MaintenanceRecords
+                .Include(m => m.Car)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (record == null)
+                return NotFound();
+
+            return View(new MaintenanceEditVM
+            {
+                Car = record.Car!,
+                Record = record
+            });
+        }
+
+        // POST: Maintenance/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(50 * 1024 * 1024)]
+        public async Task<IActionResult> Edit(
+            int id,
+            MaintenanceRecord model,
+            List<IFormFile>? HinhAnhChungTuFiles)
+        {
+            if (id != model.Id)
+                return NotFound();
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var existingRecord = await _context.MaintenanceRecords.FindAsync(id);
+                    if (existingRecord == null)
+                        return NotFound();
+
+                    var car = await _context.Cars.FindAsync(model.CarId);
+                    if (car == null)
+                    {
+                        ModelState.AddModelError("", "Không tìm thấy xe");
+                        return View(model);
+                    }
+
+                    // Update
+                    existingRecord.NgayBaoDuong = model.NgayBaoDuong;
+                    existingRecord.SoKmBaoDuong = model.SoKmBaoDuong;
+                    existingRecord.CapBaoDuong = model.CapBaoDuong;
+                    existingRecord.NgayBaoDuongTiepTheo = model.NgayBaoDuongTiepTheo;
+                    existingRecord.SoKmBaoDuongTiepTheo = model.SoKmBaoDuongTiepTheo;
+                    existingRecord.NoiDungBaoDuong = model.NoiDungBaoDuong;
+                    existingRecord.ChiPhi = model.ChiPhi;
+                    existingRecord.NoiBaoDuong = model.NoiBaoDuong;
+                    existingRecord.GhiChu = model.GhiChu;
+                    existingRecord.NgayCapNhat = DateTime.Now;
+
+                    // Upload new images (append)
+                    if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
+                    {
+                        var existingImages = existingRecord.DanhSachHinhAnh;
+                        var bienSo = car.BienSo ?? "NoPlate";
+
+                        foreach (var file in HinhAnhChungTuFiles)
+                        {
+                            if (file.Length > 0)
+                            {
+                                var url = await _imageUploadService.UploadFileAsync(
+                                    file, bienSo, $"BaoDuong_{model.NgayBaoDuong:yyyyMMdd}");
+                                existingImages.Add(url);
+                            }
+                        }
+
+                        existingRecord.HinhAnhChungTu = JsonSerializer.Serialize(existingImages);
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    TempData["SuccessMessage"] = "Cập nhật hồ sơ bảo dưỡng thành công!";
+                    return RedirectToAction(nameof(History), new { id = model.CarId });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Lỗi khi cập nhật hồ sơ bảo dưỡng");
+                    ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
+                }
+            }
+
+            var carForView = await _context.Cars.FindAsync(model.CarId);
+            var editVM = new MaintenanceEditVM
+            {
+                Car = carForView!,
+                Record = model
+            };
+            return View(editVM);
+        }
+
+        // POST: Maintenance/Delete/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var record = await _context.MaintenanceRecords.FindAsync(id);
+            if (record != null)
+            {
+                var carId = record.CarId;
+
+                // Delete images
+                foreach (var imageUrl in record.DanhSachHinhAnh)
+                {
+                    await _imageUploadService.DeleteFileAsync(imageUrl);
+                }
+
+                _context.MaintenanceRecords.Remove(record);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Đã xóa hồ sơ bảo dưỡng!";
+                return RedirectToAction(nameof(History), new { id = carId });
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // POST: Maintenance/DeleteImage
+        [HttpPost]
+        public async Task<IActionResult> DeleteImage(int recordId, string imageUrl)
+        {
+            var record = await _context.MaintenanceRecords.FindAsync(recordId);
+            if (record == null)
+                return Json(new { success = false, message = "Không tìm thấy hồ sơ" });
+
+            try
+            {
+                var images = record.DanhSachHinhAnh;
+                if (images.Contains(imageUrl))
+                {
+                    await _imageUploadService.DeleteFileAsync(imageUrl);
+                    images.Remove(imageUrl);
+                    record.HinhAnhChungTu = JsonSerializer.Serialize(images);
+                    await _context.SaveChangesAsync();
+
+                    return Json(new { success = true, message = "Đã xóa hình ảnh" });
+                }
+
+                return Json(new { success = false, message = "Không tìm thấy hình ảnh" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+    }
+}

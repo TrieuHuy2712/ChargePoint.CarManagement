@@ -1,0 +1,178 @@
+﻿@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
+@model TireHistoryVM
+
+@{
+    ViewData["Title"] = "Lịch sử lốp xe";
+    var car = Model.Car;
+    var selectedViTri = Model.ViTriLop;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-history text-info me-2"></i>
+            Lịch sử lốp xe
+        </h1>
+        <div>
+            <a asp-action="Create" asp-route-id="@car?.Id" class="btn btn-success">
+                <i class="fas fa-plus"></i> Thêm mới
+            </a>
+            <a asp-action="CarDetail" asp-route-id="@car?.Id" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (car != null)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-car me-2"></i>
+            <strong>Xe:</strong> @car.TenXe -
+            <strong>Biển số:</strong> @car.BienSo -
+            <strong>ODO hiện tại:</strong> @car.OdoXe.ToString("N0") km
+        </div>
+    }
+
+    <!-- Bộ lọc -->
+    <div class="card mb-4">
+        <div class="card-body py-2">
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <span class="text-muted me-2">Lọc theo vị trí:</span>
+                <a asp-action="History" asp-route-id="@car?.Id"
+                   class="btn btn-sm @(selectedViTri == null ? "btn-primary" : "btn-outline-primary")">
+                    Tất cả
+                </a>
+                @foreach (ViTriLop viTri in Enum.GetValues(typeof(ViTriLop)))
+                {
+                    var icon = viTri switch
+                    {
+                        ViTriLop.TruocTrai => "↖️",
+                        ViTriLop.TruocPhai => "↗️",
+                        ViTriLop.SauTrai => "↙️",
+                        ViTriLop.SauPhai => "↘️",
+                        _ => ""
+                    };
+                    <a asp-action="History" asp-route-id="@car?.Id" asp-route-viTri="@((int)viTri)"
+                       class="btn btn-sm @(selectedViTri == viTri ? "btn-primary" : "btn-outline-primary")">
+                        @icon @viTri.GetDisplayName()
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Records == null || !Model.Records.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-info-circle me-2"></i>
+            Chưa có lịch sử lốp nào.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Vị trí</th>
+                                <th>Thao tác</th>
+                                <th>ODO</th>
+                                <th>Hãng/Model lốp</th>
+                                <th>Chi phí</th>
+                                <th>Nơi thực hiện</th>
+                                <th>Ảnh</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var record in Model.Records)
+                            {
+                                <tr>
+                                    <td>@record.NgayThucHien.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            @record.IconViTri @record.TenViTriLop
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var actionBadge = record.LoaiThaoTac switch
+                                            {
+                                                LoaiThaoTacLop.ThayMoi => "bg-success",
+                                                LoaiThaoTacLop.DaoLop => "bg-info",
+                                                LoaiThaoTacLop.VaLop => "bg-warning text-dark",
+                                                _ => "bg-secondary"
+                                            };
+                                        }
+                                        <span class="badge @actionBadge">
+                                            @record.LoaiThaoTac.GetDisplayName()
+                                        </span>
+                                    </td>
+                                    <td><strong>@record.OdoThayLop.ToString("N0")</strong> km</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(record.HangLop))
+                                        {
+                                            <span>@record.HangLop @record.ModelLop</span>
+                                            @if (!string.IsNullOrEmpty(record.KichThuocLop))
+                                            {
+                                                <br /><small class="text-muted">@record.KichThuocLop</small>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>@record.ChiPhi.ToString("N0") đ</td>
+                                    <td>@(record.NoiThucHien ?? "-")</td>
+                                    <td>
+                                        @if (record.DanhSachHinhAnh.Any())
+                                        {
+                                            <a href="@record.DanhSachHinhAnh.First()" target="_blank">
+                                                <img src="@record.DanhSachHinhAnh.First()" class="img-thumbnail"
+                                                     style="width: 50px; height: 50px; object-fit: cover;" />
+                                            </a>
+                                            @if (record.DanhSachHinhAnh.Count > 1)
+                                            {
+                                                <span class="badge bg-secondary">+@(record.DanhSachHinhAnh.Count - 1)</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="Details" asp-route-id="@record.Id"
+                                               class="btn btn-outline-info" title="Chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@record.Id"
+                                               class="btn btn-outline-warning" title="Sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form asp-action="Delete" asp-route-id="@record.Id" method="post"
+                                                  class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa?');">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+}

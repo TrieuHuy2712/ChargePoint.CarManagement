@@ -1,0 +1,209 @@
+﻿@model ChargePoint.CarManagement.Models.ViewModels.MaintenanceViewModels.MaintenanceCreateVM
+@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+
+@{
+    ViewData["Title"] = "Thêm hồ sơ bảo dưỡng";
+    var settings = FileUploadSettings.Value;
+    var car = Model.Cars.First() as Car;
+    var maintenanceRecord = Model.MaintenanceRecord;
+}
+
+<div class="container">
+    <h1 class="mb-4">
+        <i class="fas fa-plus-circle text-success"></i> Thêm hồ sơ bảo dưỡng
+    </h1>
+
+    @if (car != null)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-car me-2"></i>
+            <strong>Xe:</strong> @car.TenXe -
+            <strong>Biển số:</strong>
+            @if (car.MauBienSo == MauBienSo.Vang)
+            {
+                <span class="badge" style="background-color: #ffc107; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            else
+            {
+                <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            -
+            <strong>ODO hiện tại:</strong> @car.OdoXe.ToString("N0") km
+        </div>
+    }
+
+    <div class="card shadow">
+        <div class="card-body">
+            <form asp-action="Create" enctype="multipart/form-data" id="maintenanceForm">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                <input type="hidden" asp-for="@maintenanceRecord.CarId" />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="@maintenanceRecord.NgayBaoDuong" class="form-label"></label>
+                            <input asp-for="@maintenanceRecord.NgayBaoDuong" class="form-control" type="date" />
+                            <span asp-validation-for="@maintenanceRecord.NgayBaoDuong" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="@maintenanceRecord.SoKmBaoDuong" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="@maintenanceRecord.SoKmBaoDuong" class="form-control" type="number" />
+                                <span class="input-group-text">km</span>
+                            </div>
+                            <span asp-validation-for="@maintenanceRecord.SoKmBaoDuong" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="@maintenanceRecord.CapBaoDuong" class="form-label"></label>
+                            <div class="d-flex gap-3 mt-2">
+                                @foreach (CapBaoDuong cap in Enum.GetValues(typeof(CapBaoDuong)))
+                                {
+                                    var badgeClass = cap switch
+                                    {
+                                        CapBaoDuong.Cap1 => "bg-info",
+                                        CapBaoDuong.Cap2 => "bg-primary",
+                                        CapBaoDuong.Cap3 => "bg-success",
+                                        _ => "bg-secondary"
+                                    };
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio"
+                                               name="CapBaoDuong" id="cap@((int)cap)"
+                                               value="@((int)cap)"
+                                               @(maintenanceRecord.CapBaoDuong == cap ? "checked" : "") />
+                                        <label class="form-check-label" for="cap@((int)cap)">
+                                            <span class="badge @badgeClass fs-6 py-2 px-3">
+                                                Cấp @((int)cap)
+                                            </span>
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                            <small class="form-text text-muted mt-2 d-block">
+                                <strong>Cấp 1:</strong> Thay dầu, lọc gió | 
+                                <strong>Cấp 2:</strong> + Phanh, lốp | 
+                                <strong>Cấp 3:</strong> + Toàn diện
+                            </small>
+                            <span asp-validation-for="@maintenanceRecord.CapBaoDuong" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="@maintenanceRecord.ChiPhi" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="@maintenanceRecord.ChiPhi" class="form-control" type="number" />
+                                <span class="input-group-text">VNĐ</span>
+                            </div>
+                            <span asp-validation-for="@maintenanceRecord.ChiPhi" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="@maintenanceRecord.NgayBaoDuongTiepTheo" class="form-label"></label>
+                            <input asp-for="@maintenanceRecord.NgayBaoDuongTiepTheo" class="form-control" type="date" />
+                            <span asp-validation-for="@maintenanceRecord.NgayBaoDuongTiepTheo" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="form-control" type="number" />
+                                <span class="input-group-text">km</span>
+                            </div>
+                            <span asp-validation-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="@maintenanceRecord.NoiBaoDuong" class="form-label"></label>
+                    <input asp-for="@maintenanceRecord.NoiBaoDuong" class="form-control" placeholder="VD: Garage VinFast Hà Nội" />
+                    <span asp-validation-for="@maintenanceRecord.NoiBaoDuong" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="@maintenanceRecord.NoiDungBaoDuong" class="form-label"></label>
+                    <textarea asp-for="@maintenanceRecord.NoiDungBaoDuong" class="form-control" rows="3"
+                              placeholder="Mô tả chi tiết các hạng mục đã bảo dưỡng..."></textarea>
+                    <span asp-validation-for="@maintenanceRecord.NoiDungBaoDuong" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="@maintenanceRecord.GhiChu" class="form-label"></label>
+                    <textarea asp-for="@maintenanceRecord.GhiChu" class="form-control" rows="2"
+                              placeholder="Ghi chú thêm..."></textarea>
+                </div>
+
+                <!-- Hình ảnh chứng từ -->
+                <h5 class="mt-4 mb-3 text-primary">
+                    <i class="fas fa-images"></i> Hình ảnh chứng từ bảo dưỡng
+                </h5>
+                <div class="form-group mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-file-image"></i> Tải lên hình ảnh (có thể chọn nhiều)
+                    </label>
+                    <input type="file" name="HinhAnhChungTuFiles" class="form-control" multiple
+                           accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))"
+                           id="imageInput" />
+                    <small class="form-text text-muted">
+                        Tối đa @settings.MaxImageSizeMB MB mỗi ảnh. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)
+                    </small>
+                    <div id="imagePreview" class="mt-3 d-flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-success" id="btnSubmit">
+                        <i class="fas fa-save"></i> Lưu hồ sơ
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <script>
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+
+            Array.from(e.target.files).forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const div = document.createElement('div');
+                        div.className = 'position-relative';
+                        div.innerHTML = `
+                            <img src="${e.target.result}" class="img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
+                            <small class="d-block text-center text-muted">${file.name.substring(0, 15)}...</small>
+                        `;
+                        preview.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+
+        document.getElementById('maintenanceForm').addEventListener('submit', function() {
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+        });
+    </script>
+}

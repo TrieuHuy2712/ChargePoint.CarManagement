@@ -1,0 +1,260 @@
+﻿@model ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels.TrafficViolationCheckVM
+@{
+    ViewData["Title"] = "Ghi nhận kết quả kiểm tra";
+    var car = Model.Car;
+    var checkViolation = Model.TrafficViolationCheck!;
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        Ghi nhận kết quả kiểm tra phạt nguội
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <strong>Xe:</strong> @car.TenXe -
+                            <strong>Biển số:</strong> <span class="badge bg-dark fs-6">@car.BienSo</span>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-primary" id="btnCheckOnline" data-car-id="@car.Id">
+                                <i class="fas fa-search"></i> Tra cứu tự động
+                            </button>
+                            @if (!string.IsNullOrEmpty(car.BienSo))
+                            {
+                                var bienSoFormatted = ((string)car.BienSo).Replace("-", "").Replace(".", "").Replace(" ", "");
+                                <a href="https://csgt.vn/tra-cuu-phat-nguoi.html?bienso=@bienSoFormatted"
+                                   target="_blank" class="btn btn-outline-secondary ms-2">
+                                    <i class="fas fa-external-link-alt"></i> CSGT.vn
+                                </a>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Kết quả tra cứu online -->
+                    <div id="onlineResult" class="mb-4" style="display: none;">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                                <span><i class="fas fa-cloud-download-alt me-2"></i>Kết quả tra cứu tự động</span>
+                                <button type="button" class="btn-close btn-close-white" id="btnCloseResult"></button>
+                            </div>
+                            <div class="card-body">
+                                <div id="resultLoading" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Đang tra cứu...</span>
+                                    </div>
+                                    <p class="mt-2 mb-0">Đang tra cứu thông tin vi phạm...</p>
+                                </div>
+                                <div id="resultContent" style="display: none;">
+                                    <div id="resultStatus" class="alert mb-3"></div>
+                                    <div id="violationList"></div>
+                                    <button type="button" class="btn btn-success btn-sm" id="btnApplyResult">
+                                        <i class="fas fa-check"></i> Áp dụng kết quả vào form
+                                    </button>
+                                </div>
+                                <div id="resultError" class="alert alert-danger" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form asp-action="Check" method="post">
+                        @* Chỉ giữ CarId, KHÔNG có hidden input cho Id *@
+                        <input type="hidden" asp-for="@checkViolation.CarId" />
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox"
+                                       asp-for="@checkViolation.CoViPham" id="coViPhamSwitch">
+                                <label class="form-check-label" for="coViPhamSwitch">
+                                    <strong>Có vi phạm</strong>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="violationDetails" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="@checkViolation.SoLuongViPham" class="form-label"></label>
+                                    <input asp-for="@checkViolation.SoLuongViPham" class="form-control" type="number" min="0" />
+                                    <span asp-validation-for="@checkViolation.SoLuongViPham" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="@checkViolation.TongTienPhat" class="form-label"></label>
+                                    <div class="input-group">
+                                        <input asp-for="@checkViolation.TongTienPhat" class="form-control" type="number" min="0" />
+                                        <span class="input-group-text">VNĐ</span>
+                                    </div>
+                                    <span asp-validation-for="@checkViolation.TongTienPhat" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="@checkViolation.GhiChu" class="form-label"></label>
+                            <textarea asp-for="@checkViolation.GhiChu" class="form-control" rows="3"
+                                      placeholder="Nhập ghi chú về kết quả kiểm tra..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Quay lại
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Lưu kết quả
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        // Toggle violation details
+        document.getElementById('coViPhamSwitch').addEventListener('change', function() {
+            document.getElementById('violationDetails').style.display = this.checked ? 'block' : 'none';
+        });
+
+        if (document.getElementById('coViPhamSwitch').checked) {
+            document.getElementById('violationDetails').style.display = 'block';
+        }
+
+        // Lưu kết quả tra cứu
+        let lastCheckResult = null;
+
+        // Tra cứu online
+        document.getElementById('btnCheckOnline').addEventListener('click', async function() {
+            const carId = this.dataset.carId;
+            const resultDiv = document.getElementById('onlineResult');
+            const loadingDiv = document.getElementById('resultLoading');
+            const contentDiv = document.getElementById('resultContent');
+            const errorDiv = document.getElementById('resultError');
+
+            // Hiện kết quả và loading
+            resultDiv.style.display = 'block';
+            loadingDiv.style.display = 'block';
+            contentDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('@Url.Action("CheckOnline", "TrafficViolation")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `carId=${carId}`
+                });
+
+                const data = await response.json();
+                lastCheckResult = data;
+                loadingDiv.style.display = 'none';
+
+                if (data.success) {
+                    contentDiv.style.display = 'block';
+
+                    // Hiển thị trạng thái
+                    const statusDiv = document.getElementById('resultStatus');
+                    if (data.coViPham) {
+                        statusDiv.className = 'alert alert-danger';
+                        statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Phát hiện ${data.soLuongViPham} vi phạm!</strong>`;
+                    } else {
+                        statusDiv.className = 'alert alert-success';
+                        statusDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>
+                            <strong>Không có vi phạm!</strong>`;
+                    }
+
+                    // Hiển thị danh sách vi phạm
+                    const listDiv = document.getElementById('violationList');
+                    if (data.danhSachViPham && data.danhSachViPham.length > 0) {
+                        let html = '<table class="table table-sm table-bordered">';
+                        html += '<thead class="table-light"><tr>';
+                        html += '<th>Ngày</th><th>Hành vi</th><th>Địa điểm</th><th>Tiền phạt</th><th>Trạng thái</th>';
+                        html += '</tr></thead><tbody>';
+
+                        let tongTien = 0;
+                        data.danhSachViPham.forEach(v => {
+                            html += `<tr>
+                                <td>${v.ngayViPham || '-'}</td>
+                                <td>${v.hanhVi || '-'}</td>
+                                <td>${v.diaDiem || '-'}</td>
+                                <td class="text-end">${(v.soTienPhat || 0).toLocaleString('vi-VN')} đ</td>
+                                <td><span class="badge bg-warning">${v.trangThai || 'Chưa xử lý'}</span></td>
+                            </tr>`;
+                            tongTien += v.soTienPhat || 0;
+                        });
+
+                        html += `<tr class="table-warning">
+                            <td colspan="3" class="text-end"><strong>Tổng cộng:</strong></td>
+                            <td class="text-end"><strong>${tongTien.toLocaleString('vi-VN')} đ</strong></td>
+                            <td></td>
+                        </tr>`;
+                        html += '</tbody></table>';
+                        listDiv.innerHTML = html;
+                    } else {
+                        listDiv.innerHTML = '';
+                    }
+                } else {
+                    errorDiv.style.display = 'block';
+                    errorDiv.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${data.message}`;
+                }
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>Lỗi kết nối: ${error.message}`;
+            }
+        });
+
+        // Đóng kết quả
+        document.getElementById('btnCloseResult').addEventListener('click', function() {
+            document.getElementById('onlineResult').style.display = 'none';
+        });
+
+        // Áp dụng kết quả vào form
+        document.getElementById('btnApplyResult').addEventListener('click', function() {
+            if (lastCheckResult) {
+                // Set checkbox và hiện details
+                document.getElementById('coViPhamSwitch').checked = lastCheckResult.coViPham;
+                document.getElementById('violationDetails').style.display = lastCheckResult.coViPham ? 'block' : 'none';
+
+                // Set số lượng và tổng tiền
+                document.getElementById('SoLuongViPham').value = lastCheckResult.soLuongViPham || 0;
+
+                // Tính tổng tiền phạt
+                let tongTien = 0;
+                if (lastCheckResult.danhSachViPham) {
+                    lastCheckResult.danhSachViPham.forEach(v => {
+                        tongTien += v.soTienPhat || 0;
+                    });
+                }
+                document.getElementById('TongTienPhat').value = tongTien;
+
+                // Tạo ghi chú
+                let ghiChu = `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}\n`;
+                if (lastCheckResult.coViPham && lastCheckResult.danhSachViPham) {
+                    ghiChu += `Phát hiện ${lastCheckResult.soLuongViPham} vi phạm:\n`;
+                    lastCheckResult.danhSachViPham.forEach((v, i) => {
+                        ghiChu += `${i+1}. ${v.ngayViPham || ''} - ${v.hanhVi || ''} - ${(v.soTienPhat || 0).toLocaleString('vi-VN')}đ\n`;
+                    });
+                } else {
+                    ghiChu += 'Không có vi phạm';
+                }
+                document.getElementById('GhiChu').value = ghiChu;
+
+                // Đóng panel kết quả
+                document.getElementById('onlineResult').style.display = 'none';
+
+                // Thông báo
+                alert('Đã áp dụng kết quả tra cứu vào form!');
+            }
+        });
+    </script>
+}

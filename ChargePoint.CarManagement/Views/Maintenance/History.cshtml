@@ -1,0 +1,159 @@
+﻿@model ChargePoint.CarManagement.Models.ViewModels.MaintenanceViewModels.MaintenanceHistoryViewModel
+
+@{
+    ViewData["Title"] = "Lịch sử bảo dưỡng";
+    var car = Model.Car as Car;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-history text-info me-2"></i>
+            Lịch sử bảo dưỡng
+        </h1>
+        <div>
+            <a asp-action="Create" asp-route-id="@car?.Id" class="btn btn-success">
+                <i class="fas fa-plus"></i> Thêm bảo dưỡng
+            </a>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (car != null)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-car me-2"></i>
+            <strong>Xe:</strong> @car.TenXe -
+            <strong>Biển số:</strong>
+            @if (car.MauBienSo == MauBienSo.Vang)
+            {
+                <span class="badge" style="background-color: #ffc107; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            else
+            {
+                <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            -
+            <strong>ODO hiện tại:</strong> @car.OdoXe.ToString("N0") km
+        </div>
+    }
+
+    @if (Model.MaintenanceRecords == null || !Model.MaintenanceRecords.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-info-circle me-2"></i>
+            Chưa có lịch sử bảo dưỡng nào cho xe này.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var record in Model.MaintenanceRecords)
+            {
+                var badgeClass = record.CapBaoDuong switch
+                {
+                    CapBaoDuong.Cap1 => "bg-info",
+                    CapBaoDuong.Cap2 => "bg-primary",
+                    CapBaoDuong.Cap3 => "bg-success",
+                    _ => "bg-secondary"
+                };
+
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-calendar me-1"></i>
+                                @record.NgayBaoDuong.ToString("dd/MM/yyyy")
+                            </span>
+                            <span class="badge @badgeClass">Cấp @((int)record.CapBaoDuong)</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2">
+                                <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                                <strong>Số KM:</strong> @record.SoKmBaoDuong.ToString("N0") km
+                            </p>
+                            <p class="mb-2">
+                                <i class="fas fa-money-bill-wave text-success me-2"></i>
+                                <strong>Chi phí:</strong> @record.ChiPhi.ToString("N0") VNĐ
+                            </p>
+                            @if (!string.IsNullOrEmpty(record.NoiBaoDuong))
+                            {
+                                <p class="mb-2">
+                                    <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                                    <strong>Nơi BD:</strong> @record.NoiBaoDuong
+                                </p>
+                            }
+                            @if (record.NgayBaoDuongTiepTheo.HasValue)
+                            {
+                                var isOverdue = record.NgayBaoDuongTiepTheo.Value < DateTime.Now;
+                                <p class="mb-2 @(isOverdue ? "text-danger" : "")">
+                                    <i class="fas fa-clock me-2"></i>
+                                    <strong>Kỳ tiếp:</strong> @record.NgayBaoDuongTiepTheo.Value.ToString("dd/MM/yyyy")
+                                    @if (isOverdue)
+                                    {
+                                        <span class="badge bg-danger ms-1">Quá hạn!</span>
+                                    }
+                                </p>
+                            }
+                            @if (!string.IsNullOrEmpty(record.NoiDungBaoDuong))
+                            {
+                                <p class="mb-2 text-muted small">
+                                    <i class="fas fa-clipboard-list me-2"></i>
+                                    @(record.NoiDungBaoDuong.Length > 100 
+                                        ? record.NoiDungBaoDuong.Substring(0, 100) + "..." 
+                                        : record.NoiDungBaoDuong)
+                                </p>
+                            }
+
+                            @if (record.DanhSachHinhAnh.Any())
+                            {
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-images"></i> @record.DanhSachHinhAnh.Count ảnh chứng từ
+                                    </small>
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        @foreach (var img in record.DanhSachHinhAnh.Take(3))
+                                        {
+                                            <a href="@img" target="_blank">
+                                                <img src="@img" class="img-thumbnail" 
+                                                     style="width: 50px; height: 50px; object-fit: cover;" />
+                                            </a>
+                                        }
+                                        @if (record.DanhSachHinhAnh.Count > 3)
+                                        {
+                                            <span class="badge bg-secondary align-self-center">
+                                                +@(record.DanhSachHinhAnh.Count - 3)
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="btn-group btn-group-sm w-100">
+                                <a asp-action="Details" asp-route-id="@record.Id" class="btn btn-outline-info">
+                                    <i class="fas fa-eye"></i> Chi tiết
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@record.Id" class="btn btn-outline-warning">
+                                    <i class="fas fa-edit"></i> Sửa
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@record.Id" method="post" class="d-inline"
+                                      onsubmit="return confirm('Bạn có chắc muốn xóa hồ sơ này?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+}

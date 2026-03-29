@@ -1,0 +1,205 @@
+﻿@model ChargePoint.CarManagement.Models.ViewModels.MaintenanceViewModels.MaintenanceEditVM
+@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+
+@{
+    ViewData["Title"] = "Chỉnh sửa hồ sơ bảo dưỡng";
+    var settings = FileUploadSettings.Value;
+    var car = Model.Car;
+    var maintenance = Model.Record!;
+}
+
+<div class="container">
+    <h1 class="mb-4">
+        <i class="fas fa-edit text-warning"></i> Chỉnh sửa hồ sơ bảo dưỡng
+    </h1>
+
+    @if (car != null)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-car me-2"></i>
+            <strong>Xe:</strong> @car.TenXe -
+            <strong>Biển số:</strong>
+            @if (car.MauBienSo == MauBienSo.Vang)
+            {
+                <span class="badge" style="background-color: #ffc107; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            else
+            {
+                <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            - <strong>ODO hiện tại:</strong> @car.OdoXe.ToString("N0") km
+        </div>
+    }
+
+    <div class="card shadow">
+        <div class="card-body">
+            <form asp-action="Edit" method="post" enctype="multipart/form-data" id="maintenanceEditForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="@maintenance.Id" />
+                <input type="hidden" asp-for="@maintenance.CarId" />
+                <input type="hidden" asp-for="@maintenance.NgayTao" />
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="@maintenance.NgayBaoDuong" class="form-label"></label>
+                        <input asp-for="@maintenance.NgayBaoDuong" class="form-control" type="date" />
+                        <span asp-validation-for="@maintenance.NgayBaoDuong" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="@maintenance.SoKmBaoDuong" class="form-label"></label>
+                        <div class="input-group">
+                            <input asp-for="@maintenance.SoKmBaoDuong" class="form-control" type="number" />
+                            <span class="input-group-text">km</span>
+                        </div>
+                        <span asp-validation-for="@maintenance.SoKmBaoDuong" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="@maintenance.CapBaoDuong" class="form-label"></label>
+                        <select asp-for="@maintenance.CapBaoDuong" class="form-select"
+                                asp-items="Html.GetEnumSelectList<CapBaoDuong>()"></select>
+                        <span asp-validation-for="@maintenance.CapBaoDuong" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="@maintenance.ChiPhi" class="form-label"></label>
+                        <div class="input-group">
+                            <input asp-for="@maintenance.ChiPhi" class="form-control" type="number" />
+                            <span class="input-group-text">VNĐ</span>
+                        </div>
+                        <span asp-validation-for="@maintenance.ChiPhi" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="@maintenance.NgayBaoDuongTiepTheo" class="form-label"></label>
+                        <input asp-for="@maintenance.NgayBaoDuongTiepTheo" class="form-control" type="date" />
+                        <span asp-validation-for="@maintenance.NgayBaoDuongTiepTheo" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="@maintenance.SoKmBaoDuongTiepTheo" class="form-label"></label>
+                        <div class="input-group">
+                            <input asp-for="@maintenance.SoKmBaoDuongTiepTheo" class="form-control" type="number" />
+                            <span class="input-group-text">km</span>
+                        </div>
+                        <span asp-validation-for="@maintenance.SoKmBaoDuongTiepTheo" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="@maintenance.NoiBaoDuong" class="form-label"></label>
+                    <input asp-for="@maintenance.NoiBaoDuong" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="@maintenance.NoiDungBaoDuong" class="form-label"></label>
+                    <textarea asp-for="@maintenance.NoiDungBaoDuong" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="@maintenance.GhiChu" class="form-label"></label>
+                    <textarea asp-for="@maintenance.GhiChu" class="form-control" rows="2"></textarea>
+                </div>
+
+                <!-- Existing images -->
+                <div class="mb-3">
+                    <label class="form-label">Hình ảnh chứng từ hiện có</label>
+                    <div id="existingImages" class="d-flex flex-wrap gap-2">
+                        @if (maintenance.DanhSachHinhAnh.Any())
+                        {
+                            foreach (var img in maintenance.DanhSachHinhAnh)
+                            {
+                                <div class="position-relative" style="width:120px;">
+                                    <a href="@img" target="_blank">
+                                        <img src="@img" class="img-thumbnail" style="width:120px;height:90px;object-fit:cover;" />
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger position-absolute" style="top:6px; right:6px;"
+                                            onclick="deleteImage(@maintenance.Id, '@img')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted">Chưa có hình ảnh</div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Upload new images -->
+                <div class="mb-3">
+                    <label class="form-label">Tải lên hình ảnh chứng từ (có thể chọn nhiều)</label>
+                    <input type="file" name="HinhAnhChungTuFiles" id="imageInput" class="form-control" multiple
+                           accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" />
+                    <small class="form-text text-muted">Tối đa @settings.MaxImageSizeMB MB mỗi ảnh.</small>
+                    <div id="imagePreview" class="mt-2 d-flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a asp-action="History" asp-route-id="@maintenance.CarId" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        function getAntiForgeryToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]').value;
+        }
+
+        async function deleteImage(recordId, imageUrl) {
+            if (!confirm('Bạn có chắc muốn xóa ảnh này?')) return;
+            try {
+                const formData = new URLSearchParams();
+                formData.append('recordId', recordId);
+                formData.append('imageUrl', imageUrl);
+                const res = await fetch('@Url.Action("DeleteImage", "Maintenance")', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': getAntiForgeryToken(),
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData.toString()
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // remove thumbnail
+                    const imgs = Array.from(document.querySelectorAll('#existingImages img'));
+                    const target = imgs.find(i => i.src === imageUrl || i.src.endsWith(imageUrl));
+                    if (target) target.parentElement.remove();
+                    alert(data.message);
+                } else {
+                    alert(data.message || 'Xóa thất bại');
+                }
+            } catch (err) {
+                alert('Lỗi: ' + err.message);
+            }
+        }
+
+        // preview selected images
+        document.getElementById('imageInput').addEventListener('change', function (e) {
+            const preview = document.getElementById('imagePreview'); preview.innerHTML = '';
+            Array.from(e.target.files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    const div = document.createElement('div');
+                    div.innerHTML = `<img src="${ev.target.result}" class="img-thumbnail" style="width:120px;height:90px;object-fit:cover;" />`;
+                    preview.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+    </script>
+}

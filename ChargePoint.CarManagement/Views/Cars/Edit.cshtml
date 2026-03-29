@@ -1,0 +1,405 @@
+﻿@model ChargePoint.CarManagement.Models.Car
+@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+@using ChargePoint.CarManagement.Models
+
+@{
+    ViewData["Title"] = "Chỉnh sửa xe";
+    var settings = FileUploadSettings.Value;
+}
+
+<div class="container">
+    <h1 class="mb-4">
+        <i class="fas fa-edit"></i> Chỉnh sửa xe
+    </h1>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <form asp-action="Edit" enctype="multipart/form-data" id="editCarForm">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="NgayTao" />
+                <input type="hidden" asp-for="HinhAnhNhanBanGiao" />
+                <input type="hidden" asp-for="HinhAnhBanGiaoKH" />
+                <input type="hidden" asp-for="VideoNhanBanGiao" />
+                <input type="hidden" asp-for="VideoBanGiaoKH" />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Stt" class="form-label"></label>
+                            <input asp-for="Stt" class="form-control" />
+                            <span asp-validation-for="Stt" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="TenXe" class="form-label"></label>
+                            <input asp-for="TenXe" class="form-control" />
+                            <span asp-validation-for="TenXe" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="SoLuong" class="form-label"></label>
+                            <input asp-for="SoLuong" class="form-control" type="number" />
+                            <span asp-validation-for="SoLuong" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="MauXe" class="form-label"></label>
+                            <input asp-for="MauXe" class="form-control" />
+                            <span asp-validation-for="MauXe" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="SoVIN" class="form-label"></label>
+                            <input asp-for="SoVIN" class="form-control" maxlength="17" />
+                            <span asp-validation-for="SoVIN" class="text-danger"></span>
+                            <small class="form-text text-muted">Số VIN phải có 17 ký tự</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="BienSo" class="form-label"></label>
+                            <input asp-for="BienSo" class="form-control" />
+                            <span asp-validation-for="BienSo" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="MauBienSo" class="form-label"></label>
+                            <div class="d-flex gap-4 mt-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio"
+                                           name="MauBienSo" id="bienTrang"
+                                           value="@((int)MauBienSo.Trang)"
+                                           @(Model.MauBienSo == MauBienSo.Trang ? "checked" : "") />
+                                    <label class="form-check-label" for="bienTrang">
+                                        <span class="badge text-dark" style="background-color: #fff; border: 2px solid #333; padding: 8px 16px; font-size: 14px;">
+                                            <i class="fas fa-car"></i> Biển trắng
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio"
+                                           name="MauBienSo" id="bienVang"
+                                           value="@((int)MauBienSo.Vang)"
+                                           @(Model.MauBienSo == MauBienSo.Vang ? "checked" : "") />
+                                    <label class="form-check-label" for="bienVang">
+                                        <span class="badge text-dark" style="background-color: #ffc107; border: 2px solid #333; padding: 8px 16px; font-size: 14px;">
+                                            <i class="fas fa-taxi"></i> Biển vàng
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                            <span asp-validation-for="MauBienSo" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="TenKhachHang" class="form-label"></label>
+                            <input asp-for="TenKhachHang" class="form-control" />
+                            <span asp-validation-for="TenKhachHang" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="OdoXe" class="form-label"></label>
+                            <input asp-for="OdoXe" class="form-control" type="number" />
+                            <span asp-validation-for="OdoXe" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="ThongTinChoThue" class="form-label"></label>
+                    <textarea asp-for="ThongTinChoThue" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="ThongTinChoThue" class="text-danger"></span>
+                </div>
+
+                <!-- Hình ảnh -->
+                <h5 class="mt-4 mb-3 text-primary">
+                    <i class="fas fa-images"></i> Hình ảnh bàn giao
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-image"></i> Hình ảnh nhận bàn giao từ GSM (GF)
+                            </label>
+                            @if (!string.IsNullOrEmpty(Model.HinhAnhNhanBanGiao))
+                            {
+                                <div class="mb-2 current-file">
+                                    <a href="@Model.HinhAnhNhanBanGiao" target="_blank">
+                                        <img src="@Model.HinhAnhNhanBanGiao" class="img-thumbnail" style="max-height: 150px;" />
+                                    </a>
+                                    <br />
+                                    <small class="text-success"><i class="fas fa-check-circle"></i> Đã có hình ảnh</small>
+                                </div>
+                            }
+                            <input type="file" name="HinhAnhNhanBanGiaoFile" class="form-control file-upload"
+                                   accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))"
+                                   data-max-size="@settings.MaxImageSizeMB" data-type="image" />
+                            <small class="form-text text-muted">
+                                Tối đa @settings.MaxImageSizeMB MB. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)
+                                @if (!string.IsNullOrEmpty(Model.HinhAnhNhanBanGiao))
+                                {
+                                    <span class="text-warning">- Chọn file mới sẽ thay thế hình cũ</span>
+                                }
+                            </small>
+                            <div class="invalid-feedback"></div>
+                            <div class="file-preview mt-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-image"></i> Hình ảnh bàn giao cho KH
+                            </label>
+                            @if (!string.IsNullOrEmpty(Model.HinhAnhBanGiaoKH))
+                            {
+                                <div class="mb-2 current-file">
+                                    <a href="@Model.HinhAnhBanGiaoKH" target="_blank">
+                                        <img src="@Model.HinhAnhBanGiaoKH" class="img-thumbnail" style="max-height: 150px;" />
+                                    </a>
+                                    <br />
+                                    <small class="text-success"><i class="fas fa-check-circle"></i> Đã có hình ảnh</small>
+                                </div>
+                            }
+                            <input type="file" name="HinhAnhBanGiaoKHFile" class="form-control file-upload"
+                                   accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))"
+                                   data-max-size="@settings.MaxImageSizeMB" data-type="image" />
+                            <small class="form-text text-muted">
+                                Tối đa @settings.MaxImageSizeMB MB. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)
+                                @if (!string.IsNullOrEmpty(Model.HinhAnhBanGiaoKH))
+                                {
+                                    <span class="text-warning">- Chọn file mới sẽ thay thế hình cũ</span>
+                                }
+                            </small>
+                            <div class="invalid-feedback"></div>
+                            <div class="file-preview mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video -->
+                <h5 class="mt-4 mb-3 text-primary">
+                    <i class="fas fa-video"></i> Video bàn giao
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-film"></i> Video nhận bàn giao từ GSM
+                            </label>
+                            @if (!string.IsNullOrEmpty(Model.VideoNhanBanGiao))
+                            {
+                                <div class="mb-2 current-file">
+                                    <video controls style="max-width: 100%; max-height: 200px;">
+                                        <source src="@Model.VideoNhanBanGiao" type="video/mp4">
+                                        Trình duyệt không hỗ trợ video.
+                                    </video>
+                                    <br />
+                                    <small class="text-success"><i class="fas fa-check-circle"></i> Đã có video</small>
+                                    <a href="@Model.VideoNhanBanGiao" target="_blank" class="btn btn-sm btn-outline-primary ms-2">
+                                        <i class="fas fa-external-link-alt"></i> Mở
+                                    </a>
+                                </div>
+                            }
+                            <input type="file" name="VideoNhanBanGiaoFile" class="form-control file-upload"
+                                   accept="@string.Join(",", settings.AllowedVideoExtensions.Select(e => "video/" + e.TrimStart('.')))"
+                                   data-max-size="@settings.MaxVideoSizeMB" data-type="video" />
+                            <small class="form-text text-muted">
+                                Tối đa @settings.MaxVideoSizeMB MB. Định dạng: @string.Join(", ", settings.AllowedVideoExtensions)
+                                @if (!string.IsNullOrEmpty(Model.VideoNhanBanGiao))
+                                {
+                                    <span class="text-warning">- Chọn file mới sẽ thay thế video cũ</span>
+                                }
+                            </small>
+                            <div class="invalid-feedback"></div>
+                            <div class="file-preview mt-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-film"></i> Video bàn giao cho KH
+                            </label>
+                            @if (!string.IsNullOrEmpty(Model.VideoBanGiaoKH))
+                            {
+                                <div class="mb-2 current-file">
+                                    <video controls style="max-width: 100%; max-height: 200px;">
+                                        <source src="@Model.VideoBanGiaoKH" type="video/mp4">
+                                        Trình duyệt không hỗ trợ video.
+                                    </video>
+                                    <br />
+                                    <small class="text-success"><i class="fas fa-check-circle"></i> Đã có video</small>
+                                    <a href="@Model.VideoBanGiaoKH" target="_blank" class="btn btn-sm btn-outline-primary ms-2">
+                                        <i class="fas fa-external-link-alt"></i> Mở
+                                    </a>
+                                </div>
+                            }
+                            <input type="file" name="VideoBanGiaoKHFile" class="form-control file-upload"
+                                   accept="@string.Join(",", settings.AllowedVideoExtensions.Select(e => "video/" + e.TrimStart('.')))"
+                                   data-max-size="@settings.MaxVideoSizeMB" data-type="video" />
+                            <small class="form-text text-muted">
+                                Tối đa @settings.MaxVideoSizeMB MB. Định dạng: @string.Join(", ", settings.AllowedVideoExtensions)
+                                @if (!string.IsNullOrEmpty(Model.VideoBanGiaoKH))
+                                {
+                                    <span class="text-warning">- Chọn file mới sẽ thay thế video cũ</span>
+                                }
+                            </small>
+                            <div class="invalid-feedback"></div>
+                            <div class="file-preview mt-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Progress -->
+                <div id="uploadProgress" class="mb-3" style="display: none;">
+                    <label class="form-label">Đang tải lên...</label>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-success" id="btnSubmit">
+                        <i class="fas fa-save"></i> Lưu thay đổi
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info">
+                        <i class="fas fa-eye"></i> Xem chi tiết
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('editCarForm');
+            const btnSubmit = document.getElementById('btnSubmit');
+
+            document.querySelectorAll('.file-upload').forEach(function(input) {
+                input.addEventListener('change', function() {
+                    validateFile(this);
+                });
+            });
+
+            function validateFile(input) {
+                const file = input.files[0];
+                const maxSize = parseInt(input.dataset.maxSize) * 1024 * 1024;
+                const fileType = input.dataset.type;
+                const feedback = input.parentElement.querySelector('.invalid-feedback');
+                const preview = input.parentElement.querySelector('.file-preview');
+
+                input.classList.remove('is-invalid', 'is-valid');
+                feedback.textContent = '';
+                if (preview) preview.innerHTML = '';
+
+                if (!file) return;
+
+                if (file.size > maxSize) {
+                    input.classList.add('is-invalid');
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    feedback.textContent = `File quá lớn (${sizeMB} MB). Tối đa ${input.dataset.maxSize} MB.`;
+                    input.value = '';
+                    return;
+                }
+
+                input.classList.add('is-valid');
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+                if (fileType === 'image' && preview) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.innerHTML = `
+                            <div class="alert alert-warning py-2">
+                                <strong>File mới:</strong><br>
+                                <img src="${e.target.result}" class="img-thumbnail mt-1" style="max-height: 150px;">
+                            </div>`;
+                    };
+                    reader.readAsDataURL(file);
+                } else if (fileType === 'video' && preview) {
+                    preview.innerHTML = `
+                        <div class="alert alert-warning py-2">
+                            <strong>File mới:</strong><br>
+                            <i class="fas fa-file-video"></i> ${file.name}<br>
+                            <small>Kích thước: ${sizeMB} MB</small>
+                        </div>`;
+                }
+            }
+
+            form.addEventListener('submit', function(e) {
+                const invalidInputs = form.querySelectorAll('.is-invalid');
+                if (invalidInputs.length > 0) {
+                    e.preventDefault();
+                    alert('Vui lòng kiểm tra lại các file đã chọn.');
+                    return false;
+                }
+
+                const hasFiles = Array.from(form.querySelectorAll('.file-upload'))
+                    .some(input => input.files.length > 0);
+
+                if (hasFiles) {
+                    btnSubmit.disabled = true;
+                    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải lên...';
+                    document.getElementById('uploadProgress').style.display = 'block';
+                }
+            });
+        });
+    </script>
+
+    <style>
+        .file-upload.is-valid {
+            border-color: #198754;
+        }
+
+        .file-upload.is-invalid {
+            border-color: #dc3545;
+        }
+
+        .file-preview img {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        .current-file {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+}

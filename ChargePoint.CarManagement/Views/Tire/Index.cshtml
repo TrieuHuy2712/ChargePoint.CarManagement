@@ -1,0 +1,150 @@
+﻿@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
+@model IEnumerable<TireIndexViewModel>
+@{
+    ViewData["Title"] = "Quản lý lốp xe";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-circle-notch text-dark me-2"></i>
+            Quản lý lốp xe
+        </h1>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>STT</th>
+                            <th>Biển số</th>
+                            <th>Tên xe</th>
+                            <th>ODO hiện tại</th>
+                            <th class="text-center">Trạng thái lốp</th>
+                            <th>Số lần thay/BD</th>
+                            <th class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            var car = item.Car;
+                            var tireRecords = item.TireRecords as IEnumerable<dynamic>;
+                            var totalRecords = item.TotalRecords;
+
+                            <tr>
+                                <td>@car.Stt</td>
+                                <td>
+                                    @if (car.MauBienSo == MauBienSo.Vang)
+                                    {
+                                        <span class="badge" style="background-color: #ffc107; color: #000; border: 1px solid #333; padding: 6px 12px;">
+                                            @car.BienSo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333; padding: 6px 12px;">
+                                            @car.BienSo
+                                        </span>
+                                    }
+                                </td>
+                                <td>@car.TenXe</td>
+                                <td><strong>@car.OdoXe.ToString("N0")</strong> km</td>
+                                <td>
+                                    <!-- Sơ đồ 4 bánh xe -->
+                                    <div class="tire-diagram mx-auto" style="width: 120px;">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            @{
+                                                var truocTrai = tireRecords?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.TruocTrai);
+                                                var truocPhai = tireRecords?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.TruocPhai);
+                                            }
+                                            <span class="tire-icon @(truocTrai != null ? "tire-ok" : "tire-empty")" 
+                                                  title="Trước trái @(truocTrai != null ? "✓" : "- Chưa có dữ liệu")">
+                                                <i class="fas fa-circle"></i>
+                                            </span>
+                                            <span class="tire-icon @(truocPhai != null ? "tire-ok" : "tire-empty")"
+                                                  title="Trước phải @(truocPhai != null ? "✓" : "- Chưa có dữ liệu")">
+                                                <i class="fas fa-circle"></i>
+                                            </span>
+                                        </div>
+                                        <div class="text-center mb-1">
+                                            <small class="text-muted">🚗</small>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            @{
+                                                var sauTrai = tireRecords?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.SauTrai);
+                                                var sauPhai = tireRecords?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.SauPhai);
+                                            }
+                                            <span class="tire-icon @(sauTrai != null ? "tire-ok" : "tire-empty")"
+                                                  title="Sau trái @(sauTrai != null ? "✓" : "- Chưa có dữ liệu")">
+                                                <i class="fas fa-circle"></i>
+                                            </span>
+                                            <span class="tire-icon @(sauPhai != null ? "tire-ok" : "tire-empty")"
+                                                  title="Sau phải @(sauPhai != null ? "✓" : "- Chưa có dữ liệu")">
+                                                <i class="fas fa-circle"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">@totalRecords lần</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="CarDetail" asp-route-id="@car.Id"
+                                           class="btn btn-info btn-sm" title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i> Chi tiết
+                                        </a>
+                                        <a asp-action="Create" asp-route-id="@car.Id"
+                                           class="btn btn-success btn-sm" title="Thêm hồ sơ lốp">
+                                            <i class="fas fa-plus"></i> Thêm
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chú thích -->
+    <div class="mt-3">
+        <small class="text-muted me-4">
+            <span class="tire-icon tire-ok d-inline"><i class="fas fa-circle"></i></span> Đã có dữ liệu lốp
+        </small>
+        <small class="text-muted">
+            <span class="tire-icon tire-empty d-inline"><i class="fas fa-circle"></i></span> Chưa có dữ liệu
+        </small>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        .tire-icon {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 20px;
+        }
+        .tire-ok {
+            color: #198754;
+        }
+        .tire-empty {
+            color: #dee2e6;
+        }
+        .tire-warning {
+            color: #ffc107;
+        }
+        .tire-danger {
+            color: #dc3545;
+        }
+    </style>
+}

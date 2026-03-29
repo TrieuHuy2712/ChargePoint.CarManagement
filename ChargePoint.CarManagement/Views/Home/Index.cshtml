@@ -1,0 +1,305 @@
+﻿@{
+    ViewData["Title"] = "Trang chủ";
+}
+
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 80px 0;
+        margin: -20px -15px 40px -15px;
+        border-radius: 0 0 30px 30px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="2" fill="white" opacity="0.1"/></svg>');
+        animation: float 20s infinite linear;
+    }
+    
+    @@keyframes float {
+        from { transform: translateY(0); }
+        to { transform: translateY(-100px); }
+    }
+    
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .hero-icon {
+        font-size: 100px;
+        margin-bottom: 30px;
+        text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        animation: bounce 2s infinite;
+    }
+    
+    @@keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+    
+    .feature-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px 30px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        height: 100%;
+        border: none;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.3);
+    }
+    
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 40px;
+        color: white;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+    
+    .feature-card h3 {
+        color: #667eea;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    
+    .feature-card p {
+        color: #666;
+        line-height: 1.8;
+    }
+    
+    .stats-section {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 60px 0;
+        margin: 60px -15px;
+        border-radius: 30px;
+    }
+    
+    .stat-box {
+        text-align: center;
+        padding: 30px;
+    }
+    
+    .stat-number {
+        font-size: 48px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 18px;
+        font-weight: 500;
+    }
+    
+    .cta-section {
+        text-align: center;
+        padding: 60px 0;
+    }
+    
+    .btn-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        padding: 15px 40px;
+        border-radius: 50px;
+        font-size: 18px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-gradient:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        color: white;
+    }
+</style>
+
+<div class="hero-section">
+    <div class="container hero-content">
+        <div class="text-center">
+            <div class="hero-icon">
+                <i class="fas fa-charging-station"></i>
+            </div>
+            <h1 class="display-3 fw-bold mb-4">ChargePoint</h1>
+            <h2 class="h3 mb-4">Hệ thống quản lý xe chuyên nghiệp</h2>
+            <p class="lead mb-5">Giải pháp toàn diện cho việc quản lý đội xe điện và thông tin khách hàng</p>
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                <a asp-controller="Cars" asp-action="Index" class="btn btn-light btn-lg px-5 py-3">
+                    <i class="fas fa-car me-2"></i> Quản lý xe
+                </a>
+            }
+            else
+            {
+                <a asp-controller="Account" asp-action="Login" class="btn btn-light btn-lg px-5 py-3">
+                    <i class="fas fa-sign-in-alt me-2"></i> Đăng nhập ngay
+                </a>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h2 class="display-5 fw-bold mb-3">Tính năng nổi bật</h2>
+        <p class="lead text-muted">Những công cụ mạnh mẽ giúp bạn quản lý hiệu quả</p>
+    </div>
+    
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-car"></i>
+                </div>
+                <h3 class="text-center">Quản lý xe</h3>
+                <p class="text-center">
+                    Theo dõi thông tin chi tiết của từng xe bao gồm VIN, biển số, màu xe, 
+                    ODO và tình trạng bàn giao.
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-images"></i>
+                </div>
+                <h3 class="text-center">Quản lý hình ảnh</h3>
+                <p class="text-center">
+                    Lưu trữ hình ảnh xe khi nhận bàn giao từ GSM và khi bàn giao cho khách hàng
+                    một cách dễ dàng.
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="text-center">Quản lý khách hàng</h3>
+                <p class="text-center">
+                    Lưu trữ thông tin khách hàng thuê xe, thông tin xe cho thuê và 
+                    theo dõi lịch sử giao dịch.
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <h3 class="text-center">Theo dõi ODO</h3>
+                <p class="text-center">
+                    Ghi nhận và cập nhật số km đã đi (ODO) của mỗi xe để quản lý 
+                    bảo dưỡng định kỳ.
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="text-center">Báo cáo chi tiết</h3>
+                <p class="text-center">
+                    Xem báo cáo tổng quan về đội xe, tình trạng sử dụng và 
+                    các thông tin thống kê quan trọng.
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3 class="text-center">Giao diện thân thiện</h3>
+                <p class="text-center">
+                    Thiết kế responsive, dễ sử dụng trên mọi thiết bị từ 
+                    máy tính đến điện thoại di động.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="stats-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <div class="stat-number">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-label">Dễ sử dụng</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <div class="stat-number">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="stat-label">Bảo mật cao</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-box">
+                    <div class="stat-number">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="stat-label">Hiệu suất cao</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="cta-section">
+    <div class="container">
+        <h2 class="display-5 fw-bold mb-4">Sẵn sàng bắt đầu?</h2>
+        <p class="lead text-muted mb-4">Hãy trải nghiệm hệ thống quản lý xe hiện đại của chúng tôi</p>
+        @if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            <a asp-controller="Cars" asp-action="Create" class="btn btn-gradient btn-lg">
+                <i class="fas fa-plus-circle me-2"></i> Thêm xe mới
+            </a>
+        }
+        else
+        {
+            <a asp-controller="Account" asp-action="Login" class="btn btn-gradient btn-lg">
+                <i class="fas fa-rocket me-2"></i> Bắt đầu ngay
+            </a>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+}

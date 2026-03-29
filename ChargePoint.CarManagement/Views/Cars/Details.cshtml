@@ -1,0 +1,296 @@
+﻿@model ChargePoint.CarManagement.Models.Car
+@using ChargePoint.CarManagement.Models
+
+@{
+    ViewData["Title"] = "Chi tiết xe";
+}
+
+<div class="container">
+    <h1 class="mb-4">
+        <i class="fas fa-info-circle"></i> Chi tiết xe
+    </h1>
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-car"></i> @Model.TenXe
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 40%;">@Html.DisplayNameFor(model => model.Stt)</th>
+                            <td><span class="badge bg-secondary fs-6">@Model.Stt</span></td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.TenXe)</th>
+                            <td><strong>@Model.TenXe</strong></td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.SoLuong)</th>
+                            <td><span class="badge bg-primary">@Model.SoLuong</span></td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.MauXe)</th>
+                            <td>@Model.MauXe</td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.SoVIN)</th>
+                            <td><code>@Model.SoVIN</code></td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.BienSo)</th>
+                            <td>
+                                @if (!string.IsNullOrEmpty(Model.BienSo))
+                                {
+                                    @if (Model.MauBienSo == MauBienSo.Vang)
+                                    {
+                                        <span class="license-plate license-plate-yellow">@Model.BienSo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="license-plate license-plate-white">@Model.BienSo</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa có</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.MauBienSo)</th>
+                            <td>
+                                @if (Model.MauBienSo == MauBienSo.Vang)
+                                {
+                                    <span class="badge" style="background-color: #ffc107; color: #000;">
+                                        <i class="fas fa-taxi"></i> Biển vàng (Kinh doanh)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333;">
+                                        <i class="fas fa-car"></i> Biển trắng (Cá nhân)
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 40%;">@Html.DisplayNameFor(model => model.TenKhachHang)</th>
+                            <td>
+                                @if (!string.IsNullOrEmpty(Model.TenKhachHang))
+                                {
+                                    <i class="fas fa-user text-primary"></i> 
+                                    @Model.TenKhachHang
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa có</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.OdoXe)</th>
+                            <td>
+                                <strong class="text-success">
+                                    <i class="fas fa-tachometer-alt"></i> @Model.OdoXe.ToString("N0") km
+                                </strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.ThongTinChoThue)</th>
+                            <td>
+                                @if (!string.IsNullOrEmpty(Model.ThongTinChoThue))
+                                {
+                                    <div class="p-2 bg-light rounded">
+                                        <i class="fas fa-info-circle text-info"></i> @Model.ThongTinChoThue
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa có thông tin</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.NgayTao)</th>
+                            <td>
+                                <i class="fas fa-calendar-plus text-success"></i>
+                                @Model.NgayTao.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.NgayCapNhat)</th>
+                            <td>
+                                @if (Model.NgayCapNhat.HasValue)
+                                {
+                                    <i class="fas fa-calendar-check text-warning"></i>
+                                    @Model.NgayCapNhat.Value.ToString("dd/MM/yyyy HH:mm")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa cập nhật</span>
+                                }
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <hr />
+
+            <!-- Hình ảnh bàn giao -->
+            <h5 class="mb-3"><i class="fas fa-images"></i> Hình ảnh bàn giao</h5>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header bg-success text-white">
+                            <i class="fas fa-handshake"></i> Nhận bàn giao từ GSM
+                        </div>
+                        <div class="card-body text-center">
+                            @if (!string.IsNullOrEmpty(Model.HinhAnhNhanBanGiao))
+                            {
+                                <a href="@Model.HinhAnhNhanBanGiao" target="_blank">
+                                    <img src="@Model.HinhAnhNhanBanGiao" alt="GSM" class="img-fluid rounded" style="max-height: 250px; cursor: pointer;" />
+                                </a>
+                                <br />
+                                <a href="@Model.HinhAnhNhanBanGiao" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-external-link-alt"></i> Xem ảnh gốc
+                                </a>
+                            }
+                            else
+                            {
+                                <p class="text-muted py-4"><i class="fas fa-image fa-3x"></i><br />Chưa có hình ảnh</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header bg-info text-white">
+                            <i class="fas fa-user-check"></i> Bàn giao cho khách hàng
+                        </div>
+                        <div class="card-body text-center">
+                            @if (!string.IsNullOrEmpty(Model.HinhAnhBanGiaoKH))
+                            {
+                                <a href="@Model.HinhAnhBanGiaoKH" target="_blank">
+                                    <img src="@Model.HinhAnhBanGiaoKH" alt="KH" class="img-fluid rounded" style="max-height: 250px; cursor: pointer;" />
+                                </a>
+                                <br />
+                                <a href="@Model.HinhAnhBanGiaoKH" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-external-link-alt"></i> Xem ảnh gốc
+                                </a>
+                            }
+                            else
+                            {
+                                <p class="text-muted py-4"><i class="fas fa-image fa-3x"></i><br />Chưa có hình ảnh</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video bàn giao -->
+            <h5 class="mb-3 mt-4"><i class="fas fa-video"></i> Video bàn giao</h5>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header bg-success text-white">
+                            <i class="fas fa-film"></i> Video nhận bàn giao từ GSM
+                        </div>
+                        <div class="card-body text-center">
+                            @if (!string.IsNullOrEmpty(Model.VideoNhanBanGiao))
+                            {
+                                <video controls class="w-100 rounded" style="max-height: 300px;">
+                                    <source src="@Model.VideoNhanBanGiao" type="video/mp4">
+                                    Trình duyệt không hỗ trợ video.
+                                </video>
+                                <br />
+                                <a href="@Model.VideoNhanBanGiao" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-external-link-alt"></i> Mở video
+                                </a>
+                            }
+                            else
+                            {
+                                <p class="text-muted py-4"><i class="fas fa-video fa-3x"></i><br />Chưa có video</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-header bg-info text-white">
+                            <i class="fas fa-film"></i> Video bàn giao cho khách hàng
+                        </div>
+                        <div class="card-body text-center">
+                            @if (!string.IsNullOrEmpty(Model.VideoBanGiaoKH))
+                            {
+                                <video controls class="w-100 rounded" style="max-height: 300px;">
+                                    <source src="@Model.VideoBanGiaoKH" type="video/mp4">
+                                    Trình duyệt không hỗ trợ video.
+                                </video>
+                                <br />
+                                <a href="@Model.VideoBanGiaoKH" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-external-link-alt"></i> Mở video
+                                </a>
+                            }
+                            else
+                            {
+                                <p class="text-muted py-4"><i class="fas fa-video fa-3x"></i><br />Chưa có video</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                    <i class="fas fa-edit"></i> Chỉnh sửa
+                </a>
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </a>
+                <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Xóa
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        /* Style cho biển số xe */
+        .license-plate {
+            display: inline-block;
+            padding: 8px 16px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Arial', sans-serif;
+            letter-spacing: 1px;
+            border-radius: 4px;
+            border: 2px solid #333;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Biển số trắng */
+        .license-plate-white {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        /* Biển số vàng */
+        .license-plate-yellow {
+            background-color: #ffc107;
+            color: #000000;
+        }
+    </style>
+}

@@ -1,0 +1,624 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ChargePoint Car Management</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --primary-start: #667eea;
+            --primary-end: #764ba2;
+            --navbar-height: 64px;
+        }
+
+        /* Navbar Styling */
+        .navbar-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            min-height: var(--navbar-height);
+            padding: 0;
+        }
+
+            .navbar-custom .navbar-brand {
+                font-weight: 700;
+                font-size: 1.4rem;
+                color: #fff !important;
+                padding: 0.75rem 0;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                transition: all 0.3s;
+            }
+
+                .navbar-custom .navbar-brand:hover {
+                    transform: scale(1.02);
+                    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+                }
+
+                .navbar-custom .navbar-brand i {
+                    font-size: 1.6rem;
+                }
+
+            /* Nav Links */
+            .navbar-custom .navbar-nav {
+                gap: 0.5rem;
+            }
+
+            .navbar-custom .nav-link {
+                color: rgba(255, 255, 255, 0.9) !important;
+                font-weight: 500;
+                padding: 0.6rem 1.1rem !important;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin: 0.5rem 0;
+                position: relative;
+                overflow: hidden;
+            }
+
+                .navbar-custom .nav-link::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+                    transition: left 0.5s;
+                }
+
+                .navbar-custom .nav-link:hover::before {
+                    left: 100%;
+                }
+
+                .navbar-custom .nav-link:hover {
+                    color: #fff !important;
+                    background-color: rgba(255, 255, 255, 0.15);
+                    transform: translateY(-1px);
+                }
+
+                .navbar-custom .nav-link.active {
+                    color: #fff !important;
+                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                }
+
+                .navbar-custom .nav-link i {
+                    font-size: 1rem;
+                    width: 20px;
+                    text-align: center;
+                }
+
+            /* Dropdown */
+            .navbar-custom .dropdown-menu {
+                border: none;
+                box-shadow: 0 10px 40px rgba(102, 126, 234, 0.25);
+                border-radius: 12px;
+                padding: 0.75rem;
+                min-width: 220px;
+                margin-top: 0.5rem;
+                background: #fff;
+                animation: fadeInUp 0.3s ease;
+            }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .navbar-custom .dropdown-item {
+            padding: 0.7rem 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+            color: #374151;
+            transition: all 0.2s;
+        }
+
+            .navbar-custom .dropdown-item:hover {
+                background: linear-gradient(135deg, #eef2ff, #faf5ff);
+                color: #667eea;
+                transform: translateX(5px);
+            }
+
+            .navbar-custom .dropdown-item i {
+                width: 20px;
+                text-align: center;
+                color: #9ca3af;
+                transition: color 0.2s;
+            }
+
+            .navbar-custom .dropdown-item:hover i {
+                color: #667eea;
+            }
+
+            .navbar-custom .dropdown-item.active {
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: #fff;
+            }
+
+                .navbar-custom .dropdown-item.active i {
+                    color: #fff;
+                }
+
+        .navbar-custom .dropdown-divider {
+            margin: 0.5rem 0;
+            border-color: #e5e7eb;
+        }
+
+        /* User Menu */
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+            .user-menu:hover {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1));
+                transform: translateY(-2px);
+                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #a5b4fc, #c4b5fd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #4338ca;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+
+        /* Navbar Toggler */
+        .navbar-custom .navbar-toggler {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+            .navbar-custom .navbar-toggler:hover {
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+
+            .navbar-custom .navbar-toggler:focus {
+                box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+            }
+
+        .navbar-custom .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.9%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+
+        /* Main Content */
+        body {
+            padding-top: var(--navbar-height);
+            background: linear-gradient(180deg, #f5f7ff 0%, #f8fafc 100%);
+            min-height: 100vh;
+        }
+
+        .main-container {
+            padding: 2rem 0;
+        }
+
+        /* Cards Enhancement */
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.1);
+            transition: all 0.3s;
+        }
+
+            .card:hover {
+                box-shadow: 0 8px 30px rgba(102, 126, 234, 0.15);
+            }
+
+        /* Buttons */
+        .btn-success {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.35);
+            transition: all 0.3s;
+        }
+
+            .btn-success:hover {
+                background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.45);
+            }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.35);
+        }
+
+            .btn-primary:hover {
+                background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+                transform: translateY(-2px);
+            }
+
+        /* Footer */
+        .footer-custom {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            color: #a5b4fc;
+            padding: 1.5rem 0;
+            margin-top: 3rem;
+        }
+
+            .footer-custom a {
+                color: #c4b5fd;
+                text-decoration: none;
+                transition: color 0.3s;
+            }
+
+                .footer-custom a:hover {
+                    color: #e9d5ff;
+                }
+
+        /* Alerts */
+        .alert-success {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            border: 1px solid #6ee7b7;
+            color: #065f46;
+            border-radius: 12px;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            border-radius: 12px;
+        }
+
+        /* Responsive */
+        @@media (max-width: 991.98px) {
+            .navbar-custom .navbar-collapse {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                margin: 0.5rem -1rem 0;
+                padding: 1rem;
+                border-radius: 0 0 16px 16px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            }
+
+            .navbar-custom .nav-link {
+                padding: 0.75rem 1rem !important;
+                border-radius: 10px;
+            }
+
+            .user-menu {
+                margin-top: 1rem;
+                justify-content: center;
+            }
+
+            .navbar-custom .navbar-nav {
+                gap: 0.25rem;
+            }
+        }
+
+        /* Page Title */
+        h1 {
+            color: #4338ca;
+        }
+
+        /* Table Styling */
+        .table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+            .table thead th {
+                border: none;
+                padding: 1rem;
+                font-weight: 600;
+            }
+
+        .table tbody tr:hover {
+            background-color: #f5f7ff;
+        }
+
+        /* Text Colors */
+        .text-primary {
+            color: #667eea !important;
+        }
+
+        /* Form Controls Focus */
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+        }
+
+        /* Links */
+        a {
+            color: #667eea;
+        }
+
+            a:hover {
+                color: #764ba2;
+            }
+
+        /* Fix footer stick to bottom */
+        html {
+            height: 100%;
+        }
+
+        body {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding-top: var(--navbar-height);
+            background: linear-gradient(180deg, #f5f7ff 0%, #f8fafc 100%);
+            margin: 0;
+        }
+
+        .main-container {
+            flex: 1 0 auto;
+            padding: 2rem 0;
+        }
+
+        .footer-custom {
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Cars" asp-action="Index">
+                    <i class="fas fa-charging-station"></i>
+                    <span>ChargePoint</span>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="mainNavbar">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")"
+                               asp-area="" asp-controller="Home" asp-action="Index">
+                                <i class="fas fa-home"></i>
+                                <span>Trang chủ</span>
+                            </a>
+                        </li>
+
+                        <!-- Quản lý xe - Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle @(ViewContext.RouteData.Values["controller"]?.ToString() == "Cars" ? "active" : "")"
+                               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-car"></i>
+                                <span>Quản lý xe</span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Cars" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")"
+                                       asp-controller="Cars" asp-action="Index">
+                                        <i class="fas fa-list"></i>
+                                        Danh sách xe
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Cars" && ViewContext.RouteData.Values["action"]?.ToString() == "Create" ? "active" : "")"
+                                       asp-controller="Cars" asp-action="Create">
+                                        <i class="fas fa-plus-circle"></i>
+                                        Thêm xe mới
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "TrafficViolation" ? "active" : "")"
+                               asp-area="" asp-controller="TrafficViolation" asp-action="Index">
+                                <i class="fas fa-gavel"></i>
+                                <span>Phạt nguội</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Maintenance" ? "active" : "")"
+                               asp-area="" asp-controller="Maintenance" asp-action="Index">
+                                <i class="fas fa-tools"></i>
+                                <span>Bảo dưỡng</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Tire" ? "active" : "")"
+                               asp-area="" asp-controller="Tire" asp-action="Index">
+                                <i class="fas fa-circle-notch"></i>
+                                <span>Quản lý lốp</span>
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-chart-pie"></i>
+                                <span>Báo cáo</span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-file-alt"></i>
+                                        Báo cáo tổng hợp
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        Báo cáo theo tháng
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-file-excel"></i>
+                                        Xuất Excel
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-file-pdf"></i>
+                                        Xuất PDF
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <ul class="navbar-nav">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link p-0" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <div class="user-menu">
+                                        <div class="user-avatar">
+                                            @(User.Identity.Name?.Substring(0, 1).ToUpper() ?? "U")
+                                        </div>
+                                        <div class="user-info d-none d-md-flex">
+                                            <span class="user-name">@User.Identity.Name</span>
+                                            <span class="user-role">Quản trị viên</span>
+                                        </div>
+                                        <i class="fas fa-chevron-down ms-1" style="font-size: 0.7rem; opacity: 0.8;"></i>
+                                    </div>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="fas fa-user-circle"></i>
+                                            Thông tin cá nhân
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="fas fa-cog"></i>
+                                            Cài đặt
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="fas fa-bell"></i>
+                                            Thông báo
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="fas fa-sign-out-alt"></i>
+                                                Đăng xuất
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="Identity" asp-page="/Account/Login">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                    <span>Đăng nhập</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="Identity" asp-page="/Account/Register">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>Đăng ký</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="main-container">
+        <main role="main" class="container">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="footer-custom">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <i class="fas fa-charging-station me-2"></i>
+                    <span>&copy; @DateTime.Now.Year <strong>ChargePoint Car Management</strong></span>
+                </div>
+                <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
+                    <a href="#" class="me-3"><i class="fas fa-question-circle me-1"></i>Trợ giúp</a>
+                    <a href="#" class="me-3"><i class="fas fa-shield-alt me-1"></i>Bảo mật</a>
+                    <a href="#"><i class="fas fa-envelope me-1"></i>Liên hệ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

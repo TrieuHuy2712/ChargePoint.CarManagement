@@ -1,0 +1,230 @@
+﻿@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
+@model TireCareDetailVM
+@{
+    ViewData["Title"] = "Chi tiết lốp xe";
+    var car = Model.Car;
+    var tiresByPosition = Model.TireRecordsPosition;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-circle-notch text-dark me-2"></i>
+            Quản lý lốp xe
+        </h1>
+        <div>
+            <a asp-action="History" asp-route-id="@car?.Id" class="btn btn-outline-info">
+                <i class="fas fa-history"></i> Lịch sử
+            </a>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (car != null)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-car me-2"></i>
+            <strong>Xe:</strong> @car.TenXe -
+            <strong>Biển số:</strong>
+            @if (car.MauBienSo == MauBienSo.Vang)
+            {
+                <span class="badge" style="background-color: #ffc107; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            else
+            {
+                <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            -
+            <strong>ODO hiện tại:</strong> @car.OdoXe.ToString("N0") km
+        </div>
+    }
+
+    <!-- Sơ đồ lốp xe -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-car me-2"></i>Sơ đồ lốp xe</h5>
+        </div>
+        <div class="card-body">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-6">
+                    <div class="car-diagram p-4" style="background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); border-radius: 20px;">
+                        <!-- Hàng trước -->
+                        <div class="row mb-4">
+                            <div class="col-6 text-center">
+                                @{
+                                    var truocTrai = tiresByPosition?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.TruocTrai);
+                                    var truocTraiRecord = truocTrai?.LastRecord as TireRecord;
+                                }
+                                <div class="tire-card @(truocTraiRecord != null ? "has-data" : "")">
+                                    <div class="tire-position">↖️ TRƯỚC TRÁI</div>
+                                    @if (truocTraiRecord != null)
+                                    {
+                                        <div class="tire-info">
+                                            <small class="d-block"><strong>@truocTraiRecord.HangLop @truocTraiRecord.ModelLop</strong></small>
+                                            <small class="d-block text-muted">@truocTraiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
+                                            <small class="d-block text-muted">@truocTraiRecord.OdoThayLop.ToString("N0") km</small>
+                                        </div>
+                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.TruocTrai)"
+                                           class="btn btn-sm btn-outline-primary mt-2">
+                                            <i class="fas fa-plus"></i> Cập nhật
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <div class="tire-info text-muted">
+                                            <small>Chưa có dữ liệu</small>
+                                        </div>
+                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.TruocTrai)"
+                                           class="btn btn-sm btn-success mt-2">
+                                            <i class="fas fa-plus"></i> Thêm
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-6 text-center">
+                                @{
+                                    var truocPhai = tiresByPosition?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.TruocPhai);
+                                    var truocPhaiRecord = truocPhai?.LastRecord as TireRecord;
+                                }
+                                <div class="tire-card @(truocPhaiRecord != null ? "has-data" : "")">
+                                    <div class="tire-position">TRƯỚC PHẢI ↗️</div>
+                                    @if (truocPhaiRecord != null)
+                                    {
+                                        <div class="tire-info">
+                                            <small class="d-block"><strong>@truocPhaiRecord.HangLop @truocPhaiRecord.ModelLop</strong></small>
+                                            <small class="d-block text-muted">@truocPhaiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
+                                            <small class="d-block text-muted">@truocPhaiRecord.OdoThayLop.ToString("N0") km</small>
+                                        </div>
+                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.TruocPhai)"
+                                           class="btn btn-sm btn-outline-primary mt-2">
+                                            <i class="fas fa-plus"></i> Cập nhật
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <div class="tire-info text-muted">
+                                            <small>Chưa có dữ liệu</small>
+                                        </div>
+                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.TruocPhai)"
+                                           class="btn btn-sm btn-success mt-2">
+                                            <i class="fas fa-plus"></i> Thêm
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Icon xe -->
+                        <div class="text-center mb-4">
+                            <div class="car-icon">
+                                <i class="fas fa-car-side fa-4x text-secondary"></i>
+                            </div>
+                        </div>
+
+                        <!-- Hàng sau -->
+                        <div class="row">
+                            <div class="col-6 text-center">
+                                @{
+                                    var sauTrai = tiresByPosition?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.SauTrai);
+                                    var sauTraiRecord = sauTrai?.LastRecord as TireRecord;
+                                }
+                                <div class="tire-card @(sauTraiRecord != null ? "has-data" : "")">
+                                    <div class="tire-position">↙️ SAU TRÁI</div>
+                                    @if (sauTraiRecord != null)
+                                    {
+                                        <div class="tire-info">
+                                            <small class="d-block"><strong>@sauTraiRecord.HangLop @sauTraiRecord.ModelLop</strong></small>
+                                            <small class="d-block text-muted">@sauTraiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
+                                            <small class="d-block text-muted">@sauTraiRecord.OdoThayLop.ToString("N0") km</small>
+                                        </div>
+                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.SauTrai)"
+                                           class="btn btn-sm btn-outline-primary mt-2">
+                                            <i class="fas fa-plus"></i> Cập nhật
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <div class="tire-info text-muted">
+                                            <small>Chưa có dữ liệu</small>
+                                        </div>
+                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.SauTrai)"
+                                           class="btn btn-sm btn-success mt-2">
+                                            <i class="fas fa-plus"></i> Thêm
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-6 text-center">
+                                @{
+                                    var sauPhai = tiresByPosition?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.SauPhai);
+                                    var sauPhaiRecord = sauPhai?.LastRecord as TireRecord;
+                                }
+                                <div class="tire-card @(sauPhaiRecord != null ? "has-data" : "")">
+                                    <div class="tire-position">SAU PHẢI ↘️</div>
+                                    @if (sauPhaiRecord != null)
+                                    {
+                                        <div class="tire-info">
+                                            <small class="d-block"><strong>@sauPhaiRecord.HangLop @sauPhaiRecord.ModelLop</strong></small>
+                                            <small class="d-block text-muted">@sauPhaiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
+                                            <small class="d-block text-muted">@sauPhaiRecord.OdoThayLop.ToString("N0") km</small>
+                                        </div>
+                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.SauPhai)"
+                                           class="btn btn-sm btn-outline-primary mt-2">
+                                            <i class="fas fa-plus"></i> Cập nhật
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <div class="tire-info text-muted">
+                                            <small>Chưa có dữ liệu</small>
+                                        </div>
+                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.SauPhai)"
+                                           class="btn btn-sm btn-success mt-2">
+                                            <i class="fas fa-plus"></i> Thêm
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        .tire-card {
+            background: white;
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 140px;
+            transition: all 0.3s;
+        }
+        .tire-card.has-data {
+            border: 2px solid #198754;
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        }
+        .tire-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .tire-position {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .tire-info {
+            font-size: 12px;
+        }
+        .car-icon {
+            opacity: 0.5;
+        }
+    </style>
+}

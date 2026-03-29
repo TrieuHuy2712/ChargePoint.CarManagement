@@ -1,0 +1,82 @@
+﻿@model ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels.TrafficViolationHistoryVM
+@{
+    ViewData["Title"] = "Lịch sử kiểm tra phạt nguội";
+    var car = Model.Car;
+    var checks = Model.Checks;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-history text-info me-2"></i>
+            Lịch sử kiểm tra: @car.BienSo - @car.TenXe
+        </h1>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            @if (checks == null || !checks.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Chưa có lịch sử kiểm tra nào cho xe này.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Ngày kiểm tra</th>
+                                <th>Trạng thái</th>
+                                <th>Số vi phạm</th>
+                                <th>Tổng tiền phạt</th>
+                                <th>Người kiểm tra</th>
+                                <th>Ghi chú</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in checks)
+                            {
+                                <tr>
+                                    <td>@item.NgayKiemTra.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        @if (item.CoViPham)
+                                        {
+                                            <span class="badge bg-danger">Có vi phạm</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Không vi phạm</span>
+                                        }
+                                    </td>
+                                    <td>@item.SoLuongViPham</td>
+                                    <td>@item.TongTienPhat.ToString("N0") VNĐ</td>
+                                    <td>@item.NguoiKiemTra</td>
+                                    <td>@item.GhiChu</td>
+                                    <td>
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" 
+                                              onsubmit="return confirm('Bạn có chắc muốn xóa?');">
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+}
