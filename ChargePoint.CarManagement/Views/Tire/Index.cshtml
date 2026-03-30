@@ -1,7 +1,13 @@
-﻿@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
-@model IEnumerable<TireIndexViewModel>
+﻿@using ChargePoint.CarManagement.Models.ViewModels
+@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
+@model PagedResult<TireIndexViewModel>
 @{
     ViewData["Title"] = "Quản lý lốp xe";
+    var searchQuery = Model.SearchQuery ?? "";
+    var page = Model.PageNumber;
+    var pageSize = Model.PageSize;
+    var totalCount = Model.TotalCount;
+    var totalPages = Model.TotalPages;
 }
 
 <div class="container-fluid">
@@ -12,8 +18,50 @@
         </h1>
     </div>
 
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <form asp-action="Index" method="get" class="d-flex" role="search">
+                <input name="q" value="@searchQuery" class="form-control me-2" placeholder="Tìm theo biển số, tên xe, VIN, khách hàng, màu..." aria-label="Search" />
+                <button class="btn btn-outline-primary" type="submit">
+                    <i class="fas fa-search"></i> Tìm
+                </button>
+                @if (!string.IsNullOrWhiteSpace(searchQuery))
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-times"></i> Xóa
+                    </a>
+                }
+            </form>
+        </div>
+    </div>
+
     <div class="card shadow">
         <div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+                <div>
+                    @if (!string.IsNullOrWhiteSpace(searchQuery))
+                    {
+                        <small class="text-muted">Kết quả tìm kiếm cho: <strong>@searchQuery</strong> — @totalCount kết quả</small>
+                    }
+                    else
+                    {
+                        <small class="text-muted">@totalCount xe</small>
+                    }
+                </div>
+                <div>
+                    <form asp-action="Index" method="get" class="d-inline">
+                        <input type="hidden" name="q" value="@searchQuery" />
+                        <label class="me-2">Hiển thị</label>
+                        <select name="pageSize" class="form-select d-inline-block" style="width: auto;"
+                                onchange="this.form.submit()">
+                            <option value="5" selected="@(pageSize == 5 ? "selected" : null)">5</option>
+                            <option value="10" selected="@(pageSize == 10 ? "selected" : null)">10</option>
+                            <option value="25" selected="@(pageSize == 25 ? "selected" : null)">25</option>
+                            <option value="50" selected="@(pageSize == 50 ? "selected" : null)">50</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
@@ -39,13 +87,13 @@
                                 <td>
                                     @if (car.MauBienSo == MauBienSo.Vang)
                                     {
-                                        <span class="badge" style="background-color: #ffc107; color: #000; border: 1px solid #333; padding: 6px 12px;">
+                                        <span class="license-plate license-plate-yellow">
                                             @car.BienSo
                                         </span>
                                     }
                                     else
                                     {
-                                        <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333; padding: 6px 12px;">
+                                        <span class="license-plate license-plate-white">
                                             @car.BienSo
                                         </span>
                                     }
@@ -88,17 +136,17 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     <span class="badge bg-secondary">@totalRecords lần</span>
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group" role="group">
+                                    <div class="d-flex gap-2" role="group">
                                         <a asp-action="CarDetail" asp-route-id="@car.Id"
-                                           class="btn btn-info btn-sm" title="Xem chi tiết">
+                                           class="btn btn-info" title="Xem chi tiết">
                                             <i class="fas fa-eye"></i> Chi tiết
                                         </a>
                                         <a asp-action="Create" asp-route-id="@car.Id"
-                                           class="btn btn-success btn-sm" title="Thêm hồ sơ lốp">
+                                           class="btn btn-success" title="Thêm hồ sơ lốp">
                                             <i class="fas fa-plus"></i> Thêm
                                         </a>
                                     </div>

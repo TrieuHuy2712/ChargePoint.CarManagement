@@ -1,6 +1,7 @@
 using ChargePoint.CarManagement.Data;
 using ChargePoint.CarManagement.Models;
 using ChargePoint.CarManagement.Models.ViewModels.TireViewModels;
+using ChargePoint.CarManagement.Models.ViewModels;
 using ChargePoint.CarManagement.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,19 +28,50 @@ namespace ChargePoint.CarManagement.Controllers
         }
 
         // GET: Tire
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
         {
-            // Lấy danh sách xe
-            var cars = await _context.Cars.OrderBy(c => c.Stt).ToListAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
 
-            // Lấy tất cả tire records
-            var allTireRecords = await _context.TireRecords.ToListAsync();
+            // Base query for cars
+            var carQuery = _context.Cars.AsQueryable();
 
-            // Xử lý trong memory để tránh SQL APPLY
-            var carsWithTires = cars.Select(car => new TireIndexViewModel
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var key = q.Trim();
+                var keyLower = key.ToLower();
+
+                carQuery = carQuery.Where(c =>
+                    (c.BienSo != null && c.BienSo.ToLower().Contains(keyLower)) ||
+                    (c.TenXe != null && c.TenXe.ToLower().Contains(keyLower)) ||
+                    (c.TenKhachHang != null && c.TenKhachHang.ToLower().Contains(keyLower)) ||
+                    (c.SoVIN != null && c.SoVIN.ToLower().Contains(keyLower)) ||
+                    (c.MauXe != null && c.MauXe.ToLower().Contains(keyLower))
+                );
+            }
+
+            var totalCount = await carQuery.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var pagedCars = await carQuery
+                .OrderBy(c => c.Stt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var carIds = pagedCars.Select(c => c.Id).ToList();
+
+            // Load tire records only for paged cars
+            var tireRecords = await _context.TireRecords
+                .Where(t => carIds.Contains(t.CarId))
+                .ToListAsync();
+
+            // Compose view models
+            var items = pagedCars.Select(car => new TireIndexViewModel
             {
                 Car = car,
-                TireRecords = allTireRecords
+                TireRecords = tireRecords
                     .Where(t => t.CarId == car.Id)
                     .GroupBy(t => t.ViTriLop)
                     .Select(g => new TireRecordDetailIndexVM
@@ -48,9 +80,19 @@ namespace ChargePoint.CarManagement.Controllers
                         LastRecord = g.OrderByDescending(t => t.NgayThucHien).FirstOrDefault()
                     })
                     .ToList(),
-                TotalRecords = allTireRecords.Count(t => t.CarId == car.Id)
+                TotalRecords = tireRecords.Count(t => t.CarId == car.Id)
             }).ToList();
-            return View(carsWithTires);
+
+            var viewModel = new PagedResult<TireIndexViewModel>
+            {
+                Items = items,
+                PageNumber = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                SearchQuery = q ?? string.Empty
+            };
+
+            return View(viewModel);
         }
 
         // GET: Tire/CarDetail/5

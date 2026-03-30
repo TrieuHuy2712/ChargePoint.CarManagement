@@ -1,6 +1,13 @@
-﻿@model IEnumerable<ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels.TrafficViolationIndexVM>
+﻿@using ChargePoint.CarManagement.Models.ViewModels
+@using ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels
+@model PagedResult<TrafficViolationIndexVM>
 @{
     ViewData["Title"] = "Kiểm tra phạt nguội";
+    var searchQuery = Model.SearchQuery ?? "";
+    var page = Model.PageNumber;
+    var pageSize = Model.PageSize;
+    var totalCount = Model.TotalCount;
+    var totalPages = Model.TotalPages;
 }
 
 <div class="container-fluid">
@@ -9,6 +16,23 @@
             <i class="fas fa-gavel text-danger me-2"></i>
             Kiểm tra phạt nguội
         </h1>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <form asp-action="Index" method="get" class="d-flex" role="search">
+                <input name="q" value="@searchQuery" class="form-control me-2" placeholder="Tìm theo biển số, tên xe, VIN, khách hàng, màu..." aria-label="Search" />
+                <button class="btn btn-outline-primary" type="submit">
+                    <i class="fas fa-search"></i> Tìm
+                </button>
+                @if (!string.IsNullOrWhiteSpace(searchQuery))
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-times"></i> Xóa
+                    </a>
+                }
+            </form>
+        </div>
     </div>
 
     <!-- Modal hiển thị kết quả tra cứu -->
@@ -62,6 +86,31 @@
 
     <div class="card shadow">
         <div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+                <div>
+                    @if (!string.IsNullOrWhiteSpace(searchQuery))
+                    {
+                        <small class="text-muted">Kết quả tìm kiếm cho: <strong>@searchQuery</strong> — @totalCount kết quả</small>
+                    }
+                    else
+                    {
+                        <small class="text-muted">@totalCount xe</small>
+                    }
+                </div>
+                <div>
+                    <form asp-action="Index" method="get" class="d-inline">
+                        <input type="hidden" name="q" value="@searchQuery" />
+                        <label class="me-2">Hiển thị</label>
+                        <select name="pageSize" class="form-select d-inline-block" style="width: auto;"
+                                onchange="this.form.submit()">
+                            <option value="5" selected="@(pageSize == 5 ? "selected" : null)">5</option>
+                            <option value="10" selected="@(pageSize == 10 ? "selected" : null)">10</option>
+                            <option value="25" selected="@(pageSize == 25 ? "selected" : null)">25</option>
+                            <option value="50" selected="@(pageSize == 50 ? "selected" : null)">50</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
@@ -85,7 +134,20 @@
                             : "";
                             <tr>
                                 <td>@car.Stt</td>
-                                <td><strong>@car.BienSo</strong></td>
+                                <td>
+                                    @if (car.MauBienSo == MauBienSo.Vang)
+                                    {
+                                        <span class="license-plate license-plate-yellow">
+                                            @car.BienSo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="license-plate license-plate-white">
+                                            @car.BienSo
+                                        </span>
+                                    }
+                                </td>
                                 <td>@car.TenXe</td>
                                 <td>@car.TenKhachHang</td>
                                 <td>
@@ -122,11 +184,11 @@
                                     }
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group" role="group">
+                                    <div class="btn-group d-flex gap-2" role="group">
                                         @if (!string.IsNullOrEmpty(bienSoFormatted))
                                         {
                                             <button type="button"
-                                                    class="btn btn-primary btn-sm btn-check-online"
+                                                    class="btn btn-outline-secondary btn-check-online"
                                                     data-car-id="@car.Id"
                                                     data-bien-so="@bienSoFormatted"
                                                     data-bien-so-display="@car.BienSo"
@@ -135,12 +197,12 @@
                                             </button>
                                         }
                                         <a asp-action="Check" asp-route-id="@car.Id"
-                                           class="btn btn-success btn-sm"
+                                           class="btn btn-success"
                                            title="Ghi nhận kết quả">
                                             <i class="fas fa-plus"></i> Ghi nhận
                                         </a>
                                         <a asp-action="History" asp-route-id="@car.Id"
-                                           class="btn btn-info btn-sm"
+                                           class="btn btn-info"
                                            title="Xem lịch sử">
                                             <i class="fas fa-history"></i> Lịch sử
                                         </a>

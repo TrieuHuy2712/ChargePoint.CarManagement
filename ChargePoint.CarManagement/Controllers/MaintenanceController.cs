@@ -1,5 +1,6 @@
 using ChargePoint.CarManagement.Data;
 using ChargePoint.CarManagement.Models;
+using ChargePoint.CarManagement.Models.ViewModels;
 using ChargePoint.CarManagement.Models.ViewModels.MaintenanceViewModels;
 using ChargePoint.CarManagement.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -28,22 +29,65 @@ namespace ChargePoint.CarManagement.Controllers
         }
 
         // GET: Maintenance
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
         {
-            // Avoid complex nested queries that may use APPLY (not supported by SQLite)
-            var cars = await _context.Cars.OrderBy(c => c.Stt).ToListAsync();
-            var allMaintenanceRecords = await _context.MaintenanceRecords.ToListAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
 
-            var carsWithMaintenance = cars.Select(c => new MaintenanceIndexViewModel
+            // Base query for cars
+            var carQuery = _context.Cars.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(q))
             {
-                Car = c,
-                LastMaintenance = allMaintenanceRecords
-                    .Where(m => m.CarId == c.Id)
+                var key = q.Trim();
+                var keyLower = key.ToLower();
+
+                carQuery = carQuery.Where(c =>
+                    (c.BienSo != null && c.BienSo.ToLower().Contains(keyLower)) ||
+                    (c.TenXe != null && c.TenXe.ToLower().Contains(keyLower)) ||
+                    (c.TenKhachHang != null && c.TenKhachHang.ToLower().Contains(keyLower)) ||
+                    (c.SoVIN != null && c.SoVIN.ToLower().Contains(keyLower)) ||
+                    (c.MauXe != null && c.MauXe.ToLower().Contains(keyLower))
+                );
+            }
+
+            var totalCount = await carQuery.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var pagedCars = await carQuery
+                .OrderBy(c => c.Stt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var carIds = pagedCars.Select(c => c.Id).ToList();
+
+            // load maintenance records only for current page cars
+            var maintenanceRecords = await _context.MaintenanceRecords
+                .Where(m => carIds.Contains(m.CarId))
+                .ToListAsync();
+
+            var items = pagedCars.Select(car => new MaintenanceIndexViewModel
+            {
+                Car = car,
+                LastMaintenance = maintenanceRecords
+                    .Where(m => m.CarId == car.Id)
                     .OrderByDescending(m => m.NgayBaoDuong)
                     .FirstOrDefault(),
-                TotalMaintenances = allMaintenanceRecords.Count(m => m.CarId == c.Id)
+                TotalMaintenances = maintenanceRecords.Count(m => m.CarId == car.Id)
             }).ToList();
-            return View(carsWithMaintenance);
+
+            var viewModel = new PagedResult<MaintenanceIndexViewModel>
+            {
+                Items = items,
+                PageNumber = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                SearchQuery = q ?? string.Empty
+            };
+
+            return View(viewModel);
         }
 
         // GET: Maintenance/History/5

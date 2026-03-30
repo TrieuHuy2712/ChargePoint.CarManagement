@@ -1,5 +1,6 @@
 using ChargePoint.CarManagement.Data;
 using ChargePoint.CarManagement.Models;
+using ChargePoint.CarManagement.Models.ViewModels;
 using ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels;
 using ChargePoint.CarManagement.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -23,22 +24,63 @@ namespace ChargePoint.CarManagement.Controllers
         }
 
         // GET: TrafficViolation
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
         {
-            // Lấy danh sách xe riêng để tránh SQL APPLY
-            var cars = await _context.Cars.OrderBy(c => c.Stt).ToListAsync();
-            var allChecks = await _context.TrafficViolationChecks.ToListAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
 
-            var carsWithLastCheck = cars.Select(c => new TrafficViolationIndexVM
+            // Base query
+            var carQuery = _context.Cars.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var key = q.Trim();
+                var keyLower = key.ToLower();
+
+                carQuery = carQuery.Where(c =>
+                    (c.BienSo != null && c.BienSo.ToLower().Contains(keyLower)) ||
+                    (c.TenXe != null && c.TenXe.ToLower().Contains(keyLower)) ||
+                    (c.TenKhachHang != null && c.TenKhachHang.ToLower().Contains(keyLower)) ||
+                    (c.SoVIN != null && c.SoVIN.ToLower().Contains(keyLower)) ||
+                    (c.MauXe != null && c.MauXe.ToLower().Contains(keyLower))
+                );
+            }
+
+            var totalCount = await carQuery.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (page > totalPages && totalPages > 0) page = totalPages;
+
+            var pagedCars = await carQuery
+                .OrderBy(c => c.Stt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var carIds = pagedCars.Select(c => c.Id).ToList();
+
+            // Load checks only for current page cars
+            var checks = await _context.TrafficViolationChecks
+                .Where(v => carIds.Contains(v.CarId))
+                .ToListAsync();
+
+            var items = pagedCars.Select(c => new TrafficViolationIndexVM
             {
                 Car = c,
-                LastCheck = allChecks
-                    .Where(v => v.CarId == c.Id)
-                    .OrderByDescending(v => v.NgayKiemTra)
-                    .FirstOrDefault()
+                LastCheck = checks.Where(v => v.CarId == c.Id)
+                                  .OrderByDescending(v => v.NgayKiemTra)
+                                  .FirstOrDefault(),
             }).ToList();
 
-            return View(carsWithLastCheck);
+            var viewModel = new PagedResult<TrafficViolationIndexVM>
+            {
+                Items = items,
+                PageNumber = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                SearchQuery = q ?? string.Empty
+            };
+
+            return View(viewModel);
         }
 
         // GET: TrafficViolation/History/5
