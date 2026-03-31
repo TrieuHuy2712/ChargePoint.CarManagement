@@ -119,7 +119,7 @@ namespace ChargePoint.CarManagement.Controllers
                         var primaryUrl = await _imageUploadService.UploadFileAsync(PrimaryImageFile, bienSo, "Primary");
                         var primaryMedia = new CarMedia
                         {
-                            Type = MediaType.Image_GSM, // treat primary as an image (GSM by default)
+                            Type = MediaType.Image_Primary,
                             Url = primaryUrl,
                             FileName = PrimaryImageFile.FileName,
                             IsPrimary = true
@@ -234,6 +234,7 @@ namespace ChargePoint.CarManagement.Controllers
         public async Task<IActionResult> Edit(
             int id,
             CarViewModel vm,
+            IFormFile? PrimaryImageFile,
             IFormFile[]? HinhAnhNhanBanGiaoFiles,
             IFormFile[]? HinhAnhBanGiaoKHFiles,
             IFormFile[]? VideoNhanBanGiaoFiles,
@@ -291,13 +292,37 @@ namespace ChargePoint.CarManagement.Controllers
                 existing.ThongTinChoThue = vm.ThongTinChoThue;
                 existing.OdoXe = vm.OdoXe;
 
+                existing.Media ??= new List<CarMedia>();
+
+                // If a new primary image file was provided, upload it and make it primary.
+                if (PrimaryImageFile != null && PrimaryImageFile.Length > 0)
+                {
+                    var primaryUrl = await _imageUploadService.UploadFileAsync(PrimaryImageFile, bienSo, "Primary");
+                    var primaryMedia = new CarMedia
+                    {
+                        CarId = existing.Id,
+                        Type = MediaType.Image_Primary,
+                        Url = primaryUrl,
+                        FileName = PrimaryImageFile.FileName,
+                        IsPrimary = true
+                    };
+
+                    // clear any existing primary flags
+                    foreach (var m in existing.Media)
+                    {
+                        m.IsPrimary = false;
+                    }
+
+                    existing.Media.Add(primaryMedia);
+                    existing.PrimaryImageUrl = primaryUrl;
+                }
+
                 // Handle new uploads (append)
                 if (HinhAnhNhanBanGiaoFiles != null)
                 {
                     foreach (var file in HinhAnhNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
                     {
                         var url = await _imageUploadService.UploadFileAsync(file, bienSo, "NhanBanGiao_GSM");
-                        existing.Media ??= new List<CarMedia>();
                         existing.Media.Add(new CarMedia
                         {
                             CarId = existing.Id,
@@ -313,7 +338,6 @@ namespace ChargePoint.CarManagement.Controllers
                     foreach (var file in HinhAnhBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
                     {
                         var url = await _imageUploadService.UploadFileAsync(file, bienSo, "BanGiao_KH");
-                        existing.Media ??= new List<CarMedia>();
                         existing.Media.Add(new CarMedia
                         {
                             CarId = existing.Id,
@@ -329,7 +353,6 @@ namespace ChargePoint.CarManagement.Controllers
                     foreach (var file in VideoNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
                     {
                         var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_NhanBanGiao");
-                        existing.Media ??= new List<CarMedia>();
                         existing.Media.Add(new CarMedia
                         {
                             CarId = existing.Id,
@@ -345,7 +368,6 @@ namespace ChargePoint.CarManagement.Controllers
                     foreach (var file in VideoBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
                     {
                         var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_BanGiaoKH");
-                        existing.Media ??= new List<CarMedia>();
                         existing.Media.Add(new CarMedia
                         {
                             CarId = existing.Id,
@@ -356,17 +378,20 @@ namespace ChargePoint.CarManagement.Controllers
                     }
                 }
 
-                // Update primary image selection based on vm.PrimaryImageUrl
-                if (!string.IsNullOrEmpty(vm.PrimaryImageUrl))
+                // If no PrimaryImageFile was uploaded, respect vm.PrimaryImageUrl (selection from existing images)
+                if (PrimaryImageFile == null || PrimaryImageFile.Length == 0)
                 {
-                    if (existing.Media != null)
+                    if (!string.IsNullOrEmpty(vm.PrimaryImageUrl))
                     {
-                        foreach (var m in existing.Media)
+                        if (existing.Media != null)
                         {
-                            m.IsPrimary = string.Equals(m.Url, vm.PrimaryImageUrl, StringComparison.OrdinalIgnoreCase);
+                            foreach (var m in existing.Media)
+                            {
+                                m.IsPrimary = string.Equals(m.Url, vm.PrimaryImageUrl, StringComparison.OrdinalIgnoreCase);
+                            }
                         }
+                        existing.PrimaryImageUrl = vm.PrimaryImageUrl;
                     }
-                    existing.PrimaryImageUrl = vm.PrimaryImageUrl;
                 }
 
                 existing.NgayCapNhat = DateTime.Now;

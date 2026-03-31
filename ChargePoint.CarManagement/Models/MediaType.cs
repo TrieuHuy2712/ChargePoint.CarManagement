@@ -6,6 +6,7 @@ namespace ChargePoint.CarManagement.Models
 {
     public enum MediaType
     {
+        Image_Primary = -1,
         Image_GSM = 0,
         Image_KH = 1,
         Video_GSM = 2,

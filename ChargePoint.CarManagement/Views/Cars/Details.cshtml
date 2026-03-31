@@ -168,78 +168,166 @@
 
             <hr />
 
-            <!-- Gallery: all images -->
-            <h5 class="mb-3"><i class="fas fa-images"></i> Ảnh & Media</h5>
-
-            <div class="mb-3">
-                @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH))
-                {
-                    <div class="row g-2">
-                        @foreach (var img in Model.Media.Where(m => m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH).OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
-                        {
-                            <div class="col-6 col-sm-4 col-md-3">
-                                <div class="card h-100">
-                                    <div class="card-body p-2 text-center">
-                                        <a href="@img.Url" target="_blank">
-                                            <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
-                                        </a>
-                                    </div>
-                                    <div class="card-footer py-1 d-flex justify-content-between align-items-center">
-                                        <small class="text-muted" style="font-size:12px;">@img.FileName</small>
-                                        <div>
-                                            @if (img.IsPrimary)
-                                            {
-                                                <span class="badge bg-warning text-dark">Ảnh chính</span>
-                                            }
-                                            @if (img.Type == MediaType.Image_GSM)
-                                            {
-                                                <span class="badge bg-success ms-1">GSM</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-info text-dark ms-1">KH</span>
-                                            }
+            <!-- Images split: GSM / KH -->
+            <h5 class="mb-3"><i class="fas fa-images"></i> Ảnh</h5>
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-camera-retro text-success"></i> Hình ảnh GSM</strong>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Image_GSM))
+                            {
+                                <div class="row g-2">
+                                    @foreach (var img in Model.Media.Where(m => m.Type == MediaType.Image_GSM).OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
+                                    {
+                                        <div class="col-6 col-sm-4 col-md-6 mb-2">
+                                            <div class="card h-100">
+                                                <div class="card-body p-2 text-center">
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
+                                                    </a>
+                                                </div>
+                                                <div class="card-footer py-1 d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted" style="font-size:12px;">@img.FileName</small>
+                                                    <div>
+                                                        @if (img.IsPrimary)
+                                                        {
+                                                            <span class="badge bg-warning text-dark">Ảnh chính</span>
+                                                        }
+                                                        <span class="badge bg-success ms-1">GSM</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    }
                                 </div>
-                            </div>
-                        }
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-0"><i class="fas fa-image"></i> Chưa có ảnh GSM.</p>
+                            }
+                        </div>
                     </div>
-                }
-                else
-                {
-                    <p class="text-muted"><i class="fas fa-image"></i> Chưa có ảnh.</p>
-                }
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <strong><i class="fas fa-user-check text-info"></i> Hình ảnh KH</strong>
+                        </div>
+                        <div class="card-body">
+                            @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Image_KH))
+                            {
+                                <div class="row g-2">
+                                    @foreach (var img in Model.Media.Where(m => m.Type == MediaType.Image_KH).OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
+                                    {
+                                        <div class="col-6 col-sm-4 col-md-6 mb-2">
+                                            <div class="card h-100">
+                                                <div class="card-body p-2 text-center">
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
+                                                    </a>
+                                                </div>
+                                                <div class="card-footer py-1 d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted" style="font-size:12px;">@img.FileName</small>
+                                                    <div>
+                                                        @if (img.IsPrimary)
+                                                        {
+                                                            <span class="badge bg-warning text-dark">Ảnh chính</span>
+                                                        }
+                                                        <span class="badge bg-info text-dark ms-1">KH</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-0"><i class="fas fa-image"></i> Chưa có ảnh KH.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Videos -->
+            <!-- Videos separated: GSM / KH -->
             <h5 class="mb-3 mt-4"><i class="fas fa-video"></i> Videos</h5>
-            <div class="mb-3">
-                @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Video_GSM || m.Type == MediaType.Video_KH))
-                {
-                    <div class="row g-3">
-                        @foreach (var v in Model.Media.Where(m => m.Type == MediaType.Video_GSM || m.Type == MediaType.Video_KH).OrderByDescending(m => m.CreatedAt))
-                        {
-                            <div class="col-12 col-md-6">
-                                <div class="card">
-                                    <div class="card-header py-1">
-                                        <small class="text-muted">@v.FileName (@(v.Type == MediaType.Video_GSM ? "GSM" : "KH"))</small>
-                                    </div>
-                                    <div class="card-body p-2 text-center">
-                                        <video controls class="w-100 rounded" style="max-height: 300px;">
-                                            <source src="@v.Url" type="video/mp4" />
-                                            Trình duyệt không hỗ trợ video.
-                                        </video>
-                                    </div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-success text-white">
+                            <i class="fas fa-film"></i> Video nhận bàn giao từ GSM
+                        </div>
+                        <div class="card-body">
+                            @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Video_GSM))
+                            {
+                                <div class="row g-3">
+                                    @foreach (var v in Model.Media.Where(m => m.Type == MediaType.Video_GSM).OrderByDescending(m => m.CreatedAt))
+                                    {
+                                        <div class="col-12 mb-3">
+                                            <div class="card">
+                                                <div class="card-body p-2 text-center">
+                                                    <video controls class="w-100 rounded" style="max-height: 300px;">
+                                                        <source src="@v.Url" type="video/mp4" />
+                                                        Trình duyệt không hỗ trợ video.
+                                                    </video>
+                                                </div>
+                                                <div class="card-footer py-1 d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">@v.FileName</small>
+                                                    <small class="text-muted">@v.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
-                            </div>
-                        }
+                            }
+                            else
+                            {
+                                <p class="text-muted"><i class="fas fa-video"></i> Chưa có video GSM.</p>
+                            }
+                        </div>
                     </div>
-                }
-                else
-                {
-                    <p class="text-muted"><i class="fas fa-video"></i> Chưa có video.</p>
-                }
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-info text-white">
+                            <i class="fas fa-film"></i> Video bàn giao cho khách hàng
+                        </div>
+                        <div class="card-body">
+                            @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Video_KH))
+                            {
+                                <div class="row g-3">
+                                    @foreach (var v in Model.Media.Where(m => m.Type == MediaType.Video_KH).OrderByDescending(m => m.CreatedAt))
+                                    {
+                                        <div class="col-12 mb-3">
+                                            <div class="card">
+                                                <div class="card-body p-2 text-center">
+                                                    <video controls class="w-100 rounded" style="max-height: 300px;">
+                                                        <source src="@v.Url" type="video/mp4" />
+                                                        Trình duyệt không hỗ trợ video.
+                                                    </video>
+                                                </div>
+                                                <div class="card-footer py-1 d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">@v.FileName</small>
+                                                    <small class="text-muted">@v.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted"><i class="fas fa-video"></i> Chưa có video KH.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-4">
