@@ -11,6 +11,7 @@ namespace ChargePoint.CarManagement.Data
         }
 
         public DbSet<Car> Cars { get; set; }
+        public DbSet<CarMedia> CarMedias { get; set; }
         public DbSet<TrafficViolationCheck> TrafficViolationChecks { get; set; }
         public DbSet<MaintenanceRecord> MaintenanceRecords { get; set; }
         public DbSet<TireRecord> TireRecords { get; set; }
@@ -18,6 +19,13 @@ namespace ChargePoint.CarManagement.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Cấu hình relationship cho CarMedia
+            modelBuilder.Entity<Car>()
+                .HasMany(c => c.Media)
+                .WithOne(m => m.Car)
+                .HasForeignKey(m => m.CarId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Cấu hình relationship cho MaintenanceRecord
             modelBuilder.Entity<MaintenanceRecord>()

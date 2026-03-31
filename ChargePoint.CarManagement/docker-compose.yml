@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chargepoint-car:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Basic runtime
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
+      - AllowedHosts=${AllowedHosts:-*}
+      - DOTNET_PRINT_TELEMETRY_MESSAGE=${DOTNET_PRINT_TELEMETRY_MESSAGE:-false}
+
+      # Connection string
+      - ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
+
+      # File upload settings (read by IOptions<FileUploadSettings>)
+      - FILE_UPLOADS_PATH=${FILE_UPLOADS_PATH:-/uploads}
+      - FileUpload__MaxImageSizeMB=${FileUpload__MaxImageSizeMB:-10}
+      - FileUpload__MaxVideoSizeMB=${FileUpload__MaxVideoSizeMB:-100}
+      - FileUpload__AllowedImageExtensions=${FileUpload__AllowedImageExtensions}
+      - FileUpload__AllowedVideoExtensions=${FileUpload__AllowedVideoExtensions}
+
+      # Cloudinary (set secrets in .env or secret manager)
+      - Cloudinary__CloudName=${Cloudinary__CloudName}
+      - Cloudinary__ApiKey=${Cloudinary__ApiKey}
+      - Cloudinary__ApiSecret=${Cloudinary__ApiSecret}
+      - Cloudinary__RootFolder=${Cloudinary__RootFolder}
+
+      # Google Drive (sensitive - keep in secret store/.env not committed)
+      - GoogleDrive__ClientId=${GoogleDrive__ClientId}
+      - GoogleDrive__ClientSecret=${GoogleDrive__ClientSecret}
+      - GoogleDrive__RefreshToken=${GoogleDrive__RefreshToken}
+      - GoogleDrive__ApplicationName=${GoogleDrive__ApplicationName}
+      - GoogleDrive__RootFolderId=${GoogleDrive__RootFolderId}
+
+    volumes:
+      # Persistent sqlite DB and uploads
+      - data:/data
+      - uploads:/uploads
+
+    ports:
+      - "${APP_PORT:-80}:8080"
+
+volumes:
+  data:
+  uploads:

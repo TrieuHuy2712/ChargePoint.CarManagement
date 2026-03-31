@@ -115,21 +115,16 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        @if (!string.IsNullOrEmpty(item.HinhAnhNhanBanGiao))
+                                        @* Show only primary image if available *@
+                                        @if (!string.IsNullOrEmpty(item.PrimaryImageUrl))
                                         {
-                                            <a href="@item.HinhAnhNhanBanGiao" target="_blank">
-                                                <img src="@item.HinhAnhNhanBanGiao" alt="GSM" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;" title="Nhận từ GSM - Click để xem" />
+                                            <a href="@item.PrimaryImageUrl" target="_blank">
+                                                <img src="@item.PrimaryImageUrl" alt="Primary" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;" title="Ảnh chính - Click để xem" />
                                             </a>
                                         }
-                                        @if (!string.IsNullOrEmpty(item.HinhAnhBanGiaoKH))
+                                        else
                                         {
-                                            <a href="@item.HinhAnhBanGiaoKH" target="_blank">
-                                                <img src="@item.HinhAnhBanGiaoKH" alt="KH" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;" title="Bàn giao KH - Click để xem" />
-                                            </a>
-                                        }
-                                        @if (string.IsNullOrEmpty(item.HinhAnhNhanBanGiao) && string.IsNullOrEmpty(item.HinhAnhBanGiaoKH))
-                                        {
-                                            <span class="text-muted"><i class="fas fa-image"></i> Chưa có</span>
+                                            <span class="text-muted"><i class="fas fa-image"></i> Chưa có ảnh chính</span>
                                         }
                                     </div>
                                 </td>

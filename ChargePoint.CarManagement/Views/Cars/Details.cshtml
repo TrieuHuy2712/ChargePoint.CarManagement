@@ -1,5 +1,5 @@
-﻿@model ChargePoint.CarManagement.Models.Car
-@using ChargePoint.CarManagement.Models
+﻿@model CarViewModel
+@using ChargePoint.CarManagement.Models.ViewModels
 
 @{
     ViewData["Title"] = "Chi tiết xe";
@@ -17,6 +17,29 @@
             </h5>
         </div>
         <div class="card-body">
+
+            <!-- Primary image display -->
+            <div class="row mb-3">
+                <div class="col-12 text-center">
+                    <h6 class="mb-2"><i class="fas fa-star text-warning"></i> Ảnh chính</h6>
+                    @if (!string.IsNullOrEmpty(Model.PrimaryImageUrl))
+                    {
+                        <a href="@Model.PrimaryImageUrl" target="_blank">
+                            <img src="@Model.PrimaryImageUrl" alt="Primary image" class="img-fluid rounded" style="max-height: 300px; cursor: pointer;" />
+                        </a>
+                        <div class="mt-2">
+                            <a href="@Model.PrimaryImageUrl" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-external-link-alt"></i> Xem ảnh gốc
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted py-4"><i class="fas fa-image fa-3x"></i><br />Chưa có ảnh chính</p>
+                    }
+                </div>
+            </div>
+
             <div class="row">
                 <div class="col-md-6">
                     <table class="table table-borderless">
@@ -86,7 +109,7 @@
                             <td>
                                 @if (!string.IsNullOrEmpty(Model.TenKhachHang))
                                 {
-                                    <i class="fas fa-user text-primary"></i> 
+                                    <i class="fas fa-user text-primary"></i>
                                     @Model.TenKhachHang
                                 }
                                 else
@@ -145,108 +168,78 @@
 
             <hr />
 
-            <!-- Hình ảnh bàn giao -->
-            <h5 class="mb-3"><i class="fas fa-images"></i> Hình ảnh bàn giao</h5>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <div class="card h-100">
-                        <div class="card-header bg-success text-white">
-                            <i class="fas fa-handshake"></i> Nhận bàn giao từ GSM
-                        </div>
-                        <div class="card-body text-center">
-                            @if (!string.IsNullOrEmpty(Model.HinhAnhNhanBanGiao))
-                            {
-                                <a href="@Model.HinhAnhNhanBanGiao" target="_blank">
-                                    <img src="@Model.HinhAnhNhanBanGiao" alt="GSM" class="img-fluid rounded" style="max-height: 250px; cursor: pointer;" />
-                                </a>
-                                <br />
-                                <a href="@Model.HinhAnhNhanBanGiao" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                    <i class="fas fa-external-link-alt"></i> Xem ảnh gốc
-                                </a>
-                            }
-                            else
-                            {
-                                <p class="text-muted py-4"><i class="fas fa-image fa-3x"></i><br />Chưa có hình ảnh</p>
-                            }
-                        </div>
+            <!-- Gallery: all images -->
+            <h5 class="mb-3"><i class="fas fa-images"></i> Ảnh & Media</h5>
+
+            <div class="mb-3">
+                @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH))
+                {
+                    <div class="row g-2">
+                        @foreach (var img in Model.Media.Where(m => m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH).OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
+                        {
+                            <div class="col-6 col-sm-4 col-md-3">
+                                <div class="card h-100">
+                                    <div class="card-body p-2 text-center">
+                                        <a href="@img.Url" target="_blank">
+                                            <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
+                                        </a>
+                                    </div>
+                                    <div class="card-footer py-1 d-flex justify-content-between align-items-center">
+                                        <small class="text-muted" style="font-size:12px;">@img.FileName</small>
+                                        <div>
+                                            @if (img.IsPrimary)
+                                            {
+                                                <span class="badge bg-warning text-dark">Ảnh chính</span>
+                                            }
+                                            @if (img.Type == MediaType.Image_GSM)
+                                            {
+                                                <span class="badge bg-success ms-1">GSM</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-info text-dark ms-1">KH</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <div class="card h-100">
-                        <div class="card-header bg-info text-white">
-                            <i class="fas fa-user-check"></i> Bàn giao cho khách hàng
-                        </div>
-                        <div class="card-body text-center">
-                            @if (!string.IsNullOrEmpty(Model.HinhAnhBanGiaoKH))
-                            {
-                                <a href="@Model.HinhAnhBanGiaoKH" target="_blank">
-                                    <img src="@Model.HinhAnhBanGiaoKH" alt="KH" class="img-fluid rounded" style="max-height: 250px; cursor: pointer;" />
-                                </a>
-                                <br />
-                                <a href="@Model.HinhAnhBanGiaoKH" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                    <i class="fas fa-external-link-alt"></i> Xem ảnh gốc
-                                </a>
-                            }
-                            else
-                            {
-                                <p class="text-muted py-4"><i class="fas fa-image fa-3x"></i><br />Chưa có hình ảnh</p>
-                            }
-                        </div>
-                    </div>
-                </div>
+                }
+                else
+                {
+                    <p class="text-muted"><i class="fas fa-image"></i> Chưa có ảnh.</p>
+                }
             </div>
 
-            <!-- Video bàn giao -->
-            <h5 class="mb-3 mt-4"><i class="fas fa-video"></i> Video bàn giao</h5>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <div class="card h-100">
-                        <div class="card-header bg-success text-white">
-                            <i class="fas fa-film"></i> Video nhận bàn giao từ GSM
-                        </div>
-                        <div class="card-body text-center">
-                            @if (!string.IsNullOrEmpty(Model.VideoNhanBanGiao))
-                            {
-                                <video controls class="w-100 rounded" style="max-height: 300px;">
-                                    <source src="@Model.VideoNhanBanGiao" type="video/mp4">
-                                    Trình duyệt không hỗ trợ video.
-                                </video>
-                                <br />
-                                <a href="@Model.VideoNhanBanGiao" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                    <i class="fas fa-external-link-alt"></i> Mở video
-                                </a>
-                            }
-                            else
-                            {
-                                <p class="text-muted py-4"><i class="fas fa-video fa-3x"></i><br />Chưa có video</p>
-                            }
-                        </div>
+            <!-- Videos -->
+            <h5 class="mb-3 mt-4"><i class="fas fa-video"></i> Videos</h5>
+            <div class="mb-3">
+                @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Video_GSM || m.Type == MediaType.Video_KH))
+                {
+                    <div class="row g-3">
+                        @foreach (var v in Model.Media.Where(m => m.Type == MediaType.Video_GSM || m.Type == MediaType.Video_KH).OrderByDescending(m => m.CreatedAt))
+                        {
+                            <div class="col-12 col-md-6">
+                                <div class="card">
+                                    <div class="card-header py-1">
+                                        <small class="text-muted">@v.FileName (@(v.Type == MediaType.Video_GSM ? "GSM" : "KH"))</small>
+                                    </div>
+                                    <div class="card-body p-2 text-center">
+                                        <video controls class="w-100 rounded" style="max-height: 300px;">
+                                            <source src="@v.Url" type="video/mp4" />
+                                            Trình duyệt không hỗ trợ video.
+                                        </video>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <div class="card h-100">
-                        <div class="card-header bg-info text-white">
-                            <i class="fas fa-film"></i> Video bàn giao cho khách hàng
-                        </div>
-                        <div class="card-body text-center">
-                            @if (!string.IsNullOrEmpty(Model.VideoBanGiaoKH))
-                            {
-                                <video controls class="w-100 rounded" style="max-height: 300px;">
-                                    <source src="@Model.VideoBanGiaoKH" type="video/mp4">
-                                    Trình duyệt không hỗ trợ video.
-                                </video>
-                                <br />
-                                <a href="@Model.VideoBanGiaoKH" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                    <i class="fas fa-external-link-alt"></i> Mở video
-                                </a>
-                            }
-                            else
-                            {
-                                <p class="text-muted py-4"><i class="fas fa-video fa-3x"></i><br />Chưa có video</p>
-                            }
-                        </div>
-                    </div>
-                </div>
+                }
+                else
+                {
+                    <p class="text-muted"><i class="fas fa-video"></i> Chưa có video.</p>
+                }
             </div>
 
             <div class="mt-4">
@@ -266,31 +259,4 @@
 
 @section Scripts {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
-    <style>
-        /* Style cho biển số xe */
-        .license-plate {
-            display: inline-block;
-            padding: 8px 16px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            font-family: 'Arial', sans-serif;
-            letter-spacing: 1px;
-            border-radius: 4px;
-            border: 2px solid #333;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        /* Biển số trắng */
-        .license-plate-white {
-            background-color: #ffffff;
-            color: #000000;
-        }
-
-        /* Biển số vàng */
-        .license-plate-yellow {
-            background-color: #ffc107;
-            color: #000000;
-        }
-    </style>
 }

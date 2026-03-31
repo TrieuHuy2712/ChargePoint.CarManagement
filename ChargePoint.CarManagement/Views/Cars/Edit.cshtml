@@ -1,5 +1,6 @@
-﻿@model ChargePoint.CarManagement.Models.Car
-@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+﻿@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+@using ChargePoint.CarManagement.Models.ViewModels
+@model CarViewModel
 @using ChargePoint.CarManagement.Models
 
 @{
@@ -18,10 +19,10 @@
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                 <input type="hidden" asp-for="Id" />
                 <input type="hidden" asp-for="NgayTao" />
-                <input type="hidden" asp-for="HinhAnhNhanBanGiao" />
-                <input type="hidden" asp-for="HinhAnhBanGiaoKH" />
-                <input type="hidden" asp-for="VideoNhanBanGiao" />
-                <input type="hidden" asp-for="VideoBanGiaoKH" />
+                <input type="hidden" asp-for="@Model.HinhAnhNhanBanGiao" />
+                <input type="hidden" asp-for="@Model.HinhAnhBanGiaoKH" />
+                <input type="hidden" asp-for="@Model.VideoNhanBanGiao" />
+                <input type="hidden" asp-for="@Model.VideoBanGiaoKH" />
 
                 <div class="row">
                     <div class="col-md-6">
@@ -135,145 +136,96 @@
                     <span asp-validation-for="ThongTinChoThue" class="text-danger"></span>
                 </div>
 
-                <!-- Hình ảnh -->
+                <!-- Hình ảnh & Video (multiple) -->
                 <h5 class="mt-4 mb-3 text-primary">
-                    <i class="fas fa-images"></i> Hình ảnh bàn giao
+                    <i class="fas fa-images"></i> Hình ảnh & Video bàn giao 
                 </h5>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-image"></i> Hình ảnh nhận bàn giao từ GSM (GF)
-                            </label>
-                            @if (!string.IsNullOrEmpty(Model.HinhAnhNhanBanGiao))
-                            {
-                                <div class="mb-2 current-file">
-                                    <a href="@Model.HinhAnhNhanBanGiao" target="_blank">
-                                        <img src="@Model.HinhAnhNhanBanGiao" class="img-thumbnail" style="max-height: 150px;" />
-                                    </a>
-                                    <br />
-                                    <small class="text-success"><i class="fas fa-check-circle"></i> Đã có hình ảnh</small>
-                                </div>
-                            }
-                            <input type="file" name="HinhAnhNhanBanGiaoFile" class="form-control file-upload"
-                                   accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))"
-                                   data-max-size="@settings.MaxImageSizeMB" data-type="image" />
-                            <small class="form-text text-muted">
-                                Tối đa @settings.MaxImageSizeMB MB. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)
-                                @if (!string.IsNullOrEmpty(Model.HinhAnhNhanBanGiao))
-                                {
-                                    <span class="text-warning">- Chọn file mới sẽ thay thế hình cũ</span>
-                                }
-                            </small>
-                            <div class="invalid-feedback"></div>
-                            <div class="file-preview mt-2"></div>
-                        </div>
-                    </div>
 
-                    <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-image"></i> Hình ảnh bàn giao cho KH
-                            </label>
-                            @if (!string.IsNullOrEmpty(Model.HinhAnhBanGiaoKH))
+                <input type="hidden" id="PrimaryImageUrl" name="PrimaryImageUrl" value="@Model.PrimaryImageUrl" />
+
+                @* Primary image input (upload alongside main form) *@
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label"><i class="fas fa-star"></i> Ảnh chính (chọn để upload khi lưu)</label>
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="file" name="PrimaryImageFile" id="PrimaryImageFile" accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" class="form-control" />
+                            <span id="primaryUploadStatus" class="text-muted ms-2"></span>
+                        </div>
+                        <small class="form-text text-muted">Nếu chọn ảnh chính ở đây, file sẽ được upload khi bạn nhấn 'Lưu thay đổi'. Nếu không chọn, hệ thống dùng ảnh chính hiện tại hoặc tự chọn ảnh GSM đầu tiên.</small>
+                        <div id="primaryPreview" class="mt-2">
+                            @if (!string.IsNullOrEmpty(Model.PrimaryImageUrl))
                             {
-                                <div class="mb-2 current-file">
-                                    <a href="@Model.HinhAnhBanGiaoKH" target="_blank">
-                                        <img src="@Model.HinhAnhBanGiaoKH" class="img-thumbnail" style="max-height: 150px;" />
-                                    </a>
-                                    <br />
-                                    <small class="text-success"><i class="fas fa-check-circle"></i> Đã có hình ảnh</small>
-                                </div>
+                                <img src="@Model.PrimaryImageUrl" class="img-thumbnail" style="max-height:150px;" />
                             }
-                            <input type="file" name="HinhAnhBanGiaoKHFile" class="form-control file-upload"
-                                   accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))"
-                                   data-max-size="@settings.MaxImageSizeMB" data-type="image" />
-                            <small class="form-text text-muted">
-                                Tối đa @settings.MaxImageSizeMB MB. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)
-                                @if (!string.IsNullOrEmpty(Model.HinhAnhBanGiaoKH))
-                                {
-                                    <span class="text-warning">- Chọn file mới sẽ thay thế hình cũ</span>
-                                }
-                            </small>
-                            <div class="invalid-feedback"></div>
-                            <div class="file-preview mt-2"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Video -->
-                <h5 class="mt-4 mb-3 text-primary">
-                    <i class="fas fa-video"></i> Video bàn giao
-                </h5>
-                <div class="row">
+                <div class="row mb-3">
                     <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-film"></i> Video nhận bàn giao từ GSM
-                            </label>
-                            @if (!string.IsNullOrEmpty(Model.VideoNhanBanGiao))
-                            {
-                                <div class="mb-2 current-file">
-                                    <video controls style="max-width: 100%; max-height: 200px;">
-                                        <source src="@Model.VideoNhanBanGiao" type="video/mp4">
-                                        Trình duyệt không hỗ trợ video.
-                                    </video>
-                                    <br />
-                                    <small class="text-success"><i class="fas fa-check-circle"></i> Đã có video</small>
-                                    <a href="@Model.VideoNhanBanGiao" target="_blank" class="btn btn-sm btn-outline-primary ms-2">
-                                        <i class="fas fa-external-link-alt"></i> Mở
-                                    </a>
-                                </div>
-                            }
-                            <input type="file" name="VideoNhanBanGiaoFile" class="form-control file-upload"
-                                   accept="@string.Join(",", settings.AllowedVideoExtensions.Select(e => "video/" + e.TrimStart('.')))"
-                                   data-max-size="@settings.MaxVideoSizeMB" data-type="video" />
-                            <small class="form-text text-muted">
-                                Tối đa @settings.MaxVideoSizeMB MB. Định dạng: @string.Join(", ", settings.AllowedVideoExtensions)
-                                @if (!string.IsNullOrEmpty(Model.VideoNhanBanGiao))
-                                {
-                                    <span class="text-warning">- Chọn file mới sẽ thay thế video cũ</span>
-                                }
-                            </small>
-                            <div class="invalid-feedback"></div>
-                            <div class="file-preview mt-2"></div>
-                        </div>
+                        <label class="form-label"><i class="fas fa-image"></i> Hình ảnh nhận bàn giao từ GSM (GF) - multiple</label>
+                        <input type="file" name="HinhAnhNhanBanGiaoFiles" id="HinhAnhNhanBanGiaoFiles" multiple accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" class="form-control file-upload-multi" data-max-size="@settings.MaxImageSizeMB" data-type="image" />
+                        <small class="form-text text-muted">Tối đa @settings.MaxImageSizeMB MB mỗi file. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)</small>
+                        <div class="file-multi-preview mt-2"></div>
                     </div>
 
                     <div class="col-md-6">
-                        <div class="form-group mb-3">
-                            <label class="form-label">
-                                <i class="fas fa-film"></i> Video bàn giao cho KH
-                            </label>
-                            @if (!string.IsNullOrEmpty(Model.VideoBanGiaoKH))
-                            {
-                                <div class="mb-2 current-file">
-                                    <video controls style="max-width: 100%; max-height: 200px;">
-                                        <source src="@Model.VideoBanGiaoKH" type="video/mp4">
-                                        Trình duyệt không hỗ trợ video.
-                                    </video>
-                                    <br />
-                                    <small class="text-success"><i class="fas fa-check-circle"></i> Đã có video</small>
-                                    <a href="@Model.VideoBanGiaoKH" target="_blank" class="btn btn-sm btn-outline-primary ms-2">
-                                        <i class="fas fa-external-link-alt"></i> Mở
-                                    </a>
-                                </div>
-                            }
-                            <input type="file" name="VideoBanGiaoKHFile" class="form-control file-upload"
-                                   accept="@string.Join(",", settings.AllowedVideoExtensions.Select(e => "video/" + e.TrimStart('.')))"
-                                   data-max-size="@settings.MaxVideoSizeMB" data-type="video" />
-                            <small class="form-text text-muted">
-                                Tối đa @settings.MaxVideoSizeMB MB. Định dạng: @string.Join(", ", settings.AllowedVideoExtensions)
-                                @if (!string.IsNullOrEmpty(Model.VideoBanGiaoKH))
-                                {
-                                    <span class="text-warning">- Chọn file mới sẽ thay thế video cũ</span>
-                                }
-                            </small>
-                            <div class="invalid-feedback"></div>
-                            <div class="file-preview mt-2"></div>
-                        </div>
+                        <label class="form-label"><i class="fas fa-image"></i> Hình ảnh bàn giao cho KH - multiple</label>
+                        <input type="file" name="HinhAnhBanGiaoKHFiles" id="HinhAnhBanGiaoKHFiles" multiple accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" class="form-control file-upload-multi" data-max-size="@settings.MaxImageSizeMB" data-type="image" />
+                        <small class="form-text text-muted">Tối đa @settings.MaxImageSizeMB MB mỗi file. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)</small>
+                        <div class="file-multi-preview mt-2"></div>
                     </div>
                 </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="fas fa-film"></i> Video nhận bàn giao từ GSM - multiple</label>
+                        <input type="file" name="VideoNhanBanGiaoFiles" id="VideoNhanBanGiaoFiles" multiple accept="@string.Join(",", settings.AllowedVideoExtensions.Select(e => "video/" + e.TrimStart('.')))" class="form-control file-upload-multi" data-max-size="@settings.MaxVideoSizeMB" data-type="video" />
+                        <small class="form-text text-muted">Tối đa @settings.MaxVideoSizeMB MB mỗi file. Định dạng: @string.Join(", ", settings.AllowedVideoExtensions)</small>
+                        <div class="file-multi-preview mt-2"></div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="fas fa-film"></i> Video bàn giao cho KH - multiple</label>
+                        <input type="file" name="VideoBanGiaoKHFiles" id="VideoBanGiaoKHFiles" multiple accept="@string.Join(",", settings.AllowedVideoExtensions.Select(e => "video/" + e.TrimStart('.')))" class="form-control file-upload-multi" data-max-size="@settings.MaxVideoSizeMB" data-type="video" />
+                        <small class="form-text text-muted">Tối đa @settings.MaxVideoSizeMB MB mỗi file. Định dạng: @string.Join(", ", settings.AllowedVideoExtensions)</small>
+                        <div class="file-multi-preview mt-2"></div>
+                    </div>
+                </div>
+
+                <!-- Existing media gallery -->
+                @if (Model.Media != null && Model.Media.Any())
+                {
+                    <div class="existing-media mb-3">
+                        <h6>Media hiện có</h6>
+                        <div class="row">
+                            @foreach (var m in Model.Media.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.CreatedAt))
+                            {
+                                <div class="col-sm-6 col-md-3 mb-3" data-media-id="@m.Id" data-media-url="@m.Url">
+                                    <div class="card h-100">
+                                        <div class="card-body p-2 text-center">
+                                            @if (m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH)
+                                            {
+                                                <img src="@m.Url" class="img-fluid" style="max-height:150px;" />
+                                            }
+                                            else
+                                            {
+                                                <video src="@m.Url" controls style="max-height:150px; width:100%"></video>
+                                            }
+                                        </div>
+                                        <div class="card-footer d-flex justify-content-between align-items-center py-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input existing-primary-radio" type="radio" name="existingPrimary" value="@m.Url" @(m.IsPrimary ? "checked" : "") />
+                                                <label class="form-check-label">Ảnh chính</label>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-danger btn-delete-media" data-media-id="@m.Id">Xóa</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
 
                 <!-- Upload Progress -->
                 <div id="uploadProgress" class="mb-3" style="display: none;">
@@ -311,66 +263,136 @@
             const form = document.getElementById('editCarForm');
             const btnSubmit = document.getElementById('btnSubmit');
 
-            document.querySelectorAll('.file-upload').forEach(function(input) {
+            // multi file previews and validation
+            document.querySelectorAll('.file-upload-multi').forEach(function(input) {
                 input.addEventListener('change', function() {
-                    validateFile(this);
+                    validateMultiFiles(this);
                 });
             });
 
-            function validateFile(input) {
-                const file = input.files[0];
+            function validateMultiFiles(input) {
+                const files = Array.from(input.files || []);
                 const maxSize = parseInt(input.dataset.maxSize) * 1024 * 1024;
-                const fileType = input.dataset.type;
-                const feedback = input.parentElement.querySelector('.invalid-feedback');
-                const preview = input.parentElement.querySelector('.file-preview');
+                const type = input.dataset.type;
+                const preview = input.parentElement.querySelector('.file-multi-preview');
+                preview.innerHTML = '';
 
-                input.classList.remove('is-invalid', 'is-valid');
-                feedback.textContent = '';
-                if (preview) preview.innerHTML = '';
+                for (const file of files) {
+                    if (file.size > maxSize) {
+                        alert(`File ${file.name} quá lớn. Tối đa ${input.dataset.maxSize} MB.`);
+                        input.value = '';
+                        preview.innerHTML = '';
+                        return;
+                    }
 
-                if (!file) return;
-
-                if (file.size > maxSize) {
-                    input.classList.add('is-invalid');
-                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-                    feedback.textContent = `File quá lớn (${sizeMB} MB). Tối đa ${input.dataset.maxSize} MB.`;
-                    input.value = '';
-                    return;
-                }
-
-                input.classList.add('is-valid');
-                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-
-                if (fileType === 'image' && preview) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        preview.innerHTML = `
-                            <div class="alert alert-warning py-2">
-                                <strong>File mới:</strong><br>
-                                <img src="${e.target.result}" class="img-thumbnail mt-1" style="max-height: 150px;">
-                            </div>`;
-                    };
-                    reader.readAsDataURL(file);
-                } else if (fileType === 'video' && preview) {
-                    preview.innerHTML = `
-                        <div class="alert alert-warning py-2">
-                            <strong>File mới:</strong><br>
-                            <i class="fas fa-file-video"></i> ${file.name}<br>
-                            <small>Kích thước: ${sizeMB} MB</small>
-                        </div>`;
+                    if (type === 'image') {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const div = document.createElement('div');
+                            div.className = 'd-inline-block me-2 mb-2';
+                            div.innerHTML = `<img src="${e.target.result}" style="max-height:100px;" class="img-thumbnail"/>`;
+                            preview.appendChild(div);
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        const div = document.createElement('div');
+                        div.className = 'd-inline-block me-2 mb-2 p-2 border rounded';
+                        div.innerHTML = `<i class="fas fa-file-video"></i> ${file.name}`;
+                        preview.appendChild(div);
+                    }
                 }
             }
 
-            form.addEventListener('submit', function(e) {
-                const invalidInputs = form.querySelectorAll('.is-invalid');
-                if (invalidInputs.length > 0) {
-                    e.preventDefault();
-                    alert('Vui lòng kiểm tra lại các file đã chọn.');
-                    return false;
-                }
+            // existing primary selection
+            document.querySelectorAll('.existing-primary-radio').forEach(function(r) {
+                r.addEventListener('change', function(e) {
+                    document.getElementById('PrimaryImageUrl').value = e.target.value;
+                });
+            });
 
-                const hasFiles = Array.from(form.querySelectorAll('.file-upload'))
-                    .some(input => input.files.length > 0);
+            // initialize primary input from checked radio
+            const checked = document.querySelector('.existing-primary-radio:checked');
+            if (checked) document.getElementById('PrimaryImageUrl').value = checked.value;
+
+            // delete media via AJAX
+            document.querySelectorAll('.btn-delete-media').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const mediaId = parseInt(btn.getAttribute('data-media-id'));
+                    if (!confirm('Xác nhận xóa media?')) return;
+
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+                    fetch('@Url.Action("DeleteMedia", "Cars")', {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ id: mediaId })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.success) {
+                            // remove card
+                            const card = btn.closest('[data-media-id]');
+                            if (card) card.remove();
+                            // if deleted was primary, clear hidden or set replacement handled server-side
+                            const primaryInput = document.getElementById('PrimaryImageUrl');
+                            if (primaryInput && primaryInput.value === data.deletedUrl) {
+                                primaryInput.value = '';
+                            }
+                        } else {
+                            alert('Xóa thất bại');
+                        }
+                    })
+                    .catch(() => alert('Xóa thất bại'));
+                });
+            });
+
+            // primary file preview (no immediate upload). If a new primary is chosen, clear hidden PrimaryImageUrl
+            const primaryFileInput = document.getElementById('PrimaryImageFile');
+            const primaryStatus = document.getElementById('primaryUploadStatus');
+            const primaryPreview = document.getElementById('primaryPreview');
+            const hiddenPrimary = document.getElementById('PrimaryImageUrl');
+
+            if (primaryFileInput) {
+                primaryFileInput.addEventListener('change', function () {
+                    const file = this.files && this.files[0];
+                    primaryPreview.innerHTML = '';
+                    primaryStatus.textContent = '';
+
+                    if (!file) return;
+
+                    // basic client-side size check (optional)
+                    const maxSize = parseInt('@settings.MaxImageSizeMB') * 1024 * 1024;
+                    if (file.size > maxSize) {
+                        primaryStatus.textContent = `File quá lớn. Tối đa @settings.MaxImageSizeMB MB.`;
+                        this.value = '';
+                        return;
+                    }
+
+                    // clear selection of existing primary (so server can detect the new file)
+                    if (hiddenPrimary) hiddenPrimary.value = '';
+
+                    // show preview
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            primaryPreview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-height:150px;">`;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        primaryPreview.innerHTML = `<div class="alert alert-info py-2"><i class="fas fa-file-image"></i> ${file.name}</div>`;
+                    }
+                });
+            }
+
+            form.addEventListener('submit', function(e) {
+                const hasInvalid = false; // client-side simple
+
+                // include primaryFileInput in hasFiles check so UI shows progress when file(s) exist
+                const hasFiles = Array.from(form.querySelectorAll('.file-upload-multi')).some(i => i.files.length > 0)
+                                  || (primaryFileInput && primaryFileInput.files && primaryFileInput.files.length > 0);
 
                 if (hasFiles) {
                     btnSubmit.disabled = true;
@@ -382,24 +404,10 @@
     </script>
 
     <style>
-        .file-upload.is-valid {
-            border-color: #198754;
-        }
-
-        .file-upload.is-invalid {
-            border-color: #dc3545;
-        }
-
-        .file-preview img {
-            max-width: 100%;
-            border-radius: 8px;
-        }
-
-        .current-file {
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-        }
+        .file-upload-multi.is-valid { border-color: #198754; }
+        .file-upload-multi.is-invalid { border-color: #dc3545; }
+        .file-multi-preview img { max-width: 100%; border-radius: 8px; }
+        .current-file { padding: 10px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; }
+        #primaryPreview img { border-radius: 8px; }
     </style>
 }

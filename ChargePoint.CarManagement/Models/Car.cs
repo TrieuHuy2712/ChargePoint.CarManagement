@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ChargePoint.CarManagement.Models
 {
@@ -59,19 +62,14 @@ namespace ChargePoint.CarManagement.Models
         [Range(0, 999999, ErrorMessage = "ODO phải từ 0 đến 999999")]
         public int OdoXe { get; set; }
 
-        // Hình ảnh
-        [Display(Name = "Hình ảnh nhận bàn giao từ GSM (GF)")]
-        public string? HinhAnhNhanBanGiao { get; set; }
+        // Backward-friendly primary image URL
+        [Display(Name = "Hình ảnh chính")]
+        [StringLength(1000)]
+        public string? PrimaryImageUrl { get; set; }
 
-        [Display(Name = "Hình ảnh bàn giao cho KH")]
-        public string? HinhAnhBanGiaoKH { get; set; }
-
-        // ✅ Video bàn giao - MỚI
-        [Display(Name = "Video nhận bàn giao từ GSM")]
-        public string? VideoNhanBanGiao { get; set; }
-
-        [Display(Name = "Video bàn giao cho KH")]
-        public string? VideoBanGiaoKH { get; set; }
+        // Navigation: all media items for this car (images + videos)
+        [Display(Name = "Media")]
+        public ICollection<CarMedia>? Media { get; set; } = new List<CarMedia>();
 
         [Display(Name = "Ngày tạo")]
         public DateTime NgayTao { get; set; } = DateTime.Now;

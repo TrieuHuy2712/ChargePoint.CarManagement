@@ -71,13 +71,16 @@ namespace ChargePoint.CarManagement.Controllers
                 return NotFound();
             }
 
-            var car = await _context.Cars.FirstOrDefaultAsync(m => m.Id == id);
+            var car = await _context.Cars
+                .Include(c => c.Media)
+                .FirstOrDefaultAsync(m => m.Id == id);
             if (car == null)
             {
                 return NotFound();
             }
 
-            return View(car);
+            var vm = CarViewModel.FromCar(car);
+            return View(vm);
         }
 
         // GET: Cars/Create
@@ -94,10 +97,11 @@ namespace ChargePoint.CarManagement.Controllers
         [RequestSizeLimit(150 * 1024 * 1024)] // 150MB cho video
         public async Task<IActionResult> Create(
             [Bind("Id,Stt,TenXe,SoLuong,MauXe,SoVIN,BienSo,MauBienSo,TenKhachHang,ThongTinChoThue,OdoXe")] Car car,
-            IFormFile? HinhAnhNhanBanGiao,
-            IFormFile? HinhAnhBanGiaoKH,
-            IFormFile? VideoNhanBanGiao,
-            IFormFile? VideoBanGiaoKH)
+            IFormFile? PrimaryImageFile,
+            IFormFile[]? HinhAnhNhanBanGiaoFiles,
+            IFormFile[]? HinhAnhBanGiaoKHFiles,
+            IFormFile[]? VideoNhanBanGiaoFiles,
+            IFormFile[]? VideoBanGiaoKHFiles)
         {
             if (ModelState.IsValid)
             {
@@ -105,32 +109,86 @@ namespace ChargePoint.CarManagement.Controllers
                 {
                     var bienSo = car.BienSo ?? "NoPlate";
 
-                    // Upload hình ảnh
-                    if (HinhAnhNhanBanGiao != null && HinhAnhNhanBanGiao.Length > 0)
+                    // Prepare media list
+                    var mediaList = new List<CarMedia>();
+
+                    // 1) PRIMARY IMAGE: if provided, upload and mark as primary.
+                    // This primary image is independent and will NOT be inferred from other uploads.
+                    if (PrimaryImageFile != null && PrimaryImageFile.Length > 0)
                     {
-                        car.HinhAnhNhanBanGiao = await _imageUploadService.UploadFileAsync(
-                            HinhAnhNhanBanGiao, bienSo, "NhanBanGiao_GSM");
+                        var primaryUrl = await _imageUploadService.UploadFileAsync(PrimaryImageFile, bienSo, "Primary");
+                        var primaryMedia = new CarMedia
+                        {
+                            Type = MediaType.Image_GSM, // treat primary as an image (GSM by default)
+                            Url = primaryUrl,
+                            FileName = PrimaryImageFile.FileName,
+                            IsPrimary = true
+                        };
+                        mediaList.Add(primaryMedia);
+                        car.PrimaryImageUrl = primaryUrl;
                     }
 
-                    if (HinhAnhBanGiaoKH != null && HinhAnhBanGiaoKH.Length > 0)
+                    // 2) Upload GSM images (do NOT mark any of these as primary)
+                    if (HinhAnhNhanBanGiaoFiles != null)
                     {
-                        car.HinhAnhBanGiaoKH = await _imageUploadService.UploadFileAsync(
-                            HinhAnhBanGiaoKH, bienSo, "BanGiao_KH");
+                        foreach (var file in HinhAnhNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
+                        {
+                            var url = await _imageUploadService.UploadFileAsync(file, bienSo, "NhanBanGiao_GSM");
+                            mediaList.Add(new CarMedia
+                            {
+                                Type = MediaType.Image_GSM,
+                                Url = url,
+                                FileName = file.FileName
+                            });
+                        }
                     }
 
-                    // Upload video
-                    if (VideoNhanBanGiao != null && VideoNhanBanGiao.Length > 0)
+                    // 3) Upload KH images (do NOT mark any of these as primary)
+                    if (HinhAnhBanGiaoKHFiles != null)
                     {
-                        car.VideoNhanBanGiao = await _imageUploadService.UploadVideoAsync(
-                            VideoNhanBanGiao, bienSo, "Video_NhanBanGiao");
+                        foreach (var file in HinhAnhBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
+                        {
+                            var url = await _imageUploadService.UploadFileAsync(file, bienSo, "BanGiao_KH");
+                            mediaList.Add(new CarMedia
+                            {
+                                Type = MediaType.Image_KH,
+                                Url = url,
+                                FileName = file.FileName
+                            });
+                        }
                     }
 
-                    if (VideoBanGiaoKH != null && VideoBanGiaoKH.Length > 0)
+                    // 4) Upload GSM videos
+                    if (VideoNhanBanGiaoFiles != null)
                     {
-                        car.VideoBanGiaoKH = await _imageUploadService.UploadVideoAsync(
-                            VideoBanGiaoKH, bienSo, "Video_BanGiaoKH");
+                        foreach (var file in VideoNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
+                        {
+                            var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_NhanBanGiao");
+                            mediaList.Add(new CarMedia
+                            {
+                                Type = MediaType.Video_GSM,
+                                Url = url,
+                                FileName = file.FileName
+                            });
+                        }
                     }
 
+                    // 5) Upload KH videos
+                    if (VideoBanGiaoKHFiles != null)
+                    {
+                        foreach (var file in VideoBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
+                        {
+                            var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_BanGiaoKH");
+                            mediaList.Add(new CarMedia
+                            {
+                                Type = MediaType.Video_KH,
+                                Url = url,
+                                FileName = file.FileName
+                            });
+                        }
+                    }
+
+                    car.Media = mediaList;
                     car.NgayTao = DateTime.Now;
                     _context.Add(car);
                     await _context.SaveChangesAsync();
@@ -144,6 +202,7 @@ namespace ChargePoint.CarManagement.Controllers
                     ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
                 }
             }
+
             return View(car);
         }
 
@@ -155,118 +214,200 @@ namespace ChargePoint.CarManagement.Controllers
                 return NotFound();
             }
 
-            var car = await _context.Cars.FindAsync(id);
+            var car = await _context.Cars
+                .Include(c => c.Media)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
             if (car == null)
             {
                 return NotFound();
             }
-            return View(car);
+
+            var vm = CarViewModel.FromCar(car);
+            return View(vm);
         }
 
         // POST: Cars/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequestSizeLimit(150 * 1024 * 1024)] // 150MB cho video
+        [RequestSizeLimit(150 * 1024 * 1024)]
         public async Task<IActionResult> Edit(
             int id,
-            [Bind("Id,Stt,TenXe,SoLuong,MauXe,SoVIN,BienSo,MauBienSo,TenKhachHang,ThongTinChoThue,OdoXe,HinhAnhNhanBanGiao,HinhAnhBanGiaoKH,VideoNhanBanGiao,VideoBanGiaoKH,NgayTao")] Car car,
-            IFormFile? HinhAnhNhanBanGiaoFile,
-            IFormFile? HinhAnhBanGiaoKHFile,
-            IFormFile? VideoNhanBanGiaoFile,
-            IFormFile? VideoBanGiaoKHFile)
+            CarViewModel vm,
+            IFormFile[]? HinhAnhNhanBanGiaoFiles,
+            IFormFile[]? HinhAnhBanGiaoKHFiles,
+            IFormFile[]? VideoNhanBanGiaoFiles,
+            IFormFile[]? VideoBanGiaoKHFiles)
         {
-            if (id != car.Id)
+            if (id != vm.Id)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
+                // reload existing media and preserve user-entered fields for the form
+                var existingForView = await _context.Cars.Include(c => c.Media).FirstOrDefaultAsync(c => c.Id == id);
+                if (existingForView != null)
                 {
-                    var bienSo = car.BienSo ?? "NoPlate";
-
-                    // Upload hình ảnh mới
-                    if (HinhAnhNhanBanGiaoFile != null && HinhAnhNhanBanGiaoFile.Length > 0)
-                    {
-                        if (!string.IsNullOrEmpty(car.HinhAnhNhanBanGiao))
-                        {
-                            await _imageUploadService.DeleteFileAsync(car.HinhAnhNhanBanGiao);
-                        }
-                        car.HinhAnhNhanBanGiao = await _imageUploadService.UploadFileAsync(
-                            HinhAnhNhanBanGiaoFile, bienSo, "NhanBanGiao_GSM");
-                    }
-
-                    if (HinhAnhBanGiaoKHFile != null && HinhAnhBanGiaoKHFile.Length > 0)
-                    {
-                        if (!string.IsNullOrEmpty(car.HinhAnhBanGiaoKH))
-                        {
-                            await _imageUploadService.DeleteFileAsync(car.HinhAnhBanGiaoKH);
-                        }
-                        car.HinhAnhBanGiaoKH = await _imageUploadService.UploadFileAsync(
-                            HinhAnhBanGiaoKHFile, bienSo, "BanGiao_KH");
-                    }
-
-                    // Upload video mới
-                    if (VideoNhanBanGiaoFile != null && VideoNhanBanGiaoFile.Length > 0)
-                    {
-                        if (!string.IsNullOrEmpty(car.VideoNhanBanGiao))
-                        {
-                            await _imageUploadService.DeleteVideoAsync(car.VideoNhanBanGiao);
-                        }
-                        car.VideoNhanBanGiao = await _imageUploadService.UploadVideoAsync(
-                            VideoNhanBanGiaoFile, bienSo, "Video_NhanBanGiao");
-                    }
-
-                    if (VideoBanGiaoKHFile != null && VideoBanGiaoKHFile.Length > 0)
-                    {
-                        if (!string.IsNullOrEmpty(car.VideoBanGiaoKH))
-                        {
-                            await _imageUploadService.DeleteVideoAsync(car.VideoBanGiaoKH);
-                        }
-                        car.VideoBanGiaoKH = await _imageUploadService.UploadVideoAsync(
-                            VideoBanGiaoKHFile, bienSo, "Video_BanGiaoKH");
-                    }
-
-                    car.NgayCapNhat = DateTime.Now;
-                    _context.Update(car);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Cập nhật thông tin xe thành công!";
-                    return RedirectToAction(nameof(Index));
+                    var populated = CarViewModel.FromCar(existingForView);
+                    // preserve submitted scalar values so user doesn't lose edits
+                    populated.Stt = vm.Stt;
+                    populated.TenXe = vm.TenXe;
+                    populated.SoLuong = vm.SoLuong;
+                    populated.MauXe = vm.MauXe;
+                    populated.SoVIN = vm.SoVIN;
+                    populated.BienSo = vm.BienSo;
+                    populated.MauBienSo = vm.MauBienSo;
+                    populated.TenKhachHang = vm.TenKhachHang;
+                    populated.ThongTinChoThue = vm.ThongTinChoThue;
+                    populated.OdoXe = vm.OdoXe;
+                    populated.PrimaryImageUrl = vm.PrimaryImageUrl;
+                    return View(populated);
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!CarExists(car.Id))
-                    {
-                        return NotFound();
-                    }
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error updating car");
-                    ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
-                }
+
+                return View(vm);
             }
-            return View(car);
+
+            try
+            {
+                var bienSo = vm.BienSo ?? "NoPlate";
+
+                var existing = await _context.Cars
+                    .Include(c => c.Media)
+                    .FirstOrDefaultAsync(c => c.Id == id);
+
+                if (existing == null) return NotFound();
+
+                // map scalar fields from vm to entity
+                existing.Stt = vm.Stt;
+                existing.TenXe = vm.TenXe;
+                existing.SoLuong = vm.SoLuong;
+                existing.MauXe = vm.MauXe;
+                existing.SoVIN = vm.SoVIN;
+                existing.BienSo = vm.BienSo;
+                existing.MauBienSo = vm.MauBienSo;
+                existing.TenKhachHang = vm.TenKhachHang;
+                existing.ThongTinChoThue = vm.ThongTinChoThue;
+                existing.OdoXe = vm.OdoXe;
+
+                // Handle new uploads (append)
+                if (HinhAnhNhanBanGiaoFiles != null)
+                {
+                    foreach (var file in HinhAnhNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
+                    {
+                        var url = await _imageUploadService.UploadFileAsync(file, bienSo, "NhanBanGiao_GSM");
+                        existing.Media ??= new List<CarMedia>();
+                        existing.Media.Add(new CarMedia
+                        {
+                            CarId = existing.Id,
+                            Type = MediaType.Image_GSM,
+                            Url = url,
+                            FileName = file.FileName
+                        });
+                    }
+                }
+
+                if (HinhAnhBanGiaoKHFiles != null)
+                {
+                    foreach (var file in HinhAnhBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
+                    {
+                        var url = await _imageUploadService.UploadFileAsync(file, bienSo, "BanGiao_KH");
+                        existing.Media ??= new List<CarMedia>();
+                        existing.Media.Add(new CarMedia
+                        {
+                            CarId = existing.Id,
+                            Type = MediaType.Image_KH,
+                            Url = url,
+                            FileName = file.FileName
+                        });
+                    }
+                }
+
+                if (VideoNhanBanGiaoFiles != null)
+                {
+                    foreach (var file in VideoNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
+                    {
+                        var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_NhanBanGiao");
+                        existing.Media ??= new List<CarMedia>();
+                        existing.Media.Add(new CarMedia
+                        {
+                            CarId = existing.Id,
+                            Type = MediaType.Video_GSM,
+                            Url = url,
+                            FileName = file.FileName
+                        });
+                    }
+                }
+
+                if (VideoBanGiaoKHFiles != null)
+                {
+                    foreach (var file in VideoBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
+                    {
+                        var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_BanGiaoKH");
+                        existing.Media ??= new List<CarMedia>();
+                        existing.Media.Add(new CarMedia
+                        {
+                            CarId = existing.Id,
+                            Type = MediaType.Video_KH,
+                            Url = url,
+                            FileName = file.FileName
+                        });
+                    }
+                }
+
+                // Update primary image selection based on vm.PrimaryImageUrl
+                if (!string.IsNullOrEmpty(vm.PrimaryImageUrl))
+                {
+                    if (existing.Media != null)
+                    {
+                        foreach (var m in existing.Media)
+                        {
+                            m.IsPrimary = string.Equals(m.Url, vm.PrimaryImageUrl, StringComparison.OrdinalIgnoreCase);
+                        }
+                    }
+                    existing.PrimaryImageUrl = vm.PrimaryImageUrl;
+                }
+
+                existing.NgayCapNhat = DateTime.Now;
+                _context.Update(existing);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Cập nhật thông tin xe thành công!";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!CarExists(vm.Id))
+                {
+                    return NotFound();
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating car");
+                ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
+            }
+
+            // on error reload media for view
+            var reload = await _context.Cars.Include(c => c.Media).FirstOrDefaultAsync(c => c.Id == id);
+            return View(reload != null ? CarViewModel.FromCar(reload) : vm);
         }
 
         // GET: Cars/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
-            var car = await _context.Cars.FirstOrDefaultAsync(m => m.Id == id);
-            if (car == null)
-            {
-                return NotFound();
-            }
+            var car = await _context.Cars
+                .Include(c => c.Media)
+                .FirstOrDefaultAsync(m => m.Id == id);
 
-            return View(car);
+            if (car == null) return NotFound();
+
+            var vm = CarViewModel.FromCar(car);
+            return View(vm);
         }
 
         // POST: Cars/Delete/5
@@ -274,29 +415,38 @@ namespace ChargePoint.CarManagement.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var car = await _context.Cars.FindAsync(id);
+            var car = await _context.Cars.Include(c => c.Media).FirstOrDefaultAsync(c => c.Id == id);
             if (car != null)
             {
                 try
                 {
-                    // Xóa hình ảnh
-                    if (!string.IsNullOrEmpty(car.HinhAnhNhanBanGiao))
+                    // Delete all media files
+                    if (car.Media != null)
                     {
-                        await _imageUploadService.DeleteFileAsync(car.HinhAnhNhanBanGiao);
-                    }
-                    if (!string.IsNullOrEmpty(car.HinhAnhBanGiaoKH))
-                    {
-                        await _imageUploadService.DeleteFileAsync(car.HinhAnhBanGiaoKH);
-                    }
-
-                    // Xóa video
-                    if (!string.IsNullOrEmpty(car.VideoNhanBanGiao))
-                    {
-                        await _imageUploadService.DeleteVideoAsync(car.VideoNhanBanGiao);
-                    }
-                    if (!string.IsNullOrEmpty(car.VideoBanGiaoKH))
-                    {
-                        await _imageUploadService.DeleteVideoAsync(car.VideoBanGiaoKH);
+                        foreach (var m in car.Media)
+                        {
+                            try
+                            {
+                                if (m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH)
+                                {
+                                    if (!string.IsNullOrEmpty(m.Url))
+                                    {
+                                        await _imageUploadService.DeleteFileAsync(m.Url);
+                                    }
+                                }
+                                else
+                                {
+                                    if (!string.IsNullOrEmpty(m.Url))
+                                    {
+                                        await _imageUploadService.DeleteVideoAsync(m.Url);
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to delete media {MediaId} for car {CarId}", m.Id, car.Id);
+                            }
+                        }
                     }
 
                     _context.Cars.Remove(car);
@@ -314,9 +464,150 @@ namespace ChargePoint.CarManagement.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // POST: Cars/DeleteMultiple
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteMultiple([FromForm] int[] ids)
+        {
+            if (ids == null || ids.Length == 0)
+            {
+                TempData["ErrorMessage"] = "Vui lòng chọn ít nhất một xe để xóa.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var cars = await _context.Cars
+                .Include(c => c.Media)
+                .Where(c => ids.Contains(c.Id))
+                .ToListAsync();
+
+            var vms = cars.Select(CarViewModel.FromCar).ToList();
+            // If you want to show a confirmation page: return View("Delete", vms);
+            // If you are performing deletion directly, continue with existing deletion logic using `cars`.
+
+            if (cars.Count == 0)
+            {
+                TempData["ErrorMessage"] = "Không tìm thấy xe nào tương ứng.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                foreach (var car in cars)
+                {
+                    if (car.Media != null)
+                    {
+                        foreach (var m in car.Media)
+                        {
+                            try
+                            {
+                                if (m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH)
+                                {
+                                    if (!string.IsNullOrEmpty(m.Url))
+                                    {
+                                        await _imageUploadService.DeleteFileAsync(m.Url);
+                                    }
+                                }
+                                else
+                                {
+                                    if (!string.IsNullOrEmpty(m.Url))
+                                    {
+                                        await _imageUploadService.DeleteVideoAsync(m.Url);
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to delete media {MediaId} for car {CarId}", m.Id, car.Id);
+                            }
+                        }
+                    }
+                }
+
+                _context.Cars.RemoveRange(cars);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Xóa {cars.Count} xe thành công!";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting multiple cars");
+                TempData["ErrorMessage"] = "Có lỗi xảy ra khi xóa các xe.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteMedia([FromBody] DeleteMediaRequest request)
+        {
+            if (request == null || request.Id <= 0) return BadRequest();
+
+            var media = await _context.CarMedias.Include(m => m.Car).FirstOrDefaultAsync(m => m.Id == request.Id);
+            if (media == null) return NotFound();
+
+            try
+            {
+                // delete physical file/video
+                if (media.Type == MediaType.Image_GSM || media.Type == MediaType.Image_KH)
+                {
+                    if (!string.IsNullOrEmpty(media.Url))
+                        await _imageUploadService.DeleteFileAsync(media.Url);
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(media.Url))
+                        await _imageUploadService.DeleteVideoAsync(media.Url);
+                }
+
+                var car = media.Car;
+                var deletedUrl = media.Url;
+
+                _context.CarMedias.Remove(media);
+                await _context.SaveChangesAsync();
+
+                // If deleted item was primary, attempt to pick another image as primary
+                if (car != null && car.PrimaryImageUrl == deletedUrl)
+                {
+                    var replacement = await _context.CarMedias
+                        .Where(m => m.CarId == car.Id && (m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH))
+                        .OrderByDescending(m => m.IsPrimary)
+                        .ThenBy(m => m.CreatedAt)
+                        .FirstOrDefaultAsync();
+
+                    if (replacement != null)
+                    {
+                        replacement.IsPrimary = true;
+                        car.PrimaryImageUrl = replacement.Url;
+                        _context.Update(replacement);
+                        _context.Update(car);
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        car.PrimaryImageUrl = null;
+                        _context.Update(car);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                return Json(new { success = true, deletedUrl });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting media id {MediaId}", request.Id);
+                return Json(new { success = false });
+            }
+        }
+
         private bool CarExists(int id)
         {
             return _context.Cars.Any(e => e.Id == id);
         }
+    }
+
+    public class DeleteMediaRequest
+    {
+        public int Id { get; set; }
     }
 }
