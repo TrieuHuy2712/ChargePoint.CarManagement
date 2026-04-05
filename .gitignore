@@ -42,9 +42,9 @@ bld/
 *.db
 *.db-shm
 *.db-wal
-Car-Management.db
-Car-Management.db-shm
-Car-Management.db-wal
+CarManagement.db
+CarManagement.db-shm
+CarManagement.db-wal
 
 # Visual Studio 2017 auto generated files
 Generated\ Files/
