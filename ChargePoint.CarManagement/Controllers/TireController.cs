@@ -11,21 +11,14 @@ using System.Text.Json;
 namespace ChargePoint.CarManagement.Controllers
 {
     [Authorize]
-    public class TireController : Controller
+    public class TireController(
+        ApplicationDbContext context,
+        IImageUploadService imageUploadService,
+        ILogger<TireController> logger) : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IImageUploadService _imageUploadService;
-        private readonly ILogger<TireController> _logger;
-
-        public TireController(
-            ApplicationDbContext context,
-            IImageUploadService imageUploadService,
-            ILogger<TireController> logger)
-        {
-            _context = context;
-            _imageUploadService = imageUploadService;
-            _logger = logger;
-        }
+        private readonly ApplicationDbContext _context = context;
+        private readonly IImageUploadService _imageUploadService = imageUploadService;
+        private readonly ILogger<TireController> _logger = logger;
 
         // GET: Tire
         public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
@@ -40,9 +33,11 @@ namespace ChargePoint.CarManagement.Controllers
             {
                 var key = q.Trim();
                 var keyLower = key.ToLower();
+                var keyNormalized = keyLower.Replace("-", "").Replace(".", "");
 
                 carQuery = carQuery.Where(c =>
-                    (c.BienSo != null && c.BienSo.ToLower().Contains(keyLower)) ||
+                    (c.BienSo != null && (c.BienSo.ToLower().Contains(keyLower) || 
+                                          c.BienSo.Replace("-", "").Replace(".", "").ToLower().Contains(keyNormalized))) ||
                     (c.TenXe != null && c.TenXe.ToLower().Contains(keyLower)) ||
                     (c.TenKhachHang != null && c.TenKhachHang.ToLower().Contains(keyLower)) ||
                     (c.SoVIN != null && c.SoVIN.ToLower().Contains(keyLower)) ||
@@ -141,13 +136,14 @@ namespace ChargePoint.CarManagement.Controllers
             if (viTri.HasValue) query = query.Where(t => t.ViTriLop == viTri.Value);
 
             var records = await query
-                .OrderByDescending(t => t.NgayThucHien)
+                .OrderByDescending(t => t.NgayThucHien) // Sắp xếp giảm dần (mới nhất lên trên)
                 .ToListAsync();
 
             return View(new TireHistoryVM
             {
                 Car = car,
                 ViTriLop = viTri,
+                Records = records
             });
         }
 
@@ -181,68 +177,93 @@ namespace ChargePoint.CarManagement.Controllers
         [ValidateAntiForgeryToken]
         [RequestSizeLimit(50 * 1024 * 1024)]
         public async Task<IActionResult> Create(
-            TireRecord model,
-            List<IFormFile>? HinhAnhChungTuFiles)
+            [Bind(Prefix = "TireRecord")] TireRecord model,
+            List<IFormFile>? HinhAnhChungTuFiles,
+            List<IFormFile>? HinhAnhDOTFiles)
         {
-            if (ModelState.IsValid)
+            // Load car information first
+            var car = await _context.Cars.FindAsync(model.CarId);
+            if (car == null)
             {
-                try
-                {
-                    var car = await _context.Cars.FindAsync(model.CarId);
-                    if (car == null)
-                    {
-                        ModelState.AddModelError("", "Không tìm thấy xe");
-                        return View(model);
-                    }
-
-                    // Upload hình ảnh
-                    if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
-                    {
-                        var imageUrls = new List<string>();
-                        var bienSo = car.BienSo ?? "NoPlate";
-
-                        foreach (var file in HinhAnhChungTuFiles)
-                        {
-                            if (file.Length > 0)
-                            {
-                                var url = await _imageUploadService.UploadFileAsync(
-                                    file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                                imageUrls.Add(url);
-                            }
-                        }
-
-                        model.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
-                    }
-
-                    model.NgayTao = DateTime.Now;
-                    model.NguoiTao = User.Identity?.Name;
-
-                    // Cập nhật ODO xe nếu cần
-                    if (model.OdoThayLop > car.OdoXe)
-                    {
-                        car.OdoXe = model.OdoThayLop;
-                        car.NgayCapNhat = DateTime.Now;
-                    }
-
-                    _context.TireRecords.Add(model);
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = $"Thêm hồ sơ lốp ({model.TenViTriLop}) thành công!";
-                    return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lỗi khi tạo hồ sơ lốp");
-                    ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
-                }
+                return NotFound();
             }
 
-            var carForView = await _context.Cars.FindAsync(model.CarId);
-            return View(new TireCreateVM
+            // Create view model for potential return
+            var vm = new TireCreateVM
             {
-                Car = carForView,
+                Car = car,
                 TireRecord = model
-            });
+            };
+
+            if (!ModelState.IsValid)
+            {
+                return View(vm);
+            }
+
+            try
+            {
+                var bienSo = car.BienSo ?? "NoPlate";
+
+                // Upload hình ảnh chứng từ nếu có
+                if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
+                {
+                    var imageUrls = new List<string>();
+
+                    foreach (var file in HinhAnhChungTuFiles)
+                    {
+                        if (file != null && file.Length > 0)
+                        {
+                            var url = await _imageUploadService.UploadFileAsync(
+                                file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
+                            imageUrls.Add(url);
+                        }
+                    }
+
+                    model.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
+                }
+
+                // Upload hình ảnh DOT nếu có
+                if (HinhAnhDOTFiles != null && HinhAnhDOTFiles.Count > 0)
+                {
+                    var dotImageUrls = new List<string>();
+
+                    foreach (var file in HinhAnhDOTFiles)
+                    {
+                        if (file != null && file.Length > 0)
+                        {
+                            var url = await _imageUploadService.UploadFileAsync(
+                                file, bienSo, $"DOT_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
+                            dotImageUrls.Add(url);
+                        }
+                    }
+
+                    model.HinhAnhDOT = JsonSerializer.Serialize(dotImageUrls);
+                }
+
+                model.NgayTao = DateTime.Now;
+                model.NguoiTao = User.Identity?.Name;
+
+                // Cập nhật ODO xe nếu cần
+                if (model.OdoThayLop > car.OdoXe)
+                {
+                    car.OdoXe = model.OdoThayLop;
+                    car.NgayCapNhat = DateTime.Now;
+                }
+
+                _context.TireRecords.Add(model);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"Thêm hồ sơ lốp ({model.TenViTriLop}) thành công!";
+                return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi tạo hồ sơ lốp");
+                ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
+            }
+
+            // Return view with populated data on error
+            return View(vm);
         }
 
         // GET: Tire/Edit/5
@@ -254,7 +275,7 @@ namespace ChargePoint.CarManagement.Controllers
                 .Include(t => t.Car)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
-            if (record == null) return NotFound();
+            if (record == null || record.Car == null) return NotFound();
 
             return View(new TireEditVM
             {
@@ -269,78 +290,104 @@ namespace ChargePoint.CarManagement.Controllers
         [RequestSizeLimit(50 * 1024 * 1024)]
         public async Task<IActionResult> Edit(
             int id,
-            TireRecord model,
-            List<IFormFile>? HinhAnhChungTuFiles)
+            [Bind(Prefix = "Record")] TireRecord model,
+            List<IFormFile>? HinhAnhChungTuFiles,
+            List<IFormFile>? HinhAnhDOTFiles)
         {
             if (id != model.Id)
                 return NotFound();
 
-            if (ModelState.IsValid)
+            // Load existing record first to get CarId
+            var existingRecord = await _context.TireRecords.FindAsync(id);
+            if (existingRecord == null)
+                return NotFound();
+
+            // Load car information
+            var car = await _context.Cars.FindAsync(existingRecord.CarId);
+            if (car == null)
             {
-                try
-                {
-                    var existingRecord = await _context.TireRecords.FindAsync(id);
-                    if (existingRecord == null)
-                        return NotFound();
-
-                    var car = await _context.Cars.FindAsync(model.CarId);
-                    if (car == null)
-                    {
-                        ModelState.AddModelError("", "Không tìm thấy xe");
-                        return View(model);
-                    }
-
-                    // Cập nhật thông tin
-                    existingRecord.ViTriLop = model.ViTriLop;
-                    existingRecord.LoaiThaoTac = model.LoaiThaoTac;
-                    existingRecord.NgayThucHien = model.NgayThucHien;
-                    existingRecord.OdoThayLop = model.OdoThayLop;
-                    existingRecord.HangLop = model.HangLop;
-                    existingRecord.ModelLop = model.ModelLop;
-                    existingRecord.KichThuocLop = model.KichThuocLop;
-                    existingRecord.OdoThayTiepTheo = model.OdoThayTiepTheo;
-                    existingRecord.ChiPhi = model.ChiPhi;
-                    existingRecord.NoiThucHien = model.NoiThucHien;
-                    existingRecord.GhiChu = model.GhiChu;
-                    existingRecord.NgayCapNhat = DateTime.Now;
-
-                    // Upload hình ảnh mới
-                    if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
-                    {
-                        var existingImages = existingRecord.DanhSachHinhAnh;
-                        var bienSo = car.BienSo ?? "NoPlate";
-
-                        foreach (var file in HinhAnhChungTuFiles)
-                        {
-                            if (file.Length > 0)
-                            {
-                                var url = await _imageUploadService.UploadFileAsync(
-                                    file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                                existingImages.Add(url);
-                            }
-                        }
-
-                        existingRecord.HinhAnhChungTu = JsonSerializer.Serialize(existingImages);
-                    }
-
-                    await _context.SaveChangesAsync();
-
-                    TempData["SuccessMessage"] = "Cập nhật hồ sơ lốp thành công!";
-                    return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lỗi khi cập nhật hồ sơ lốp");
-                    ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
-                }
+                return NotFound();
             }
 
-            var carForView = await _context.Cars.FindAsync(model.CarId);
-            return View(new TireEditVM
+            // Create view model for potential return
+            var vm = new TireEditVM
             {
-                Car = carForView,
+                Car = car,
                 Record = model
-            });
+            };
+
+            if (!ModelState.IsValid)
+            {
+                return View(vm);
+            }
+
+            try
+            {
+                // Cập nhật thông tin (không update CarId, NgayTao, NguoiTao)
+                existingRecord.ViTriLop = model.ViTriLop;
+                existingRecord.LoaiThaoTac = model.LoaiThaoTac;
+                existingRecord.NgayThucHien = model.NgayThucHien;
+                existingRecord.OdoThayLop = model.OdoThayLop;
+                existingRecord.HangLop = model.HangLop;
+                existingRecord.ModelLop = model.ModelLop;
+                existingRecord.KichThuocLop = model.KichThuocLop;
+                existingRecord.OdoThayTiepTheo = model.OdoThayTiepTheo;
+                existingRecord.ChiPhi = model.ChiPhi;
+                existingRecord.NoiThucHien = model.NoiThucHien;
+                existingRecord.GhiChu = model.GhiChu;
+                existingRecord.NgayCapNhat = DateTime.Now;
+
+                var bienSo = car.BienSo ?? "NoPlate";
+
+                // Upload hình ảnh chứng từ mới
+                if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
+                {
+                    var existingImages = existingRecord.DanhSachHinhAnh;
+
+                    foreach (var file in HinhAnhChungTuFiles)
+                    {
+                        if (file.Length > 0)
+                        {
+                            var url = await _imageUploadService.UploadFileAsync(
+                                file, bienSo, $"Lop_{existingRecord.ViTriLop}_{existingRecord.NgayThucHien:yyyyMMdd}");
+                            existingImages.Add(url);
+                        }
+                    }
+
+                    existingRecord.HinhAnhChungTu = JsonSerializer.Serialize(existingImages);
+                }
+
+                // Upload hình ảnh DOT mới
+                if (HinhAnhDOTFiles != null && HinhAnhDOTFiles.Count > 0)
+                {
+                    var existingDOTImages = existingRecord.DanhSachHinhAnhDOT;
+
+                    foreach (var file in HinhAnhDOTFiles)
+                    {
+                        if (file.Length > 0)
+                        {
+                            var url = await _imageUploadService.UploadFileAsync(
+                                file, bienSo, $"DOT_{existingRecord.ViTriLop}_{existingRecord.NgayThucHien:yyyyMMdd}");
+                            existingDOTImages.Add(url);
+                        }
+                    }
+
+                    existingRecord.HinhAnhDOT = JsonSerializer.Serialize(existingDOTImages);
+                }
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Cập nhật hồ sơ lốp thành công!";
+                return RedirectToAction(nameof(CarDetail), new { id = existingRecord.CarId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi cập nhật hồ sơ lốp");
+                ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
+            }
+
+            // Return view with populated data on error
+            return View(vm);
         }
 
         // GET: Tire/Details/5
@@ -369,8 +416,14 @@ namespace ChargePoint.CarManagement.Controllers
             {
                 var carId = record.CarId;
 
-                // Xóa hình ảnh
+                // Xóa hình ảnh chứng từ
                 foreach (var imageUrl in record.DanhSachHinhAnh)
+                {
+                    await _imageUploadService.DeleteFileAsync(imageUrl);
+                }
+
+                // Xóa hình ảnh DOT
+                foreach (var imageUrl in record.DanhSachHinhAnhDOT)
                 {
                     await _imageUploadService.DeleteFileAsync(imageUrl);
                 }
@@ -387,22 +440,47 @@ namespace ChargePoint.CarManagement.Controllers
 
         // POST: Tire/DeleteImage
         [HttpPost]
-        public async Task<IActionResult> DeleteImage(int recordId, string imageUrl)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteImage([FromBody] DeleteImageRequest request)
         {
-            var record = await _context.TireRecords.FindAsync(recordId);
+            if (request == null || string.IsNullOrEmpty(request.ImageUrl))
+                return Json(new { success = false, message = "Thông tin không hợp lệ" });
+
+            var record = await _context.TireRecords.FindAsync(request.RecordId);
             if (record == null)
                 return Json(new { success = false, message = "Không tìm thấy hồ sơ" });
 
             try
             {
-                var images = record.DanhSachHinhAnh;
-                if (images.Contains(imageUrl))
-                {
-                    await _imageUploadService.DeleteFileAsync(imageUrl);
-                    images.Remove(imageUrl);
-                    record.HinhAnhChungTu = JsonSerializer.Serialize(images);
-                    await _context.SaveChangesAsync();
+                bool imageFound = false;
 
+                // Xóa ảnh chứng từ hoặc ảnh DOT tùy theo imageType
+                if (request.ImageType == "DOT")
+                {
+                    var dotImages = record.DanhSachHinhAnhDOT;
+                    if (dotImages.Contains(request.ImageUrl))
+                    {
+                        await _imageUploadService.DeleteFileAsync(request.ImageUrl);
+                        dotImages.Remove(request.ImageUrl);
+                        record.HinhAnhDOT = JsonSerializer.Serialize(dotImages);
+                        imageFound = true;
+                    }
+                }
+                else
+                {
+                    var images = record.DanhSachHinhAnh;
+                    if (images.Contains(request.ImageUrl))
+                    {
+                        await _imageUploadService.DeleteFileAsync(request.ImageUrl);
+                        images.Remove(request.ImageUrl);
+                        record.HinhAnhChungTu = JsonSerializer.Serialize(images);
+                        imageFound = true;
+                    }
+                }
+
+                if (imageFound)
+                {
+                    await _context.SaveChangesAsync();
                     return Json(new { success = true, message = "Đã xóa hình ảnh" });
                 }
 
@@ -410,8 +488,17 @@ namespace ChargePoint.CarManagement.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Lỗi khi xóa hình ảnh");
                 return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        // Helper class for DeleteImage request
+        public class DeleteImageRequest
+        {
+            public int RecordId { get; set; }
+            public string ImageUrl { get; set; } = string.Empty;
+            public string ImageType { get; set; } = "ChungTu"; // "ChungTu" or "DOT"
         }
     }
 }

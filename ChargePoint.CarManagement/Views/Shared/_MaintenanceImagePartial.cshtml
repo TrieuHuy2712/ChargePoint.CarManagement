@@ -1,0 +1,282 @@
+﻿@model dynamic
+@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+
+@{
+    var settings = FileUploadSettings.Value;
+    var maintenance = Model.Record;
+    var isEdit = maintenance != null && maintenance.Id > 0;
+}
+
+<!-- Existing images (for Edit view) -->
+@if (isEdit && maintenance.DanhSachHinhAnh != null && maintenance.DanhSachHinhAnh.Count > 0)
+{
+    <div class="mb-3">
+        <label class="form-label fw-bold">Hình ảnh chứng từ hiện có</label>
+        <div id="existingImages" class="d-flex flex-wrap gap-2">
+            @foreach (var img in maintenance.DanhSachHinhAnh)
+            {
+                <div class="position-relative preview-item" data-image-url="@img">
+                    <a href="@img" target="_blank">
+                        <img src="@img" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;" />
+                    </a>
+                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1"
+                            onclick="deleteExistingImage(@maintenance.Id, '@img')" title="Xóa ảnh đã lưu">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<!-- Upload new images -->
+<div class="form-group mb-3">
+    <h5 class="mt-4 mb-3 text-primary">
+        <i class="fas fa-images"></i> Hình ảnh hồ sơ bão dưỡng + quyết toán sữa chữa
+    </h5>
+    <label class="form-label">
+        <i class="fas fa-file-image"></i> Kéo thả, Copy/Paste (Ctrl+V) hoặc click để tải ảnh
+    </label>
+
+    <!-- Drag & Drop Zone -->
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('imageInput').click()" title="Click để chọn file hoặc nhấn Ctrl+V để paste">
+        <div class="drop-zone-content">
+            <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+            <p class="mb-2"><strong>Kéo thả ảnh vào đây</strong></p>
+            <p class="text-muted mb-2">hoặc click để chọn file</p>
+            <p class="text-muted mb-0"><small>💡 Mẹo: Click vào đây và nhấn <kbd>Ctrl+V</kbd> để paste ảnh</small></p>
+        </div>
+    </div>
+
+    <input type="file" name="HinhAnhChungTuFiles" class="form-control d-none" multiple
+           accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))"
+           id="imageInput" />
+    <small class="form-text text-muted">
+        <i class="fas fa-info-circle"></i>
+        Có thể chọn nhiều ảnh, kéo thả hoặc paste từ clipboard. Tối đa @settings.MaxImageSizeMB MB mỗi ảnh.
+    </small>
+    <div id="imagePreview" class="mt-3 d-flex flex-wrap gap-2"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // DataTransfer để quản lý files
+        let imageFilesDataTransfer = new DataTransfer();
+
+        const dropZone = document.getElementById('dropZone');
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+
+        // Hàm xử lý preview chung
+        function previewFiles(files) {
+            Array.from(files).forEach((file) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const div = document.createElement('div');
+                        div.className = 'position-relative preview-item';
+                        div.setAttribute('data-filename', file.name);
+
+                        div.innerHTML = `
+                            <img src="${e.target.result}" class="img-thumbnail" 
+                                 style="width: 100px; height: 100px; object-fit: cover;">
+                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 remove-preview-btn" 
+                                    onclick="removePreview(this, '${file.name}')" title="Xóa ảnh này">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        `;
+                        imagePreview.appendChild(div);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Hàm xóa preview
+        window.removePreview = function (btn, filename) {
+            const previewItem = btn.closest('.preview-item');
+            previewItem.remove();
+
+            const newDataTransfer = new DataTransfer();
+            for (let i = 0; i < imageFilesDataTransfer.files.length; i++) {
+                if (imageFilesDataTransfer.files[i].name !== filename) {
+                    newDataTransfer.items.add(imageFilesDataTransfer.files[i]);
+                }
+            }
+            imageFilesDataTransfer = newDataTransfer;
+            imageInput.files = newDataTransfer.files;
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Drag & Drop listeners
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('drop-zone-active'));
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('drop-zone-active'));
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const newFiles = e.dataTransfer.files;
+            Array.from(newFiles).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    imageFilesDataTransfer.items.add(file);
+                }
+            });
+            imageInput.files = imageFilesDataTransfer.files;
+            previewFiles(newFiles);
+        });
+
+        // File input change listener - FIXED
+        imageInput.addEventListener('change', function (e) {
+            const newFiles = this.files;
+            // Add new files to the existing DataTransfer object
+            Array.from(newFiles).forEach(file => {
+                imageFilesDataTransfer.items.add(file);
+            });
+            // Assign the updated DataTransfer files back to the input
+            imageInput.files = imageFilesDataTransfer.files;
+            // Only preview the newly added files
+            previewFiles(newFiles);
+        });
+
+        // ===== PASTE FUNCTIONALITY =====
+        function handlePaste(e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            const filesToPreview = [];
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    const timestamp = new Date().getTime();
+                    const fileName = `pasted-image-${timestamp}-${i}.png`;
+                    const file = new File([blob], fileName, { type: blob.type });
+
+                    imageFilesDataTransfer.items.add(file);
+                    filesToPreview.push(file);
+                    e.preventDefault();
+                }
+            }
+            if (filesToPreview.length > 0) {
+                imageInput.files = imageFilesDataTransfer.files;
+                previewFiles(filesToPreview);
+            }
+        }
+
+        dropZone.addEventListener('paste', function (e) {
+            e.stopPropagation();
+            handlePaste(e);
+        });
+
+        dropZone.setAttribute('tabindex', '0');
+        dropZone.addEventListener('focus', () => {
+            dropZone.style.borderColor = '#0d6efd';
+            dropZone.style.boxShadow = '0 0 0 0.25rem rgba(13, 110, 253, 0.25)';
+        });
+        dropZone.addEventListener('blur', () => {
+            dropZone.style.borderColor = '';
+            dropZone.style.boxShadow = '';
+        });
+
+        // Delete existing image (only in Edit mode)
+        window.deleteExistingImage = async function (recordId, imageUrl) {
+            if (!confirm('Bạn có chắc muốn xóa ảnh ĐÃ LƯU này?')) return;
+
+            function getAntiForgeryToken() {
+                return document.querySelector('input[name="__RequestVerificationToken"]').value;
+            }
+
+            try {
+                const res = await fetch('@Url.Action("DeleteImage", "Maintenance")', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': getAntiForgeryToken(),
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({ recordId, imageUrl }).toString()
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    const imgElement = document.querySelector(`#existingImages [data-image-url="${imageUrl}"]`);
+                    if (imgElement) {
+                        imgElement.remove();
+                    }
+                    alert(data.message || 'Xóa ảnh thành công.');
+                } else {
+                    alert(data.message || 'Xóa thất bại. Vui lòng thử lại.');
+                }
+            } catch (err) {
+                console.error('Delete image error:', err);
+                alert('Đã xảy ra lỗi khi xóa ảnh: ' + err.message);
+            }
+        }
+    });
+</script>
+
+<style>
+    /* Drop Zone Styles */
+    .drop-zone {
+        border: 3px dashed #0d6efd;
+        border-radius: 12px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+        margin-bottom: 15px;
+        outline: none;
+    }
+
+    .drop-zone:hover {
+        border-color: #0b5ed7;
+        background-color: #e7f1ff;
+        transform: scale(1.01);
+    }
+
+    .drop-zone-active {
+        border-color: #198754;
+        background-color: #d1e7dd;
+        transform: scale(1.02);
+    }
+
+    /* Preview Item Styles */
+    .preview-item {
+        position: relative;
+        transition: all 0.2s;
+    }
+
+    .preview-item:hover {
+        transform: scale(1.05);
+    }
+
+    .preview-item .remove-preview-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .preview-item .remove-preview-btn:hover {
+        transform: scale(1.1);
+    }
+
+    kbd {
+        background-color: #212529;
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.85em;
+        font-family: monospace;
+    }
+</style>

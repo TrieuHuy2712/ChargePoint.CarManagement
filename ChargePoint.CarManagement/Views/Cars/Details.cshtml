@@ -169,116 +169,41 @@
             <hr />
 
             <!-- Images split: GSM / KH -->
-            <h5 class="mb-3"><i class="fas fa-images"></i> Ảnh</h5>
+            <h5 class="mb-3"><i class="fas fa-images"></i> Hình ảnh</h5>
+
+            @{
+                var gsmThanXeImages = Model.Media?.Where(m => m.Type.IsThanXe() && m.Type.IsGSM()).ToList();
+                var gsmGiayToImages = Model.Media?.Where(m => m.Type.IsGiayTo() && m.Type.IsGSM()).ToList();
+                var khThanXeImages = Model.Media?.Where(m => m.Type.IsThanXe() && m.Type.IsKH()).ToList();
+                var khGiayToImages = Model.Media?.Where(m => m.Type.IsGiayTo() && m.Type.IsKH()).ToList();
+            }
+
             <div class="row g-3 mb-3">
+                <!-- Hình ảnh thân xe GSM -->
                 <div class="col-12 col-md-6">
                     <div class="card">
-                        <div class="card-header bg-light">
-                            <strong><i class="fas fa-camera-retro text-success"></i> Hình ảnh GSM</strong>
-                        </div>
-                        <div class="card-body">
-                            @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Image_GSM))
-                            {
-                                <div class="row g-2">
-                                    @foreach (var img in Model.Media.Where(m => m.Type == MediaType.Image_GSM).OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
-                                    {
-                                        <div class="col-6 col-sm-4 col-md-6 mb-2">
-                                            <div class="card h-100">
-                                                <div class="card-body p-2 text-center">
-                                                    <a href="@img.Url" target="_blank">
-                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
-                                                    </a>
-                                                </div>
-                                                <div class="card-footer py-1 d-flex justify-content-between align-items-center">
-                                                    <small class="text-muted" style="font-size:12px;">@img.FileName</small>
-                                                    <div>
-                                                        @if (img.IsPrimary)
-                                                        {
-                                                            <span class="badge bg-warning text-dark">Ảnh chính</span>
-                                                        }
-                                                        <span class="badge bg-success ms-1">GSM</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            }
-                            else
-                            {
-                                <p class="text-muted mb-0"><i class="fas fa-image"></i> Chưa có ảnh GSM.</p>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <div class="card">
-                        <div class="card-header bg-light">
-                            <strong><i class="fas fa-user-check text-info"></i> Hình ảnh KH</strong>
-                        </div>
-                        <div class="card-body">
-                            @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Image_KH))
-                            {
-                                <div class="row g-2">
-                                    @foreach (var img in Model.Media.Where(m => m.Type == MediaType.Image_KH).OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
-                                    {
-                                        <div class="col-6 col-sm-4 col-md-6 mb-2">
-                                            <div class="card h-100">
-                                                <div class="card-body p-2 text-center">
-                                                    <a href="@img.Url" target="_blank">
-                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
-                                                    </a>
-                                                </div>
-                                                <div class="card-footer py-1 d-flex justify-content-between align-items-center">
-                                                    <small class="text-muted" style="font-size:12px;">@img.FileName</small>
-                                                    <div>
-                                                        @if (img.IsPrimary)
-                                                        {
-                                                            <span class="badge bg-warning text-dark">Ảnh chính</span>
-                                                        }
-                                                        <span class="badge bg-info text-dark ms-1">KH</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            }
-                            else
-                            {
-                                <p class="text-muted mb-0"><i class="fas fa-image"></i> Chưa có ảnh KH.</p>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Videos separated: GSM / KH -->
-            <h5 class="mb-3 mt-4"><i class="fas fa-video"></i> Videos</h5>
-            <div class="row g-3 mb-4">
-                <div class="col-12 col-md-6">
-                    <div class="card h-100">
                         <div class="card-header bg-success text-white">
-                            <i class="fas fa-film"></i> Video nhận bàn giao từ GSM
+                            <strong><i class="fas fa-camera-retro"></i> Hình ảnh thân xe - GSM</strong>
                         </div>
                         <div class="card-body">
-                            @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Video_GSM))
+                            @if (gsmThanXeImages != null && gsmThanXeImages.Any())
                             {
-                                <div class="row g-3">
-                                    @foreach (var v in Model.Media.Where(m => m.Type == MediaType.Video_GSM).OrderByDescending(m => m.CreatedAt))
+                                <div class="row g-2">
+                                    @foreach (var img in gsmThanXeImages.OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
                                     {
-                                        <div class="col-12 mb-3">
-                                            <div class="card">
+                                        <div class="col-6 col-sm-4 col-md-6 mb-2">
+                                            <div class="card h-100">
                                                 <div class="card-body p-2 text-center">
-                                                    <video controls class="w-100 rounded" style="max-height: 300px;">
-                                                        <source src="@v.Url" type="video/mp4" />
-                                                        Trình duyệt không hỗ trợ video.
-                                                    </video>
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
+                                                    </a>
                                                 </div>
-                                                <div class="card-footer py-1 d-flex justify-content-between align-items-center">
-                                                    <small class="text-muted">@v.FileName</small>
-                                                    <small class="text-muted">@v.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                                <div class="card-footer py-1">
+                                                    <small class="text-muted d-block" style="font-size:11px;">@img.Type.GetDisplayName()</small>
+                                                    @if (img.IsPrimary)
+                                                    {
+                                                        <span class="badge bg-warning text-dark">Ảnh chính</span>
+                                                    }
                                                 </div>
                                             </div>
                                         </div>
@@ -287,34 +212,33 @@
                             }
                             else
                             {
-                                <p class="text-muted"><i class="fas fa-video"></i> Chưa có video GSM.</p>
+                                <p class="text-muted mb-0"><i class="fas fa-image"></i> Chưa có ảnh thân xe GSM.</p>
                             }
                         </div>
                     </div>
                 </div>
 
+                <!-- Giấy tờ xe GSM -->
                 <div class="col-12 col-md-6">
-                    <div class="card h-100">
-                        <div class="card-header bg-info text-white">
-                            <i class="fas fa-film"></i> Video bàn giao cho khách hàng
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <strong><i class="fas fa-file-alt"></i> Giấy tờ xe - GSM</strong>
                         </div>
                         <div class="card-body">
-                            @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Video_KH))
+                            @if (gsmGiayToImages != null && gsmGiayToImages.Any())
                             {
-                                <div class="row g-3">
-                                    @foreach (var v in Model.Media.Where(m => m.Type == MediaType.Video_KH).OrderByDescending(m => m.CreatedAt))
+                                <div class="row g-2">
+                                    @foreach (var img in gsmGiayToImages.OrderByDescending(m => m.CreatedAt))
                                     {
-                                        <div class="col-12 mb-3">
-                                            <div class="card">
+                                        <div class="col-6 col-sm-4 col-md-6 mb-2">
+                                            <div class="card h-100">
                                                 <div class="card-body p-2 text-center">
-                                                    <video controls class="w-100 rounded" style="max-height: 300px;">
-                                                        <source src="@v.Url" type="video/mp4" />
-                                                        Trình duyệt không hỗ trợ video.
-                                                    </video>
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
+                                                    </a>
                                                 </div>
-                                                <div class="card-footer py-1 d-flex justify-content-between align-items-center">
-                                                    <small class="text-muted">@v.FileName</small>
-                                                    <small class="text-muted">@v.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                                <div class="card-footer py-1">
+                                                    <small class="text-muted" style="font-size:11px;">@img.Type.GetDisplayName()</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -323,7 +247,81 @@
                             }
                             else
                             {
-                                <p class="text-muted"><i class="fas fa-video"></i> Chưa có video KH.</p>
+                                <p class="text-muted mb-0"><i class="fas fa-file"></i> Chưa có giấy tờ xe GSM.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hình ảnh thân xe KH -->
+                <div class="col-12 col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <strong><i class="fas fa-camera-retro"></i> Hình ảnh thân xe - KH</strong>
+                        </div>
+                        <div class="card-body">
+                            @if (khThanXeImages != null && khThanXeImages.Any())
+                            {
+                                <div class="row g-2">
+                                    @foreach (var img in khThanXeImages.OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
+                                    {
+                                        <div class="col-6 col-sm-4 col-md-6 mb-2">
+                                            <div class="card h-100">
+                                                <div class="card-body p-2 text-center">
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
+                                                    </a>
+                                                </div>
+                                                <div class="card-footer py-1">
+                                                    <small class="text-muted d-block" style="font-size:11px;">@img.Type.GetDisplayName()</small>
+                                                    @if (img.IsPrimary)
+                                                    {
+                                                        <span class="badge bg-warning text-dark">Ảnh chính</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-0"><i class="fas fa-image"></i> Chưa có ảnh thân xe KH.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Giấy tờ xe KH -->
+                <div class="col-12 col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <strong><i class="fas fa-file-alt"></i> Giấy tờ xe - KH</strong>
+                        </div>
+                        <div class="card-body">
+                            @if (khGiayToImages != null && khGiayToImages.Any())
+                            {
+                                <div class="row g-2">
+                                    @foreach (var img in khGiayToImages.OrderByDescending(m => m.CreatedAt))
+                                    {
+                                        <div class="col-6 col-sm-4 col-md-6 mb-2">
+                                            <div class="card h-100">
+                                                <div class="card-body p-2 text-center">
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:150px; width:100%; object-fit:cover;" />
+                                                    </a>
+                                                </div>
+                                                <div class="card-footer py-1">
+                                                    <small class="text-muted" style="font-size:11px;">@img.Type.GetDisplayName()</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-0"><i class="fas fa-file"></i> Chưa có giấy tờ xe KH.</p>
                             }
                         </div>
                     </div>

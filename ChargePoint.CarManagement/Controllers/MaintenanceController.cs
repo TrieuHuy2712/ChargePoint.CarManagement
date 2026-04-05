@@ -41,9 +41,11 @@ namespace ChargePoint.CarManagement.Controllers
             {
                 var key = q.Trim();
                 var keyLower = key.ToLower();
+                var keyNormalized = keyLower.Replace("-", "").Replace(".", "");
 
                 carQuery = carQuery.Where(c =>
-                    (c.BienSo != null && c.BienSo.ToLower().Contains(keyLower)) ||
+                    (c.BienSo != null && (c.BienSo.ToLower().Contains(keyLower) || 
+                                          c.BienSo.Replace("-", "").Replace(".", "").ToLower().Contains(keyNormalized))) ||
                     (c.TenXe != null && c.TenXe.ToLower().Contains(keyLower)) ||
                     (c.TenKhachHang != null && c.TenKhachHang.ToLower().Contains(keyLower)) ||
                     (c.SoVIN != null && c.SoVIN.ToLower().Contains(keyLower)) ||
@@ -191,7 +193,6 @@ namespace ChargePoint.CarManagement.Controllers
                         NgayBaoDuong = model.NgayBaoDuong,
                         SoKmBaoDuong = model.SoKmBaoDuong,
                         CapBaoDuong = model.CapBaoDuong,
-                        NgayBaoDuongTiepTheo = model.NgayBaoDuongTiepTheo,
                         SoKmBaoDuongTiepTheo = model.SoKmBaoDuongTiepTheo,
                         NoiDungBaoDuong = model.NoiDungBaoDuong,
                         ChiPhi = model.ChiPhi,
@@ -275,11 +276,23 @@ namespace ChargePoint.CarManagement.Controllers
         [RequestSizeLimit(50 * 1024 * 1024)]
         public async Task<IActionResult> Edit(
             int id,
-            MaintenanceRecord model,
+            [Bind(Prefix = "maintenance")] MaintenanceRecord model,
             List<IFormFile>? HinhAnhChungTuFiles)
         {
             if (id != model.Id)
                 return NotFound();
+
+            if (!ModelState.IsValid)
+            {
+                // Log validation errors
+                foreach (var modelState in ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        _logger.LogWarning("ModelState Error: {Error}", error.ErrorMessage);
+                    }
+                }
+            }
 
             if (ModelState.IsValid)
             {
@@ -293,14 +306,18 @@ namespace ChargePoint.CarManagement.Controllers
                     if (car == null)
                     {
                         ModelState.AddModelError("", "Không tìm thấy xe");
-                        return View(model);
+                        var errorVM = new MaintenanceEditVM
+                        {
+                            Car = null!,
+                            Record = model
+                        };
+                        return View(errorVM);
                     }
 
                     // Update
                     existingRecord.NgayBaoDuong = model.NgayBaoDuong;
                     existingRecord.SoKmBaoDuong = model.SoKmBaoDuong;
                     existingRecord.CapBaoDuong = model.CapBaoDuong;
-                    existingRecord.NgayBaoDuongTiepTheo = model.NgayBaoDuongTiepTheo;
                     existingRecord.SoKmBaoDuongTiepTheo = model.SoKmBaoDuongTiepTheo;
                     existingRecord.NoiDungBaoDuong = model.NoiDungBaoDuong;
                     existingRecord.ChiPhi = model.ChiPhi;
@@ -339,10 +356,17 @@ namespace ChargePoint.CarManagement.Controllers
                 }
             }
 
+            // Reload car for view in case of validation error
             var carForView = await _context.Cars.FindAsync(model.CarId);
+            if (carForView == null)
+            {
+                ModelState.AddModelError("", "Không tìm thấy thông tin xe");
+                return NotFound();
+            }
+
             var editVM = new MaintenanceEditVM
             {
-                Car = carForView!,
+                Car = carForView,
                 Record = model
             };
             return View(editVM);

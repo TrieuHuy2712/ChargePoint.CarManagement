@@ -8,9 +8,7 @@ namespace ChargePoint.CarManagement.Services
     public interface IImageUploadService
     {
         Task<string> UploadFileAsync(IFormFile file, string bienSo, string imageType);
-        Task<string> UploadVideoAsync(IFormFile file, string bienSo, string videoType);
         Task DeleteFileAsync(string fileUrl);
-        Task DeleteVideoAsync(string fileUrl);
     }
 
     public class CloudinaryService : IImageUploadService
@@ -83,65 +81,9 @@ namespace ChargePoint.CarManagement.Services
             return uploadResult.SecureUrl.ToString();
         }
 
-        public async Task<string> UploadVideoAsync(IFormFile file, string bienSo, string videoType)
-        {
-            if (file == null || file.Length == 0)
-                throw new ArgumentException("File is empty");
-
-            // Validate video
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!_fileUploadSettings.AllowedVideoExtensions.Contains(extension))
-            {
-                throw new ArgumentException($"Định dạng video không hợp lệ. Chỉ chấp nhận: {string.Join(", ", _fileUploadSettings.AllowedVideoExtensions)}");
-            }
-
-            if (file.Length > _fileUploadSettings.MaxVideoSizeBytes)
-            {
-                throw new ArgumentException($"Video quá lớn. Tối đa {_fileUploadSettings.MaxVideoSizeMB}MB");
-            }
-
-            var folderName = string.IsNullOrEmpty(bienSo) ? "NoPlate" : bienSo.Replace(" ", "_");
-            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            var publicId = $"{folderName}_{videoType}_{timestamp}";
-
-            await using var stream = file.OpenReadStream();
-
-            var uploadParams = new VideoUploadParams
-            {
-                File = new FileDescription(file.FileName, stream),
-                PublicId = publicId,
-                Folder = $"{_cloudinarySettings.RootFolder}/{folderName}/videos",
-                Overwrite = true,
-                Invalidate = true,
-                EagerTransforms =
-                [
-                    new Transformation().Width(320).Height(240).Crop("fill").FetchFormat("jpg")
-                ],
-                EagerAsync = true
-            };
-
-            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
-
-            if (uploadResult.Error != null)
-            {
-                _logger.LogError("Cloudinary video upload failed: {Error}", uploadResult.Error.Message);
-                throw new Exception($"Upload video failed: {uploadResult.Error.Message}");
-            }
-
-            _logger.LogInformation("Uploaded video to Cloudinary: {PublicId}, Duration: {Duration}s",
-                uploadResult.PublicId, uploadResult.Duration);
-
-            return uploadResult.SecureUrl.ToString();
-        }
-
         public async Task DeleteFileAsync(string fileUrl)
         {
             await DeleteResourceAsync(fileUrl, ResourceType.Image);
-        }
-
-        public async Task DeleteVideoAsync(string fileUrl)
-        {
-            await DeleteResourceAsync(fileUrl, ResourceType.Video);
         }
 
         private async Task DeleteResourceAsync(string fileUrl, ResourceType resourceType)

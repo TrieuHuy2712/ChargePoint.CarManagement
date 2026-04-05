@@ -1,0 +1,306 @@
+﻿@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettingsOptions
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        const btnSubmit = document.getElementById('btnSubmit');
+        const settings = {
+            maxImageSizeMB: @FileUploadSettingsOptions.Value.MaxImageSizeMB,
+            allowedExtensions: @Html.Raw(Json.Serialize(FileUploadSettingsOptions.Value.AllowedImageExtensions))
+        };
+
+        // Store all file inputs in a map for easy access
+        const fileInputs = new Map();
+        document.querySelectorAll('.image-upload-input').forEach(input => {
+            fileInputs.set(input.id, {
+                input: input,
+                dataTransfer: new DataTransfer()
+            });
+        });
+
+        // --- Main Initialization ---
+        initializeAllDropZones();
+        initializePrimaryImagePreview();
+        initializeFormSubmission();
+        initializeExistingMediaDeletion();
+        initializePrimaryRadioSelection();
+
+        // --- Functions ---
+        let activeDropZone = null;
+
+        function initializeAllDropZones() {
+            document.querySelectorAll('.drop-zone').forEach(dropZone => {
+                const inputId = dropZone.id.replace('dropZone-', 'input-');
+                const previewId = dropZone.id.replace('dropZone-', 'preview-');
+                const fileInputMap = fileInputs.get(inputId);
+
+                if (!fileInputMap) return;
+
+                const { input, dataTransfer } = fileInputMap;
+                const previewContainer = document.getElementById(previewId);
+
+                // Track active drop zone for global paste support
+                dropZone.addEventListener('mouseenter', () => activeDropZone = dropZone);
+                dropZone.addEventListener('mouseleave', () => { if (activeDropZone === dropZone) activeDropZone = null; });
+                dropZone.addEventListener('focus', () => activeDropZone = dropZone);
+                dropZone.addEventListener('blur', () => { if (activeDropZone === dropZone) activeDropZone = null; });
+
+                // Click to open file dialog - handled by inline onclick attribute
+
+                // Drag and drop events
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, preventDefaults, false);
+                });
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => dropZone.classList.add('drop-zone-active'));
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => dropZone.classList.remove('drop-zone-active'));
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    handleFiles(e.dataTransfer.files, input, dataTransfer, previewContainer);
+                });
+
+                // Paste event
+                dropZone.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlePasteEvent(e, input, dataTransfer, previewContainer);
+                });
+
+                // Input change event
+                input.addEventListener('change', () => {
+                    handleFiles(input.files, input, dataTransfer, previewContainer);
+                });
+            });
+
+            // Global paste listener
+            document.addEventListener('paste', (e) => {
+                if (activeDropZone) {
+                    const inputId = activeDropZone.id.replace('dropZone-', 'input-');
+                    const previewId = activeDropZone.id.replace('dropZone-', 'preview-');
+                    const fileInputMap = fileInputs.get(inputId);
+                    if (fileInputMap) {
+                        e.preventDefault();
+                        handlePasteEvent(e, fileInputMap.input, fileInputMap.dataTransfer, document.getElementById(previewId));
+                    }
+                }
+            });
+        }
+
+        function handlePasteEvent(e, input, dataTransfer, previewContainer) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            const files = [];
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    if (blob) {
+                        const timestamp = new Date().getTime();
+                        const file = new File([blob], `pasted-image-${timestamp}.png`, { type: blob.type });
+                        files.push(file);
+                    }
+                }
+            }
+            if (files.length > 0) {
+                handleFiles(files, input, dataTransfer, previewContainer);
+            }
+        }
+
+        function handleFiles(files, input, dataTransfer, previewContainer) {
+            if (!files || files.length === 0) return;
+
+            // Xóa icon Placeholder đi nếu là lần đầu thêm ảnh
+            if (previewContainer.querySelector('.fa-image.text-muted')) {
+                previewContainer.innerHTML = '';
+            }
+
+            Array.from(files).forEach(file => {
+                if (validateFile(file, input)) {
+                    dataTransfer.items.add(file);
+                    renderPreview(file, dataTransfer, input, previewContainer);
+                }
+            });
+
+            input.files = dataTransfer.files;
+        }
+
+        function validateFile(file, input) {
+            if (!file.type.startsWith('image/')) return false;
+
+            const maxSize = settings.maxImageSizeMB * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert(`File ${file.name} quá lớn (tối đa ${settings.maxImageSizeMB}MB).`);
+                return false;
+            }
+            return true;
+        }
+
+        function renderPreview(file, dataTransfer, input, previewContainer) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const div = document.createElement('div');
+                div.className = 'position-relative preview-item flex-shrink-0 bg-white rounded shadow-sm border border-secondary border-opacity-25';
+                div.style = 'width: 44px; height: 44px; overflow: hidden; display: inline-block;';
+                div.setAttribute('data-filename', file.name);
+
+                div.innerHTML = `
+                    <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
+                    <button type="button" class="btn btn-danger btn-sm position-absolute rounded-circle m-0 p-0 remove-preview-btn d-flex justify-content-center align-items-center bg-danger opacity-75 text-white" style="width: 14px; height: 14px; top: 2px; right: 2px; font-size: 8px; border:none; z-index:100;" title="Xóa ảnh">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="position-absolute bottom-0 text-center w-100 bg-dark bg-opacity-50 text-white fw-bold" style="font-size:0.55rem; line-height: 1;">OK</div>
+                `;
+
+                previewContainer.appendChild(div);
+
+                div.querySelector('.remove-preview-btn').addEventListener('click', function (ev) {
+                    ev.stopPropagation(); // Ngăn sự kiện mở file picker của drop zone
+                    removeFile(file.name, dataTransfer, input, div, previewContainer);
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeFile(filename, dataTransfer, input, previewElement, previewContainer) {
+            const newTransfer = new DataTransfer();
+            Array.from(dataTransfer.files)
+                .filter(f => f.name !== filename)
+                .forEach(f => newTransfer.items.add(f));
+
+            dataTransfer.clearData();
+            Array.from(newTransfer.files).forEach(f => dataTransfer.items.add(f));
+
+            try { input.files = dataTransfer.files; } catch(e) { input.value = ''; }
+            previewElement.remove();
+
+            // Nếu xóa hết ảnh, đưa icon trống về lại
+            if (dataTransfer.files.length === 0) {
+                previewContainer.innerHTML = '<div class="d-flex w-100 justify-content-center"><i class="fas fa-image text-muted" style="opacity: 0.2; font-size: 1.5rem;"></i></div>';
+            }
+        }
+
+        function initializePrimaryImagePreview() {
+            const primaryFileInput = document.getElementById('PrimaryImageFile');
+            if (!primaryFileInput) return;
+            const primaryPreview = document.getElementById('primaryPreview');
+
+            primaryFileInput.addEventListener('change', function () {
+                const file = this.files && this.files[0];
+                primaryPreview.innerHTML = '';
+                if (!file) return;
+
+                if (validateFile(file, primaryFileInput)) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        primaryPreview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-height:150px;">`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    this.value = ''; // Clear invalid file
+                }
+            });
+        }
+
+        function initializeFormSubmission() {
+            if (!form) return;
+            form.addEventListener('submit', function (e) {
+                const hasFiles = Array.from(fileInputs.values()).some(f => f.dataTransfer.files.length > 0) ||
+                               (document.getElementById('PrimaryImageFile')?.files.length > 0);
+
+                if (hasFiles) {
+                    btnSubmit.disabled = true;
+                    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải lên...';
+                    document.getElementById('uploadProgress').style.display = 'block';
+                }
+            });
+        }
+
+        function initializeExistingMediaDeletion() {
+            document.querySelectorAll('.btn-delete-media').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const mediaId = parseInt(btn.closest('[data-media-id]').dataset.mediaId);
+                    if (!confirm('Xác nhận xóa hình ảnh này?')) return;
+
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                    fetch('@Url.Action("DeleteMedia", "Cars")', {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ id: mediaId })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            btn.closest('[data-media-id]').remove();
+                        } else {
+                            alert('Lỗi khi xóa ảnh.');
+                        }
+                    })
+                    .catch(() => alert('Lỗi kết nối.'));
+                });
+            });
+        }
+
+        function initializePrimaryRadioSelection() {
+            const hiddenPrimaryUrl = document.getElementById('PrimaryImageUrl');
+            if (!hiddenPrimaryUrl) return;
+
+            document.querySelectorAll('.existing-primary-radio').forEach(radio => {
+                radio.addEventListener('change', function () {
+                    if (this.checked) {
+                        hiddenPrimaryUrl.value = this.value;
+                    }
+                });
+            });
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+</script>
+
+<style>
+    .compact-drop-zone {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        background-color: #fff;
+    }
+
+    .compact-drop-zone:hover, .compact-drop-zone.drop-zone-active {
+        border-color: #0d6efd !important;
+        background-color: #f1f8ff !important;
+        box-shadow: 0 .125rem .25rem rgba(13,110,253,.15) !important;
+    }
+
+    .compact-drop-zone:hover i.fa-cloud-upload-alt {
+        transform: scale(1.1);
+        transition: 0.2s;
+    }
+
+    .preview-item:hover img {
+        opacity: 0.5 !important;
+    }
+
+    .preview-item .remove-preview-btn {
+        opacity: 0.8;
+    }
+
+    .preview-item:hover .remove-preview-btn {
+        opacity: 1;
+        cursor: pointer;
+    }
+
+    kbd {
+        background-color: #343a40;
+        color: #f8f9fa;
+        font-family: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
+</style>

@@ -3,6 +3,7 @@ using System;
 using ChargePoint.CarManagement.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChargePoint.CarManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260405110125_UpdateMediaTypeWithDetailedCategories")]
+    partial class UpdateMediaTypeWithDetailedCategories
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.25");
@@ -83,7 +86,7 @@ namespace ChargePoint.CarManagement.Migrations
                             BienSo = "30A-12345",
                             MauBienSo = 0,
                             MauXe = "Đỏ",
-                            NgayTao = new DateTime(2026, 4, 5, 19, 12, 33, 274, DateTimeKind.Local).AddTicks(4402),
+                            NgayTao = new DateTime(2026, 4, 5, 18, 1, 25, 32, DateTimeKind.Local).AddTicks(5660),
                             OdoXe = 15000,
                             SoLuong = 5,
                             SoVIN = "LVSHCAMB1NE000001",
@@ -98,7 +101,7 @@ namespace ChargePoint.CarManagement.Migrations
                             BienSo = "30B-67890",
                             MauBienSo = 0,
                             MauXe = "Trắng",
-                            NgayTao = new DateTime(2026, 4, 5, 19, 12, 33, 274, DateTimeKind.Local).AddTicks(4405),
+                            NgayTao = new DateTime(2026, 4, 5, 18, 1, 25, 32, DateTimeKind.Local).AddTicks(5664),
                             OdoXe = 8000,
                             SoLuong = 3,
                             SoVIN = "LVSHCAMB2NE000002",

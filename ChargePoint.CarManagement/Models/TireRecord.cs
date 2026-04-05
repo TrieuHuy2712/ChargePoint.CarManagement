@@ -102,6 +102,10 @@ namespace ChargePoint.CarManagement.Models
         [Display(Name = "Hình ảnh chứng từ")]
         public string? HinhAnhChungTu { get; set; }
 
+        // Hình ảnh DOT lốp xe (JSON array)
+        [Display(Name = "Hình ảnh DOT lốp")]
+        public string? HinhAnhDOT { get; set; }
+
         [Display(Name = "Ghi chú")]
         [StringLength(1000)]
         public string? GhiChu { get; set; }
@@ -116,7 +120,7 @@ namespace ChargePoint.CarManagement.Models
         [Display(Name = "Ngày cập nhật")]
         public DateTime? NgayCapNhat { get; set; }
 
-        // Helper để lấy danh sách ảnh
+        // Helper để lấy danh sách ảnh chứng từ
         [NotMapped]
         public List<string> DanhSachHinhAnh
         {
@@ -127,6 +131,25 @@ namespace ChargePoint.CarManagement.Models
                 try
                 {
                     return System.Text.Json.JsonSerializer.Deserialize<List<string>>(HinhAnhChungTu) ?? [];
+                }
+                catch
+                {
+                    return [];
+                }
+            }
+        }
+
+        // Helper để lấy danh sách ảnh DOT
+        [NotMapped]
+        public List<string> DanhSachHinhAnhDOT
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(HinhAnhDOT))
+                    return [];
+                try
+                {
+                    return System.Text.Json.JsonSerializer.Deserialize<List<string>>(HinhAnhDOT) ?? [];
                 }
                 catch
                 {

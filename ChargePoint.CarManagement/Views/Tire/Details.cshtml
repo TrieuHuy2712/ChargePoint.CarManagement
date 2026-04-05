@@ -1,0 +1,351 @@
+﻿@model ChargePoint.CarManagement.Models.TireRecord
+
+@{
+    ViewData["Title"] = "Chi tiết hồ sơ lốp";
+    var car = Model.Car;
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-info-circle text-info me-2"></i>
+            Chi tiết hồ sơ lốp
+        </h1>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Sửa
+            </a>
+            <a asp-action="CarDetail" asp-route-id="@Model.CarId" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (car != null)
+    {
+        <div class="alert alert-info mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <i class="fas fa-car me-2"></i>
+                    <strong>Xe:</strong> @car.TenXe -
+                    <strong>Biển số:</strong>
+                    @if (car.MauBienSo == MauBienSo.Vang)
+                    {
+                        <span class="license-plate license-plate-yellow">@car.BienSo</span>
+                    }
+                    else
+                    {
+                        <span class="license-plate license-plate-white">@car.BienSo</span>
+                    }
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <strong>ODO hiện tại:</strong> <span class="badge bg-primary">@car.OdoXe.ToString("N0") km</span>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-circle-notch me-2"></i>Thông tin lốp</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Vị trí lốp</label>
+                            <p class="fw-bold fs-5">
+                                @switch (Model.ViTriLop)
+                                {
+                                    case ViTriLop.TruocTrai:
+                                        <span class="badge bg-success">↖️ Trước trái</span>
+                                        break;
+                                    case ViTriLop.TruocPhai:
+                                        <span class="badge bg-success">↗️ Trước phải</span>
+                                        break;
+                                    case ViTriLop.SauTrai:
+                                        <span class="badge bg-success">↙️ Sau trái</span>
+                                        break;
+                                    case ViTriLop.SauPhai:
+                                        <span class="badge bg-success">↘️ Sau phải</span>
+                                        break;
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Loại thao tác</label>
+                            <p class="fw-bold fs-5">
+                                @switch (Model.LoaiThaoTac)
+                                {
+                                    case LoaiThaoTacLop.ThayMoi:
+                                        <span class="badge bg-primary">🔄 Thay mới</span>
+                                        break;
+                                    case LoaiThaoTacLop.DaoLop:
+                                        <span class="badge bg-info">🔄 Đảo lốp</span>
+                                        break;
+                                    case LoaiThaoTacLop.VaLop:
+                                        <span class="badge bg-warning">🔧 Vá lốp</span>
+                                        break;
+                                    case LoaiThaoTacLop.BomLop:
+                                        <span class="badge bg-success">💨 Bơm lốp</span>
+                                        break;
+                                    case LoaiThaoTacLop.CanBangDong:
+                                        <span class="badge bg-secondary">⚖️ Cân bằng động</span>
+                                        break;
+                                }
+                            </p>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Ngày thực hiện</label>
+                            <p class="fw-bold">
+                                <i class="fas fa-calendar me-2 text-primary"></i>
+                                @Model.NgayThucHien.ToString("dd/MM/yyyy")
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">ODO thay lốp</label>
+                            <p class="fw-bold">
+                                <i class="fas fa-tachometer-alt me-2 text-primary"></i>
+                                @Model.OdoThayLop.ToString("N0") km
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="text-muted small">Hãng lốp</label>
+                            <p class="fw-bold">@(Model.HangLop ?? "N/A")</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Model lốp</label>
+                            <p class="fw-bold">@(Model.ModelLop ?? "N/A")</p>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-muted small">Kích thước</label>
+                            <p class="fw-bold">@(Model.KichThuocLop ?? "N/A")</p>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">ODO thay tiếp theo</label>
+                            <p class="fw-bold">
+                                @if (Model.OdoThayTiepTheo.HasValue)
+                                {
+                                    <i class="fas fa-flag-checkered me-2 text-warning"></i>
+                                    <text>@Model.OdoThayTiepTheo.Value.ToString("N0") km</text>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa xác định</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Chi phí</label>
+                            <p class="fw-bold">
+                                @if (Model.ChiPhi > 0)
+                                {
+                                    <i class="fas fa-money-bill-wave me-2 text-success"></i>
+                                    <text>@Model.ChiPhi.ToString("N0") VNĐ</text>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Không có</span>
+                                }
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="text-muted small">Nơi thực hiện</label>
+                            <p class="fw-bold">
+                                <i class="fas fa-map-marker-alt me-2 text-danger"></i>
+                                @(Model.NoiThucHien ?? "N/A")
+                            </p>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.GhiChu))
+                    {
+                        <div class="row">
+                            <div class="col-12">
+                                <label class="text-muted small">Ghi chú</label>
+                                <div class="alert alert-light border">
+                                    <i class="fas fa-comment-dots me-2"></i>
+                                    @Model.GhiChu
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Hình ảnh chứng từ -->
+            @if (Model.DanhSachHinhAnh.Any())
+            {
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-images me-2"></i>Hình ảnh chứng từ</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            @foreach (var imageUrl in Model.DanhSachHinhAnh)
+                            {
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="image-wrapper">
+                                        <img src="@imageUrl" class="img-thumbnail w-100" 
+                                             style="height: 150px; object-fit: cover; cursor: pointer;"
+                                             onclick="showImageModal('@imageUrl')" 
+                                             alt="Hình ảnh lốp" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Hình ảnh DOT -->
+            @if (Model.DanhSachHinhAnhDOT.Any())
+            {
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-check me-2"></i>
+                            Hình ảnh DOT lốp xe
+                            <small class="ms-2">
+                                <i class="fas fa-info-circle"></i>
+                                Mã ngày sản xuất lốp
+                            </small>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            @foreach (var imageUrl in Model.DanhSachHinhAnhDOT)
+                            {
+                                <div class="col-md-3 col-sm-4 col-6">
+                                    <div class="image-wrapper position-relative">
+                                        <img src="@imageUrl" class="img-thumbnail w-100 border border-warning" 
+                                             style="height: 150px; object-fit: cover; cursor: pointer;"
+                                             onclick="showImageModal('@imageUrl')" 
+                                             alt="Hình ảnh DOT" />
+                                        <span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2">
+                                            <i class="fas fa-barcode me-1"></i>DOT
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="col-md-4">
+            <!-- Thông tin tạo/cập nhật -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Thông tin hệ thống</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small">Người tạo</label>
+                        <p class="mb-0">
+                            <i class="fas fa-user me-2"></i>
+                            @(Model.NguoiTao ?? "N/A")
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Ngày tạo</label>
+                        <p class="mb-0">
+                            <i class="fas fa-clock me-2"></i>
+                            @Model.NgayTao.ToString("dd/MM/yyyy HH:mm")
+                        </p>
+                    </div>
+                    @if (Model.NgayCapNhat.HasValue)
+                    {
+                        <div>
+                            <label class="text-muted small">Cập nhật lần cuối</label>
+                            <p class="mb-0">
+                                <i class="fas fa-sync-alt me-2"></i>
+                                @Model.NgayCapNhat.Value.ToString("dd/MM/yyyy HH:mm")
+                            </p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="card shadow">
+                <div class="card-header bg-warning">
+                    <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Thao tác</h6>
+                </div>
+                <div class="card-body">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary w-100 mb-2">
+                        <i class="fas fa-edit"></i> Sửa hồ sơ
+                    </a>
+                    <a asp-action="History" asp-route-id="@Model.CarId" asp-route-viTri="@Model.ViTriLop"
+                       class="btn btn-info w-100 mb-2">
+                        <i class="fas fa-history"></i> Lịch sử lốp này
+                    </a>
+                    <a asp-action="CarDetail" asp-route-id="@Model.CarId" class="btn btn-secondary w-100 mb-2">
+                        <i class="fas fa-car"></i> Xem tất cả lốp xe
+                    </a>
+                    <hr />
+                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+                          onsubmit="return confirm('Bạn có chắc muốn xóa hồ sơ lốp này?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="fas fa-trash"></i> Xóa hồ sơ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal xem ảnh phóng to -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xem ảnh</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" style="max-height: 80vh;" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        function showImageModal(imageUrl) {
+            document.getElementById('modalImage').src = imageUrl;
+            new bootstrap.Modal(document.getElementById('imageModal')).show();
+        }
+    </script>
+    <style>
+        .image-wrapper {
+            transition: transform 0.2s;
+        }
+        .image-wrapper:hover {
+            transform: scale(1.05);  /* Zoom nhẹ khi hover */
+        }
+        .card-header h5, .card-header h6 {
+            margin: 0;
+        }
+    </style>
+}

@@ -67,7 +67,7 @@ namespace ChargePoint.CarManagement.Models
         [StringLength(1000)]
         public string? PrimaryImageUrl { get; set; }
 
-        // Navigation: all media items for this car (images + videos)
+        // Navigation: all media items for this car (images)
         [Display(Name = "Media")]
         public ICollection<CarMedia>? Media { get; set; } = new List<CarMedia>();
 

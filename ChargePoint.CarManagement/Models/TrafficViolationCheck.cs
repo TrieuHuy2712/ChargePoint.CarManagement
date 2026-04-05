@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ChargePoint.CarManagement.Models.Enums;
 
 namespace ChargePoint.CarManagement.Models
 {
@@ -22,9 +23,26 @@ namespace ChargePoint.CarManagement.Models
         [Display(Name = "Số lượng vi phạm")]
         public int SoLuongViPham { get; set; }
 
-        [Display(Name = "Tổng tiền phạt")]
-        [Column(TypeName = "decimal(18,0)")]
-        public decimal TongTienPhat { get; set; }
+        [Display(Name = "Ngày giờ vi phạm")]
+        public DateTime? NgayGioViPham { get; set; }
+
+        [Display(Name = "Nội dung vi phạm")]
+        [StringLength(500)]
+        public string? NoiDungViPham { get; set; }
+
+        [Display(Name = "Địa điểm vi phạm")]
+        [StringLength(500)]
+        public string? DiaDiemViPham { get; set; }
+
+        [Display(Name = "Trạng thái xử lý")]
+        public ViolationStatus TrangThaiXuLy { get; set; } = ViolationStatus.DaBao;
+
+        [Display(Name = "Ngày cập nhật trạng thái")]
+        public DateTime? NgayCapNhatTrangThai { get; set; }
+
+        [Display(Name = "Người xử lý")]
+        [StringLength(100)]
+        public string? NguoiXuLy { get; set; }
 
         [Display(Name = "Ghi chú")]
         [StringLength(1000)]

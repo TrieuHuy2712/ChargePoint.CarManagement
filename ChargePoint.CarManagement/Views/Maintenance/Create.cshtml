@@ -50,7 +50,7 @@
                         <div class="form-group mb-3">
                             <label asp-for="@maintenanceRecord.SoKmBaoDuong" class="form-label"></label>
                             <div class="input-group">
-                                <input asp-for="@maintenanceRecord.SoKmBaoDuong" class="form-control" type="number" />
+                                <input asp-for="@maintenanceRecord.SoKmBaoDuong" class="form-control" type="number" id="soKmBaoDuong" />
                                 <span class="input-group-text">km</span>
                             </div>
                             <span asp-validation-for="@maintenanceRecord.SoKmBaoDuong" class="text-danger"></span>
@@ -108,27 +108,22 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="@maintenanceRecord.NgayBaoDuongTiepTheo" class="form-label"></label>
-                            <input asp-for="@maintenanceRecord.NgayBaoDuongTiepTheo" class="form-control" type="date" />
-                            <span asp-validation-for="@maintenanceRecord.NgayBaoDuongTiepTheo" class="text-danger"></span>
+                            <label asp-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="form-control" id="soKmBaoDuongTiepTheo" />
+                                <span class="input-group-text">km</span>
+                            </div>
+                            <small class="form-text text-muted"><i class="fas fa-lightbulb"></i> Gợi ý: Số KM bảo dưỡng + 15,000 km (có thể chỉnh sửa)</small>
+                            <span asp-validation-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="form-label"></label>
-                            <div class="input-group">
-                                <input asp-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="form-control" type="number" />
-                                <span class="input-group-text">km</span>
-                            </div>
-                            <span asp-validation-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="text-danger"></span>
+                            <label asp-for="@maintenanceRecord.NoiBaoDuong" class="form-label"></label>
+                            <input asp-for="@maintenanceRecord.NoiBaoDuong" class="form-control" placeholder="VD: Garage VinFast Hà Nội" />
+                            <span asp-validation-for="@maintenanceRecord.NoiBaoDuong" class="text-danger"></span>
                         </div>
                     </div>
-                </div>
-
-                <div class="form-group mb-3">
-                    <label asp-for="@maintenanceRecord.NoiBaoDuong" class="form-label"></label>
-                    <input asp-for="@maintenanceRecord.NoiBaoDuong" class="form-control" placeholder="VD: Garage VinFast Hà Nội" />
-                    <span asp-validation-for="@maintenanceRecord.NoiBaoDuong" class="text-danger"></span>
                 </div>
 
                 <div class="form-group mb-3">
@@ -144,22 +139,8 @@
                               placeholder="Ghi chú thêm..."></textarea>
                 </div>
 
-                <!-- Hình ảnh chứng từ -->
-                <h5 class="mt-4 mb-3 text-primary">
-                    <i class="fas fa-images"></i> Hình ảnh chứng từ bảo dưỡng
-                </h5>
-                <div class="form-group mb-3">
-                    <label class="form-label">
-                        <i class="fas fa-file-image"></i> Tải lên hình ảnh (có thể chọn nhiều)
-                    </label>
-                    <input type="file" name="HinhAnhChungTuFiles" class="form-control" multiple
-                           accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))"
-                           id="imageInput" />
-                    <small class="form-text text-muted">
-                        Tối đa @settings.MaxImageSizeMB MB mỗi ảnh. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)
-                    </small>
-                    <div id="imagePreview" class="mt-3 d-flex flex-wrap gap-2"></div>
-                </div>
+                <!-- Shared Image Upload Partial -->
+                <partial name="_MaintenanceImagePartial" model='new { Record = Model.MaintenanceRecord }' />
 
                 <div class="form-group mt-4">
                     <button type="submit" class="btn btn-success" id="btnSubmit">
@@ -179,26 +160,38 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <script>
-        document.getElementById('imageInput').addEventListener('change', function(e) {
-            const preview = document.getElementById('imagePreview');
-            preview.innerHTML = '';
+        // Tự động gợi ý Số KM bảo dưỡng tiếp theo = Số KM bảo dưỡng + 15,000 km
+        // (Người dùng vẫn có thể chỉnh sửa thủ công)
+        const soKmBaoDuongInput = document.getElementById('soKmBaoDuong');
+        const soKmBaoDuongTiepTheoInput = document.getElementById('soKmBaoDuongTiepTheo');
 
-            Array.from(e.target.files).forEach((file, index) => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const div = document.createElement('div');
-                        div.className = 'position-relative';
-                        div.innerHTML = `
-                            <img src="${e.target.result}" class="img-thumbnail" style="width: 120px; height: 120px; object-fit: cover;">
-                            <small class="d-block text-center text-muted">${file.name.substring(0, 15)}...</small>
-                        `;
-                        preview.appendChild(div);
-                    };
-                    reader.readAsDataURL(file);
+        if (soKmBaoDuongInput && soKmBaoDuongTiepTheoInput) {
+            // Tính toán giá trị gợi ý ban đầu nếu có
+            function suggestNextMaintenanceKm() {
+                const soKm = parseInt(soKmBaoDuongInput.value) || 0;
+                // Chỉ gợi ý nếu trường "Số KM BD tiếp theo" đang trống hoặc là giá trị cũ được tính tự động
+                const currentNextKm = parseInt(soKmBaoDuongTiepTheoInput.value) || 0;
+                const expectedNextKm = (parseInt(soKmBaoDuongInput.getAttribute('data-last-value')) || 0) + 15000;
+
+                // Chỉ auto-fill nếu:
+                // 1. Trường đang trống HOẶC
+                // 2. Giá trị hiện tại khớp với giá trị tự động tính trước đó
+                if (!soKmBaoDuongTiepTheoInput.value || currentNextKm === expectedNextKm) {
+                    if (soKm > 0) {
+                        soKmBaoDuongTiepTheoInput.value = soKm + 15000;
+                        soKmBaoDuongInput.setAttribute('data-last-value', soKm);
+                    }
                 }
-            });
-        });
+            }
+
+            // Gợi ý khi người dùng nhập "Số KM bảo dưỡng"
+            soKmBaoDuongInput.addEventListener('input', suggestNextMaintenanceKm);
+
+            // Gợi ý giá trị ban đầu khi trang load
+            if (soKmBaoDuongInput.value) {
+                suggestNextMaintenanceKm();
+            }
+        }
 
         document.getElementById('maintenanceForm').addEventListener('submit', function() {
             const btn = document.getElementById('btnSubmit');

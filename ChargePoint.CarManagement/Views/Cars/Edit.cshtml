@@ -21,8 +21,6 @@
                 <input type="hidden" asp-for="NgayTao" />
                 <input type="hidden" asp-for="@Model.HinhAnhNhanBanGiao" />
                 <input type="hidden" asp-for="@Model.HinhAnhBanGiaoKH" />
-                <input type="hidden" asp-for="@Model.VideoNhanBanGiao" />
-                <input type="hidden" asp-for="@Model.VideoBanGiaoKH" />
 
                 <div class="row">
                     <div class="col-md-6">
@@ -136,21 +134,20 @@
                     <span asp-validation-for="ThongTinChoThue" class="text-danger"></span>
                 </div>
 
-                <!-- Hình ảnh & Video (multiple) -->
+                <!-- Hình ảnh (multiple) -->
                 <h5 class="mt-4 mb-3 text-primary">
-                    <i class="fas fa-images"></i> Hình ảnh & Video bàn giao
+                    <i class="fas fa-images"></i> Hình ảnh bàn giao
                 </h5>
 
                 <input type="hidden" id="PrimaryImageUrl" name="PrimaryImageUrl" value="@Model.PrimaryImageUrl" />
 
                 @* Primary image input (upload alongside main form) *@
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <label class="form-label"><i class="fas fa-star"></i> Ảnh chính (chọn để upload khi lưu)</label>
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="file" name="PrimaryImageFile" id="PrimaryImageFile" accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" class="form-control" />
-                            <span id="primaryUploadStatus" class="text-muted ms-2"></span>
-                        </div>
+                <div class="card mb-4 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <strong><i class="fas fa-star"></i> Ảnh chính</strong>
+                    </div>
+                    <div class="card-body">
+                        <input type="file" name="PrimaryImageFile" id="PrimaryImageFile" accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" class="form-control" />
                         <small class="form-text text-muted">Nếu chọn ảnh chính ở đây, file sẽ được upload khi bạn nhấn 'Lưu thay đổi'. Nếu không chọn, hệ thống dùng ảnh chính hiện tại hoặc tự chọn ảnh GSM đầu tiên.</small>
                         <div id="primaryPreview" class="mt-2">
                             @if (!string.IsNullOrEmpty(Model.PrimaryImageUrl))
@@ -158,38 +155,6 @@
                                 <img src="@Model.PrimaryImageUrl" class="img-thumbnail" style="max-height:150px;" />
                             }
                         </div>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label"><i class="fas fa-image"></i> Hình ảnh nhận bàn giao từ GSM (GF) - multiple</label>
-                        <input type="file" name="HinhAnhNhanBanGiaoFiles" id="HinhAnhNhanBanGiaoFiles" multiple accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" class="form-control file-upload-multi" data-max-size="@settings.MaxImageSizeMB" data-type="image" />
-                        <small class="form-text text-muted">Tối đa @settings.MaxImageSizeMB MB mỗi file. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)</small>
-                        <div class="file-multi-preview mt-2"></div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label"><i class="fas fa-image"></i> Hình ảnh bàn giao cho KH - multiple</label>
-                        <input type="file" name="HinhAnhBanGiaoKHFiles" id="HinhAnhBanGiaoKHFiles" multiple accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" class="form-control file-upload-multi" data-max-size="@settings.MaxImageSizeMB" data-type="image" />
-                        <small class="form-text text-muted">Tối đa @settings.MaxImageSizeMB MB mỗi file. Định dạng: @string.Join(", ", settings.AllowedImageExtensions)</small>
-                        <div class="file-multi-preview mt-2"></div>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label"><i class="fas fa-film"></i> Video nhận bàn giao từ GSM - multiple</label>
-                        <input type="file" name="VideoNhanBanGiaoFiles" id="VideoNhanBanGiaoFiles" multiple accept="@string.Join(",", settings.AllowedVideoExtensions.Select(e => "video/" + e.TrimStart('.')))" class="form-control file-upload-multi" data-max-size="@settings.MaxVideoSizeMB" data-type="video" />
-                        <small class="form-text text-muted">Tối đa @settings.MaxVideoSizeMB MB mỗi file. Định dạng: @string.Join(", ", settings.AllowedVideoExtensions)</small>
-                        <div class="file-multi-preview mt-2"></div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label"><i class="fas fa-film"></i> Video bàn giao cho KH - multiple</label>
-                        <input type="file" name="VideoBanGiaoKHFiles" id="VideoBanGiaoKHFiles" multiple accept="@string.Join(",", settings.AllowedVideoExtensions.Select(e => "video/" + e.TrimStart('.')))" class="form-control file-upload-multi" data-max-size="@settings.MaxVideoSizeMB" data-type="video" />
-                        <small class="form-text text-muted">Tối đa @settings.MaxVideoSizeMB MB mỗi file. Định dạng: @string.Join(", ", settings.AllowedVideoExtensions)</small>
-                        <div class="file-multi-preview mt-2"></div>
                     </div>
                 </div>
 
@@ -213,174 +178,208 @@
                         </div>
                     </div>
 
-                    <h6 class="mt-2"><i class="fas fa-images"></i> Ảnh (GSM / KH)</h6>
+                    <h6 class="mt-2"><i class="fas fa-images"></i> Hình ảnh hiện tại</h6>
 
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header bg-light">
-                                    <strong><i class="fas fa-camera-retro text-success"></i> Hình ảnh GSM</strong>
-                                </div>
-                                <div class="card-body">
-                                    @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Image_GSM))
+                    @{
+                        var gsmThanXeImages = Model.Media?.Where(m => m.Type.IsThanXe() && m.Type.IsGSM()).ToList();
+                        var gsmGiayToImages = Model.Media?.Where(m => m.Type.IsGiayTo() && m.Type.IsGSM()).ToList();
+                        var khThanXeImages = Model.Media?.Where(m => m.Type.IsThanXe() && m.Type.IsKH()).ToList();
+                        var khGiayToImages = Model.Media?.Where(m => m.Type.IsGiayTo() && m.Type.IsKH()).ToList();
+                    }
+
+                    <!-- Hình ảnh thân xe GSM -->
+                    @if (gsmThanXeImages != null && gsmThanXeImages.Any())
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white">
+                                <strong><i class="fas fa-camera-retro"></i> Hình ảnh thân xe - GSM</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    @foreach (var img in gsmThanXeImages.OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
                                     {
-                                        <div class="row g-2">
-                                            @foreach (var img in Model.Media.Where(m => m.Type == MediaType.Image_GSM).OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
-                                            {
-                                                <div class="col-6 col-sm-4 col-md-6 mb-2" data-media-id="@img.Id" data-media-url="@img.Url">
-                                                    <div class="card h-100">
-                                                        <div class="card-body p-2 text-center">
-                                                            <a href="@img.Url" target="_blank">
-                                                                <img src="@img.Url" class="img-fluid rounded" style="max-height:120px; width:100%; object-fit:cover;" />
-                                                            </a>
+                                        <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-2" data-media-id="@img.Id" data-media-url="@img.Url">
+                                            <div class="card h-100">
+                                                <div class="card-body p-1 text-center">
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:100px; width:100%; object-fit:cover;" />
+                                                    </a>
+                                                </div>
+                                                <div class="card-footer p-1">
+                                                    <small class="d-block text-muted" style="font-size:10px;">@img.Type.GetDisplayName()</small>
+                                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                                        @if (img.IsPrimary)
+                                                        {
+                                                            <span class="badge bg-warning text-dark" style="font-size:9px;">Ảnh chính</span>
+                                                        }
+                                                        <div class="form-check form-check-inline mb-0">
+                                                            <input class="form-check-input existing-primary-radio" type="radio" name="existingPrimary" value="@img.Url" @(img.IsPrimary ? "checked" : "") />
                                                         </div>
-                                                        <div class="card-footer py-1 d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <small class="text-muted" style="font-size:12px;">@img.FileName</small>
-                                                            </div>
-                                                            <div class="d-flex align-items-center">
-                                                                @if (img.IsPrimary)
-                                                                {
-                                                                    <span class="badge bg-warning text-dark me-2">Ảnh chính</span>
-                                                                }
-                                                                <div class="form-check me-2">
-                                                                    <input class="form-check-input existing-primary-radio" type="radio" name="existingPrimary" value="@img.Url" @(img.IsPrimary ? "checked" : "") />
-                                                                </div>
-                                                                <button type="button" class="btn btn-sm btn-danger btn-delete-media" data-media-id="@img.Id">Xóa</button>
-                                                            </div>
-                                                        </div>
+                                                        <button type="button" class="btn btn-sm btn-danger btn-delete-media p-0 px-1" data-media-id="@img.Id" style="font-size:10px;">X</button>
                                                     </div>
                                                 </div>
-                                            }
+                                            </div>
                                         </div>
-                                    }
-                                    else
-                                    {
-                                        <p class="text-muted mb-0"><i class="fas fa-image"></i> Chưa có ảnh GSM.</p>
                                     }
                                 </div>
                             </div>
                         </div>
+                    }
 
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header bg-light">
-                                    <strong><i class="fas fa-user-check text-info"></i> Hình ảnh KH</strong>
-                                </div>
-                                <div class="card-body">
-                                    @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Image_KH))
+                    <!-- Giấy tờ xe GSM -->
+                    @if (gsmGiayToImages != null && gsmGiayToImages.Any())
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white">
+                                <strong><i class="fas fa-file-alt"></i> Giấy tờ xe - GSM</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    @foreach (var img in gsmGiayToImages.OrderByDescending(m => m.CreatedAt))
                                     {
-                                        <div class="row g-2">
-                                            @foreach (var img in Model.Media.Where(m => m.Type == MediaType.Image_KH).OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
-                                            {
-                                                <div class="col-6 col-sm-4 col-md-6 mb-2" data-media-id="@img.Id" data-media-url="@img.Url">
-                                                    <div class="card h-100">
-                                                        <div class="card-body p-2 text-center">
-                                                            <a href="@img.Url" target="_blank">
-                                                                <img src="@img.Url" class="img-fluid rounded" style="max-height:120px; width:100%; object-fit:cover;" />
-                                                            </a>
-                                                        </div>
-                                                        <div class="card-footer py-1 d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <small class="text-muted" style="font-size:12px;">@img.FileName</small>
-                                                            </div>
-                                                            <div class="d-flex align-items-center">
-                                                                @if (img.IsPrimary)
-                                                                {
-                                                                    <span class="badge bg-warning text-dark me-2">Ảnh chính</span>
-                                                                }
-                                                                <div class="form-check me-2">
-                                                                    <input class="form-check-input existing-primary-radio" type="radio" name="existingPrimary" value="@img.Url" @(img.IsPrimary ? "checked" : "") />
-                                                                </div>
-                                                                <button type="button" class="btn btn-sm btn-danger btn-delete-media" data-media-id="@img.Id">Xóa</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                        <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-2" data-media-id="@img.Id" data-media-url="@img.Url">
+                                            <div class="card h-100">
+                                                <div class="card-body p-1 text-center">
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:100px; width:100%; object-fit:cover;" />
+                                                    </a>
                                                 </div>
-                                            }
+                                                <div class="card-footer p-1">
+                                                    <small class="d-block text-muted" style="font-size:10px;">@img.Type.GetDisplayName()</small>
+                                                    <button type="button" class="btn btn-sm btn-danger btn-delete-media mt-1 w-100 p-0" data-media-id="@img.Id" style="font-size:10px;">Xóa</button>
+                                                </div>
+                                            </div>
                                         </div>
-                                    }
-                                    else
-                                    {
-                                        <p class="text-muted mb-0"><i class="fas fa-image"></i> Chưa có ảnh KH.</p>
                                     }
                                 </div>
                             </div>
+                        </div>
+                    }
+
+                    <!-- Hình ảnh thân xe KH -->
+                    @if (khThanXeImages != null && khThanXeImages.Any())
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <strong><i class="fas fa-camera-retro"></i> Hình ảnh thân xe - KH</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    @foreach (var img in khThanXeImages.OrderByDescending(m => m.IsPrimary).ThenByDescending(m => m.CreatedAt))
+                                    {
+                                        <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-2" data-media-id="@img.Id" data-media-url="@img.Url">
+                                            <div class="card h-100">
+                                                <div class="card-body p-1 text-center">
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:100px; width:100%; object-fit:cover;" />
+                                                    </a>
+                                                </div>
+                                                <div class="card-footer p-1">
+                                                    <small class="d-block text-muted" style="font-size:10px;">@img.Type.GetDisplayName()</small>
+                                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                                        @if (img.IsPrimary)
+                                                        {
+                                                            <span class="badge bg-warning text-dark" style="font-size:9px;">Ảnh chính</span>
+                                                        }
+                                                        <div class="form-check form-check-inline mb-0">
+                                                            <input class="form-check-input existing-primary-radio" type="radio" name="existingPrimary" value="@img.Url" @(img.IsPrimary ? "checked" : "") />
+                                                        </div>
+                                                        <button type="button" class="btn btn-sm btn-danger btn-delete-media p-0 px-1" data-media-id="@img.Id" style="font-size:10px;">X</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Giấy tờ xe KH -->
+                    @if (khGiayToImages != null && khGiayToImages.Any())
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <strong><i class="fas fa-file-alt"></i> Giấy tờ xe - KH</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    @foreach (var img in khGiayToImages.OrderByDescending(m => m.CreatedAt))
+                                    {
+                                        <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-2" data-media-id="@img.Id" data-media-url="@img.Url">
+                                            <div class="card h-100">
+                                                <div class="card-body p-1 text-center">
+                                                    <a href="@img.Url" target="_blank">
+                                                        <img src="@img.Url" class="img-fluid rounded" style="max-height:100px; width:100%; object-fit:cover;" />
+                                                    </a>
+                                                </div>
+                                                <div class="card-footer p-1">
+                                                    <small class="d-block text-muted" style="font-size:10px;">@img.Type.GetDisplayName()</small>
+                                                    <button type="button" class="btn btn-sm btn-danger btn-delete-media mt-1 w-100 p-0" data-media-id="@img.Id" style="font-size:10px;">Xóa</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Upload mới -->
+                <hr />
+                <h5 class="mt-4 mb-3 text-primary">
+                    <i class="fas fa-upload"></i> Thêm hình ảnh mới
+                </h5>
+
+                <!-- Nhóm hình ảnh nhận xe từ GSM -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <strong><i class="fas fa-download"></i> Hình ảnh nhận xe từ GSM</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @foreach (var type in MediaTypeHelper.GetGSMThanXeTypes())
+                            {
+                                <div class="col-md-6 col-lg-4 col-xl-3">
+                                    @await Html.PartialAsync("~/Views/Shared/_DragAndDropImageUpload.cshtml", type, new ViewDataDictionary(ViewData) { { "Settings", settings } })
+                                </div>
+                            }
+                        </div>
+                        <hr/>
+                        <div class="row">
+                            @foreach (var type in MediaTypeHelper.GetGSMGiayToTypes())
+                            {
+                                <div class="col-md-6 col-lg-4 col-xl-3">
+                                    @await Html.PartialAsync("~/Views/Shared/_DragAndDropImageUpload.cshtml", type, new ViewDataDictionary(ViewData) { { "Settings", settings } })
+                                </div>
+                            }
                         </div>
                     </div>
+                </div>
 
-                    <h6 class="mt-3"><i class="fas fa-video"></i> Videos</h6>
-                    <div class="row g-3 mb-3">
-                        <div class="col-12 col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header bg-success text-white">
-                                    <i class="fas fa-film"></i> Video nhận bàn giao từ GSM
+                <!-- Nhóm hình ảnh giao xe cho KH -->
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <strong><i class="fas fa-upload"></i> Hình ảnh giao xe cho Khách hàng</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @foreach (var type in MediaTypeHelper.GetKHThanXeTypes())
+                            {
+                                <div class="col-md-6 col-lg-4 col-xl-3">
+                                    @await Html.PartialAsync("~/Views/Shared/_DragAndDropImageUpload.cshtml", type, new ViewDataDictionary(ViewData) { { "Settings", settings } })
                                 </div>
-                                <div class="card-body">
-                                    @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Video_GSM))
-                                    {
-                                        <div class="row g-3">
-                                            @foreach (var v in Model.Media.Where(m => m.Type == MediaType.Video_GSM).OrderByDescending(m => m.CreatedAt))
-                                            {
-                                                <div class="col-12 mb-3" data-media-id="@v.Id" data-media-url="@v.Url">
-                                                    <div class="card">
-                                                        <div class="card-body p-2 text-center">
-                                                            <video controls class="w-100 rounded" style="max-height: 200px;">
-                                                                <source src="@v.Url" type="video/mp4">
-                                                                Trình duyệt không hỗ trợ video.
-                                                            </video>
-                                                        </div>
-                                                        <div class="card-footer py-1 d-flex justify-content-between align-items-center">
-                                                            <small class="text-muted">@v.FileName</small>
-                                                            <button type="button" class="btn btn-sm btn-danger btn-delete-media" data-media-id="@v.Id">Xóa</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <p class="text-muted"><i class="fas fa-video"></i> Chưa có video GSM.</p>
-                                    }
-                                </div>
-                            </div>
+                            }
                         </div>
-
-                        <div class="col-12 col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header bg-info text-white">
-                                    <i class="fas fa-film"></i> Video bàn giao cho KH
+                        <hr/>
+                        <div class="row">
+                            @foreach (var type in MediaTypeHelper.GetKHGiayToTypes())
+                            {
+                                <div class="col-md-6 col-lg-4 col-xl-3">
+                                    @await Html.PartialAsync("~/Views/Shared/_DragAndDropImageUpload.cshtml", type, new ViewDataDictionary(ViewData) { { "Settings", settings } })
                                 </div>
-                                <div class="card-body">
-                                    @if (Model.Media != null && Model.Media.Any(m => m.Type == MediaType.Video_KH))
-                                    {
-                                        <div class="row g-3">
-                                            @foreach (var v in Model.Media.Where(m => m.Type == MediaType.Video_KH).OrderByDescending(m => m.CreatedAt))
-                                            {
-                                                <div class="col-12 mb-3" data-media-id="@v.Id" data-media-url="@v.Url">
-                                                    <div class="card">
-                                                        <div class="card-body p-2 text-center">
-                                                            <video controls class="w-100 rounded" style="max-height: 200px;">
-                                                                <source src="@v.Url" type="video/mp4">
-                                                                Trình duyệt không hỗ trợ video.
-                                                            </video>
-                                                        </div>
-                                                        <div class="card-footer py-1 d-flex justify-content-between align-items-center">
-                                                            <small class="text-muted">@v.FileName</small>
-                                                            <button type="button" class="btn btn-sm btn-danger btn-delete-media" data-media-id="@v.Id">Xóa</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <p class="text-muted"><i class="fas fa-video"></i> Chưa có video KH.</p>
-                                    }
-                                </div>
-                            </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -411,160 +410,6 @@
 </div>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('editCarForm');
-            const btnSubmit = document.getElementById('btnSubmit');
-
-            // multi file previews and validation
-            document.querySelectorAll('.file-upload-multi').forEach(function(input) {
-                input.addEventListener('change', function() {
-                    validateMultiFiles(this);
-                });
-            });
-
-            function validateMultiFiles(input) {
-                const files = Array.from(input.files || []);
-                const maxSize = parseInt(input.dataset.maxSize) * 1024 * 1024;
-                const type = input.dataset.type;
-                const preview = input.parentElement.querySelector('.file-multi-preview');
-                preview.innerHTML = '';
-
-                for (const file of files) {
-                    if (file.size > maxSize) {
-                        alert(`File ${file.name} quá lớn. Tối đa ${input.dataset.maxSize} MB.`);
-                        input.value = '';
-                        preview.innerHTML = '';
-                        return;
-                    }
-
-                    if (type === 'image') {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            const div = document.createElement('div');
-                            div.className = 'd-inline-block me-2 mb-2';
-                            div.innerHTML = `<img src="${e.target.result}" style="max-height:100px;" class="img-thumbnail"/>`;
-                            preview.appendChild(div);
-                        };
-                        reader.readAsDataURL(file);
-                    } else {
-                        const div = document.createElement('div');
-                        div.className = 'd-inline-block me-2 mb-2 p-2 border rounded';
-                        div.innerHTML = `<i class="fas fa-file-video"></i> ${file.name}`;
-                        preview.appendChild(div);
-                    }
-                }
-            }
-
-            // existing primary selection
-            document.querySelectorAll('.existing-primary-radio').forEach(function(r) {
-                r.addEventListener('change', function(e) {
-                    document.getElementById('PrimaryImageUrl').value = e.target.value;
-                });
-            });
-
-            // initialize primary input from checked radio
-            const checked = document.querySelector('.existing-primary-radio:checked');
-            if (checked) document.getElementById('PrimaryImageUrl').value = checked.value;
-
-            // delete media via AJAX
-            document.querySelectorAll('.btn-delete-media').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    const mediaId = parseInt(btn.getAttribute('data-media-id'));
-                    if (!confirm('Xác nhận xóa media?')) return;
-
-                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-
-                    fetch('@Url.Action("DeleteMedia", "Cars")', {
-                        method: 'POST',
-                        headers: {
-                            'RequestVerificationToken': token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ id: mediaId })
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data && data.success) {
-                            // remove card
-                            const card = btn.closest('[data-media-id]');
-                            if (card) card.remove();
-                            // if deleted was primary, clear hidden or set replacement handled server-side
-                            const primaryInput = document.getElementById('PrimaryImageUrl');
-                            if (primaryInput && primaryInput.value === data.deletedUrl) {
-                                primaryInput.value = '';
-                            }
-                        } else {
-                            alert('Xóa thất bại');
-                        }
-                    })
-                    .catch(() => alert('Xóa thất bại'));
-                });
-            });
-
-            // primary file preview (no immediate upload). If a new primary is chosen, clear hidden PrimaryImageUrl
-            const primaryFileInput = document.getElementById('PrimaryImageFile');
-            const primaryStatus = document.getElementById('primaryUploadStatus');
-            const primaryPreview = document.getElementById('primaryPreview');
-            const hiddenPrimary = document.getElementById('PrimaryImageUrl');
-
-            if (primaryFileInput) {
-                primaryFileInput.addEventListener('change', function () {
-                    const file = this.files && this.files[0];
-                    primaryPreview.innerHTML = '';
-                    primaryStatus.textContent = '';
-
-                    if (!file) return;
-
-                    // basic client-side size check (optional)
-                    const maxSize = parseInt('@settings.MaxImageSizeMB') * 1024 * 1024;
-                    if (file.size > maxSize) {
-                        primaryStatus.textContent = `File quá lớn. Tối đa @settings.MaxImageSizeMB MB.`;
-                        this.value = '';
-                        return;
-                    }
-
-                    // clear selection of existing primary (so server can detect the new file)
-                    if (hiddenPrimary) hiddenPrimary.value = '';
-
-                    // show preview
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            primaryPreview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-height:150px;">`;
-                        };
-                        reader.readAsDataURL(file);
-                    } else {
-                        primaryPreview.innerHTML = `<div class="alert alert-info py-2"><i class="fas fa-file-image"></i> ${file.name}</div>`;
-                    }
-                });
-            }
-
-            form.addEventListener('submit', function(e) {
-                const hasInvalid = false; // client-side simple
-
-                // include primaryFileInput in hasFiles check so UI shows progress when file(s) exist
-                const hasFiles = Array.from(form.querySelectorAll('.file-upload-multi')).some(i => i.files.length > 0)
-                                  || (primaryFileInput && primaryFileInput.files && primaryFileInput.files.length > 0);
-
-                if (hasFiles) {
-                    btnSubmit.disabled = true;
-                    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải lên...';
-                    document.getElementById('uploadProgress').style.display = 'block';
-                }
-            });
-        });
-    </script>
-
-    <style>
-        .file-upload-multi.is-valid { border-color: #198754; }
-        .file-upload-multi.is-invalid { border-color: #dc3545; }
-        .file-multi-preview img { max-width: 100%; border-radius: 8px; }
-        .current-file { padding: 10px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6; }
-        #primaryPreview img { border-radius: 8px; }
-    </style>
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    @await Html.PartialAsync("~/Views/Shared/_ImageUploadScript.cshtml")
 }

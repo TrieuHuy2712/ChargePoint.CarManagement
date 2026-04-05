@@ -3,8 +3,11 @@ using ChargePoint.CarManagement.Models;
 using ChargePoint.CarManagement.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 
 var builder = WebApplication.CreateBuilder(args);
+
+ExcelPackage.License.SetNonCommercialPersonal("Your Name or Organization's Name");
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -13,11 +16,6 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") 
         ?? "Data Source=CarManagement.db"));
-
-// Add Google Drive Service
-builder.Services.Configure<GoogleDriveSettings>(
-    builder.Configuration.GetSection("GoogleDrive"));
-builder.Services.AddScoped<IGoogleDriveService, GoogleDriveService>();
 
 // Add Cloudinary Service
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
@@ -68,5 +66,12 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Cars}/{action=Index}/{id?}");
+
+// Sau khi build app, trước app.Run()
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate(); // Tự động apply pending migrations
+}
 
 app.Run();

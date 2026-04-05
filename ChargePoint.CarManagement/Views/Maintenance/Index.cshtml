@@ -71,7 +71,8 @@
                             <th>ODO hiện tại</th>
                             <th>Bảo dưỡng gần nhất</th>
                             <th>Cấp bảo dưỡng</th>
-                            <th>Kỳ tiếp theo</th>
+                            <th>ODO BD tiếp theo</th>
+                            <th>Trạng thái</th>
                             <th>Số lần BD</th>
                             <th class="text-center">Thao tác</th>
                         </tr>
@@ -83,14 +84,20 @@
                             var lastMaintenance = item.LastMaintenance;
                             var totalMaintenances = item.TotalMaintenances;
 
-                            // Kiểm tra sắp đến hạn bảo dưỡng
-                            var isOverdue = lastMaintenance?.NgayBaoDuongTiepTheo != null
-                                && ((DateTime)lastMaintenance.NgayBaoDuongTiepTheo) < DateTime.Now;
-                            var isNearDue = lastMaintenance?.NgayBaoDuongTiepTheo != null
-                                && ((DateTime)lastMaintenance.NgayBaoDuongTiepTheo) <= DateTime.Now.AddDays(7)
-                                && ((DateTime)lastMaintenance.NgayBaoDuongTiepTheo) >= DateTime.Now;
+                            // Lấy ODO BD tiếp theo từ record đã lưu
+                            int? nextMaintenanceOdo = lastMaintenance?.SoKmBaoDuongTiepTheo;
 
-                            <tr class="@(isOverdue ? "table-danger" : isNearDue ? "table-warning" : "")">
+                            var kmRemaining = nextMaintenanceOdo.HasValue 
+                                ? nextMaintenanceOdo.Value - car.OdoXe 
+                                : (int?)null;
+
+                            var isOverdue = kmRemaining.HasValue && kmRemaining.Value <= 0;
+                            var isUrgent = kmRemaining.HasValue && kmRemaining.Value > 0 && kmRemaining.Value <= 1000;
+                            var isWarning = kmRemaining.HasValue && kmRemaining.Value > 1000 && kmRemaining.Value <= 2000;
+
+                            var rowClass = isOverdue ? "table-danger" : isUrgent ? "table-danger" : isWarning ? "table-warning" : "";
+
+                            <tr class="@rowClass">
                                 <td>@car.Stt</td>
                                 <td>
                                     @if (car.MauBienSo == MauBienSo.Vang)
@@ -107,7 +114,7 @@
                                     }
                                 </td>
                                 <td>@car.TenXe</td>
-                                <td><strong>@car.OdoXe.ToString("N0")</strong> km</td>
+                                <td><strong>@car.OdoXe.ToString("N0")</strong></td>
                                 <td>
                                     @if (lastMaintenance != null)
                                     {
@@ -139,24 +146,47 @@
                                     }
                                 </td>
                                 <td>
-                                    @if (lastMaintenance?.NgayBaoDuongTiepTheo != null)
+                                    @if (nextMaintenanceOdo.HasValue)
                                     {
-                                        var nextDate = (DateTime)lastMaintenance.NgayBaoDuongTiepTheo;
-                                        <span class="@(isOverdue ? "text-danger fw-bold" : isNearDue ? "text-warning fw-bold" : "")">
-                                            @nextDate.ToString("dd/MM/yyyy")
-                                        </span>
-                                        @if (isOverdue)
-                                        {
-                                            <br /><small class="text-danger"><i class="fas fa-exclamation-triangle"></i> Quá hạn!</small>
-                                        }
-                                        else if (isNearDue)
-                                        {
-                                            <br /><small class="text-warning"><i class="fas fa-clock"></i> Sắp đến hạn</small>
-                                        }
+                                        <strong>@nextMaintenanceOdo.Value.ToString("N0")</strong>
+                                        <span class="text-muted"> km</span>
                                     }
                                     else
                                     {
                                         <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (kmRemaining.HasValue)
+                                    {
+                                        if (isOverdue)
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-exclamation-triangle"></i> Quá hạn @Math.Abs(kmRemaining.Value).ToString("N0") km
+                                            </span>
+                                        }
+                                        else if (isUrgent)
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-exclamation-circle"></i> Còn @kmRemaining.Value.ToString("N0") km
+                                            </span>
+                                        }
+                                        else if (isWarning)
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-clock"></i> Còn @kmRemaining.Value.ToString("N0") km
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle"></i> Còn @kmRemaining.Value.ToString("N0") km
+                                            </span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Chưa bảo dưỡng</span>
                                     }
                                 </td>
                                 <td>
@@ -179,16 +209,136 @@
                     </tbody>
                 </table>
             </div>
+
+            @* Empty state *@
+            @if (!Model.Items.Any())
+            {
+                <div class="alert alert-info text-center mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    @if (!string.IsNullOrWhiteSpace(searchQuery))
+                    {
+                        <span>Không tìm thấy xe phù hợp với từ khóa "<strong>@searchQuery</strong>".</span>
+                    }
+                    else
+                    {
+                        <span>Chưa có xe nào trong hệ thống.</span>
+                    }
+                </div>
+            }
         </div>
+
+        @* Pagination *@
+        @if (totalPages > 1)
+        {
+            <div class="card-footer bg-light">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        <!-- Previous -->
+                        <li class="page-item @(page <= 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                               asp-route-page="@(page - 1)" asp-route-pageSize="@pageSize"
+                               aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span> Trước
+                            </a>
+                        </li>
+
+                        @{
+                            var startPage = Math.Max(1, page - 2);
+                            var endPage = Math.Min(totalPages, page + 2);
+
+                            // Show first page if not in range
+                            if (startPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                                       asp-route-page="1" asp-route-pageSize="@pageSize">1</a>
+                                </li>
+                                if (startPage > 2)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link">…</span>
+                                    </li>
+                                }
+                            }
+
+                            // Page numbers
+                            for (var p = startPage; p <= endPage; p++)
+                            {
+                                <li class="page-item @(p == page ? "active" : "")">
+                                    <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                                       asp-route-page="@p" asp-route-pageSize="@pageSize">
+                                        @p
+                                        @if (p == page)
+                                        {
+                                            <span class="visually-hidden">(current)</span>
+                                        }
+                                    </a>
+                                </li>
+                            }
+
+                            // Show last page if not in range
+                            if (endPage < totalPages)
+                            {
+                                if (endPage < totalPages - 1)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link">…</span>
+                                    </li>
+                                }
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                                       asp-route-page="@totalPages" asp-route-pageSize="@pageSize">@totalPages</a>
+                                </li>
+                            }
+                        }
+
+                        <!-- Next -->
+                        <li class="page-item @(page >= totalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                               asp-route-page="@(page + 1)" asp-route-pageSize="@pageSize"
+                               aria-label="Next">
+                                Sau <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                @* Page info *@
+                <div class="text-center mt-2">
+                    <small class="text-muted">
+                        @if (totalPages > 1)
+                        {
+                            <span>Trang <strong>@(page)</strong> / @totalPages</span>
+                            <span class="mx-2">|</span>
+                        }
+                        <span>Hiển thị @((page - 1) * pageSize + 1) - @Math.Min(page * pageSize, totalCount) trong tổng số <strong>@(totalCount)</strong> xe</span>
+                    </small>
+                </div>
+            </div>
+        }
+        else if (totalCount > 0)
+        {
+            <div class="card-footer bg-light">
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Hiển thị tất cả <strong>@totalCount</strong> xe
+                    </small>
+                </div>
+            </div>
+        }
     </div>
 
     <!-- Chú thích màu -->
     <div class="mt-3">
         <small class="text-muted me-4">
-            <span class="badge bg-danger">&nbsp;</span> Quá hạn bảo dưỡng
+            <span class="badge bg-danger">&nbsp;</span> Quá hạn hoặc còn ≤ 1,000 km
+        </small>
+        <small class="text-muted me-4">
+            <span class="badge bg-warning">&nbsp;</span> Còn 1,001 - 2,000 km
         </small>
         <small class="text-muted">
-            <span class="badge bg-warning">&nbsp;</span> Sắp đến hạn (trong 7 ngày)
+            <span class="badge bg-success">&nbsp;</span> Còn > 2,000 km
         </small>
     </div>
 </div>

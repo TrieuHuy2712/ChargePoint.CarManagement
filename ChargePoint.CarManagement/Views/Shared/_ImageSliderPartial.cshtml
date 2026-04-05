@@ -1,0 +1,88 @@
+﻿@model IEnumerable<string>
+
+@if (Model != null && Model.Any())
+{
+    <!-- Swiper CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+
+    <style>
+        .image-slider-wrapper {
+            position: relative;
+            padding: 0 50px;
+        }
+
+        .image-slider-wrapper .swiper-button-next,
+        .image-slider-wrapper .swiper-button-prev {
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            color: #fff;
+        }
+
+        .image-slider-wrapper .swiper-button-next::after,
+        .image-slider-wrapper .swiper-button-prev::after {
+            font-size: 18px;
+        }
+
+        .image-slider-wrapper .swiper-button-next {
+            right: 0;
+        }
+
+        .image-slider-wrapper .swiper-button-prev {
+            left: 0;
+        }
+    </style>
+
+    <!-- Wrapper for Swiper and Navigation -->
+    <div class="image-slider-wrapper">
+        <!-- Add Navigation (outside swiper container) -->
+        <div class="swiper-button-prev"></div>
+        <div class="swiper-button-next"></div>
+
+        <!-- Swiper HTML Structure -->
+        <div class="swiper-container image-slider" style="overflow: hidden; border-radius: 8px;">
+            <div class="swiper-wrapper">
+                @foreach (var imageUrl in Model)
+                {
+                    <div class="swiper-slide">
+                        <a href="@imageUrl" target="_blank" title="Mở ảnh trong tab mới">
+                            <img src="@imageUrl" class="img-fluid"
+                                 style="height: 400px; width: 100%; object-fit: contain; background-color: #f8f9fa;"
+                                 alt="Hình ảnh chi tiết" />
+                        </a>
+                    </div>
+                }
+            </div>
+            <!-- Add Pagination -->
+            <div class="swiper-pagination"></div>
+        </div>
+    </div>
+
+    <!-- Swiper JS -->
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+
+    <!-- Initialize Swiper -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // A simple way to ensure this script doesn't run multiple times if the partial is loaded dynamically
+            if (!document.querySelector('.image-slider').classList.contains('swiper-initialized')) {
+                document.querySelector('.image-slider').classList.add('swiper-initialized');
+                new Swiper('.image-slider', {
+                    loop: true,
+                    grabCursor: true,
+                    pagination: {
+                        el: '.swiper-pagination',
+                        clickable: true,
+                    },
+                    navigation: {
+                        nextEl: '.image-slider-wrapper .swiper-button-next',
+                        prevEl: '.image-slider-wrapper .swiper-button-prev',
+                    },
+                });
+            }
+        });
+    </script>
+}

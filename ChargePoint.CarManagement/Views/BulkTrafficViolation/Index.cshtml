@@ -1,0 +1,743 @@
+﻿@using ChargePoint.CarManagement.Models.Enums
+@using ChargePoint.CarManagement.Models.ViewModels
+@model PagedResult<ChargePoint.CarManagement.Models.Car>
+@{
+    ViewData["Title"] = "Tra cứu hàng loạt";
+    var searchQuery = Model.SearchQuery ?? "";
+    var page = Model.PageNumber;
+    var pageSize = Model.PageSize;
+    var totalCount = Model.TotalCount;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-tasks text-primary me-2"></i>
+            Tra cứu & Ghi nhận hàng loạt
+        </h1>
+        <a asp-controller="TrafficViolation" asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+
+    <!-- Search & Actions -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form asp-action="Index" method="get" class="d-flex" role="search">
+                <input name="q" value="@searchQuery" class="form-control me-2" 
+                       placeholder="Tìm theo biển số, tên xe, khách hàng..." />
+                <button class="btn btn-outline-primary" type="submit">
+                    <i class="fas fa-search"></i> Tìm
+                </button>
+            </form>
+        </div>
+        <div class="col-md-6 text-end">
+            <button type="button" class="btn btn-success" id="btnCheckSelected" disabled>
+                <i class="fas fa-satellite-dish"></i> Tra cứu đã chọn (<span id="selectedCount">0</span>)
+            </button>
+            <button type="button" class="btn btn-primary" id="btnSaveAll" disabled style="display:none;">
+                <i class="fas fa-save"></i> Lưu tất cả (<span id="saveCount">0</span>)
+            </button>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div id="progressContainer" class="mb-3" style="display:none;">
+        <div class="card">
+            <div class="card-body">
+                <h6>Đang tra cứu... <span id="progressText">0/0</span></h6>
+                <div class="progress">
+                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="d-flex justify-content-between mb-2">
+                <div>
+                    <input type="checkbox" id="selectAll" class="form-check-input me-2" />
+                    <label for="selectAll"><strong>Chọn tất cả (@totalCount xe)</strong></label>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="carsTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="50">
+                                <input type="checkbox" id="selectAllPage" class="form-check-input" />
+                            </th>
+                            <th>STT</th>
+                            <th>Biển số</th>
+                            <th>Tên xe</th>
+                            <th>Khách hàng</th>
+                            <th>Trạng thái tra cứu</th>
+                            <th>Kết quả</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var car in Model)
+                        {
+                            <tr data-car-id="@car.Id" data-bien-so="@car.BienSo" data-ten-xe="@car.TenXe">
+                                <td>
+                                    <input type="checkbox" class="form-check-input car-checkbox" 
+                                           value="@car.Id" />
+                                </td>
+                                <td>@car.Stt</td>
+                                <td>
+                                    @if (car.MauBienSo == MauBienSo.Vang)
+                                    {
+                                        <span class="license-plate license-plate-yellow">@car.BienSo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="license-plate license-plate-white">@car.BienSo</span>
+                                    }
+                                </td>
+                                <td>@car.TenXe</td>
+                                <td>@car.TenKhachHang</td>
+                                <td class="status-cell">
+                                    <span class="badge bg-secondary">Chưa tra cứu</span>
+                                </td>
+                                <td class="result-cell">-</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-primary btn-check-single" 
+                                            data-car-id="@car.Id">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <nav aria-label="Page navigation" class="mt-3">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item @(page <= 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-q="@searchQuery" 
+                               asp-route-page="@(page - 1)" asp-route-pageSize="@pageSize">Trước</a>
+                        </li>
+                        @for (int i = Math.Max(1, page - 2); i <= Math.Min(Model.TotalPages, page + 2); i++)
+                        {
+                            <li class="page-item @(i == page ? "active" : "")">
+                                <a class="page-link" asp-action="Index" asp-route-q="@searchQuery" 
+                                   asp-route-page="@i" asp-route-pageSize="@pageSize">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(page >= Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-q="@searchQuery" 
+                               asp-route-page="@(page + 1)" asp-route-pageSize="@pageSize">Sau</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Results Summary Modal -->
+<div class="modal fade" id="resultsSummaryModal" tabindex="-1" aria-labelledby="resultsSummaryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="resultsSummaryModalLabel">
+                    <i class="fas fa-chart-bar me-2"></i>Kết quả tra cứu hàng loạt
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Summary Stats -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center border-primary">
+                            <div class="card-body">
+                                <h3 class="text-primary mb-0" id="totalChecked">0</h3>
+                                <small class="text-muted">Tổng số xe đã tra</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-success">
+                            <div class="card-body">
+                                <h3 class="text-success mb-0" id="totalClean">0</h3>
+                                <small class="text-muted">Không vi phạm</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-danger">
+                            <div class="card-body">
+                                <h3 class="text-danger mb-0" id="totalViolations">0</h3>
+                                <small class="text-muted">Có vi phạm</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-warning">
+                            <div class="card-body">
+                                <h3 class="text-warning mb-0" id="totalErrors">0</h3>
+                                <small class="text-muted">Lỗi tra cứu</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs for different result types -->
+                <ul class="nav nav-tabs" id="resultsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+                            <i class="fas fa-list"></i> Tất cả (<span id="allCount">0</span>)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="violations-tab" data-bs-toggle="tab" data-bs-target="#violations" type="button" role="tab">
+                            <i class="fas fa-exclamation-triangle text-danger"></i> Có vi phạm (<span id="violationsCount">0</span>)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="clean-tab" data-bs-toggle="tab" data-bs-target="#clean" type="button" role="tab">
+                            <i class="fas fa-check-circle text-success"></i> Sạch (<span id="cleanCount">0</span>)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="errors-tab" data-bs-toggle="tab" data-bs-target="#errors" type="button" role="tab">
+                            <i class="fas fa-times-circle text-warning"></i> Lỗi (<span id="errorsCount">0</span>)
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content mt-3" id="resultsTabContent">
+                    <!-- All Results Tab -->
+                    <div class="tab-pane fade show active" id="all" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>STT</th>
+                                        <th>Biển số</th>
+                                        <th>Tên xe</th>
+                                        <th>Kết quả</th>
+                                        <th>Chi tiết</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="allResultsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Violations Tab -->
+                    <div class="tab-pane fade" id="violations" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>STT</th>
+                                        <th>Biển số</th>
+                                        <th>Tên xe</th>
+                                        <th>Số vi phạm</th>
+                                        <th>Chi tiết</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="violationsResultsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Clean Tab -->
+                    <div class="tab-pane fade" id="clean" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>STT</th>
+                                        <th>Biển số</th>
+                                        <th>Tên xe</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cleanResultsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Errors Tab -->
+                    <div class="tab-pane fade" id="errors" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>STT</th>
+                                        <th>Biển số</th>
+                                        <th>Tên xe</th>
+                                        <th>Lỗi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="errorsResultsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Đóng
+                </button>
+                <button type="button" class="btn btn-primary" id="btnExportResults">
+                    <i class="fas fa-file-export"></i> Xuất Excel
+                </button>
+                <button type="button" class="btn btn-success" id="btnSaveFromModal">
+                    <i class="fas fa-save"></i> Lưu kết quả
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        let checkResults = new Map(); // Store check results by carId
+
+        // Select all functionality
+        document.getElementById('selectAll').addEventListener('change', function() {
+            document.querySelectorAll('.car-checkbox').forEach(cb => cb.checked = this.checked);
+            updateSelectedCount();
+        });
+
+        document.getElementById('selectAllPage').addEventListener('change', function() {
+            document.querySelectorAll('.car-checkbox').forEach(cb => cb.checked = this.checked);
+            updateSelectedCount();
+        });
+
+        document.querySelectorAll('.car-checkbox').forEach(cb => {
+            cb.addEventListener('change', updateSelectedCount);
+        });
+
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('.car-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('btnCheckSelected').disabled = count === 0;
+        }
+
+        // Check selected cars
+        document.getElementById('btnCheckSelected').addEventListener('click', async function() {
+            const selectedCheckboxes = document.querySelectorAll('.car-checkbox:checked');
+            const carIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+
+            if (carIds.length === 0) {
+                alert('Vui lòng chọn ít nhất một xe!');
+                return;
+            }
+
+            if (!confirm(`Bạn có chắc muốn tra cứu ${carIds.length} xe?`)) {
+                return;
+            }
+
+            await bulkCheckOnline(carIds);
+        });
+
+        async function bulkCheckOnline(carIds) {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const btnCheckSelected = document.getElementById('btnCheckSelected');
+            const btnSaveAll = document.getElementById('btnSaveAll');
+
+            progressContainer.style.display = 'block';
+            btnCheckSelected.disabled = true;
+
+            let completed = 0;
+            const total = carIds.length;
+
+            for (const carId of carIds) {
+                const row = document.querySelector(`tr[data-car-id="${carId}"]`);
+                const statusCell = row.querySelector('.status-cell');
+                const resultCell = row.querySelector('.result-cell');
+                const bienSo = row.dataset.bienSo;
+
+                // Update status: Đang tra cứu
+                statusCell.innerHTML = '<span class="badge bg-warning"><i class="fas fa-spinner fa-spin"></i> Đang tra cứu...</span>';
+
+                try {
+                    const response = await fetch('@Url.Action("CheckOnline", "BulkTrafficViolation")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify([carId])
+                    });
+
+                    const responseData = await response.json();
+
+                    if (responseData.success && responseData.results && responseData.results.length > 0) {
+                        const data = responseData.results[0];
+
+                        if (data.success) {
+                            // Store result
+                            checkResults.set(carId, {
+                                carId: carId,
+                                bienSo: bienSo,
+                                soLuongViPham: data.soLuongViPham || 0,
+                                ngayGioViPham: data.danhSachViPham && data.danhSachViPham.length > 0 
+                                    ? parseVietnameseDate(data.danhSachViPham[0].ngayViPham) 
+                                    : null,
+                                noiDungViPham: data.danhSachViPham && data.danhSachViPham.length > 0 
+                                    ? data.danhSachViPham[0].hanhVi 
+                                    : null,
+                                diaDiemViPham: data.danhSachViPham && data.danhSachViPham.length > 0 
+                                    ? data.danhSachViPham[0].diaDiem 
+                                    : null,
+                                ghiChu: `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}`
+                            });
+
+                            if (data.coViPham) {
+                                statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Có vi phạm</span>`;
+                                resultCell.innerHTML = `<strong class="text-danger">${data.soLuongViPham} vi phạm</strong>`;
+                            } else {
+                                statusCell.innerHTML = `<span class="badge bg-success"><i class="fas fa-check-circle"></i> Không vi phạm</span>`;
+                                resultCell.innerHTML = `<span class="text-success">Sạch</span>`;
+                            }
+                        } else {
+                            // Store error result
+                            checkResults.set(carId, {
+                                carId: carId,
+                                bienSo: bienSo,
+                                soLuongViPham: 0,
+                                ghiChu: 'Lỗi: ' + data.message
+                            });
+
+                            statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-times"></i> Lỗi</span>`;
+                            resultCell.innerHTML = `<small class="text-danger">${data.message}</small>`;
+                        }
+                    } else {
+                        throw new Error('Invalid response format');
+                    }
+                } catch (error) {
+                    // Store error result
+                    checkResults.set(carId, {
+                        carId: carId,
+                        bienSo: bienSo,
+                        soLuongViPham: 0,
+                        ghiChu: 'Lỗi: ' + error.message
+                    });
+
+                    statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-times"></i> Lỗi</span>`;
+                    resultCell.innerHTML = `<small class="text-danger">${error.message}</small>`;
+                }
+
+                completed++;
+                const percent = (completed / total * 100).toFixed(0);
+                progressBar.style.width = percent + '%';
+                progressText.textContent = `${completed}/${total}`;
+
+                // Delay to avoid overwhelming the API
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            progressContainer.style.display = 'none';
+            btnCheckSelected.disabled = false;
+
+            // Show save button if we have results
+            if (checkResults.size > 0) {
+                btnSaveAll.style.display = 'inline-block';
+                document.getElementById('saveCount').textContent = checkResults.size;
+                btnSaveAll.disabled = false;
+            }
+
+            // Show summary modal
+            showResultsSummaryModal();
+        }
+
+        // Show results summary modal
+        function showResultsSummaryModal() {
+            const results = Array.from(checkResults.values());
+
+            // Calculate stats
+            const totalChecked = results.length;
+            const totalViolations = results.filter(r => r.soLuongViPham > 0).length;
+            const totalClean = results.filter(r => r.soLuongViPham === 0 && !r.ghiChu?.includes('Lỗi')).length;
+            const totalErrors = results.filter(r => r.ghiChu?.includes('Lỗi')).length;
+
+            // Update stats
+            document.getElementById('totalChecked').textContent = totalChecked;
+            document.getElementById('totalViolations').textContent = totalViolations;
+            document.getElementById('totalClean').textContent = totalClean;
+            document.getElementById('totalErrors').textContent = totalErrors;
+
+            // Update tab counts
+            document.getElementById('allCount').textContent = totalChecked;
+            document.getElementById('violationsCount').textContent = totalViolations;
+            document.getElementById('cleanCount').textContent = totalClean;
+            document.getElementById('errorsCount').textContent = totalErrors;
+
+            // Populate tables
+            populateAllResultsTable(results);
+            populateViolationsTable(results.filter(r => r.soLuongViPham > 0));
+            populateCleanTable(results.filter(r => r.soLuongViPham === 0 && !r.ghiChu?.includes('Lỗi')));
+            populateErrorsTable(results.filter(r => r.ghiChu?.includes('Lỗi')));
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('resultsSummaryModal'));
+            modal.show();
+        }
+
+        function populateAllResultsTable(results) {
+            const tbody = document.getElementById('allResultsBody');
+            tbody.innerHTML = '';
+
+            results.forEach((result, index) => {
+                const row = document.querySelector(`tr[data-car-id="${result.carId}"]`);
+                const tenXe = row ? row.dataset.tenXe : '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong>${result.bienSo}</strong></td>
+                    <td>${tenXe}</td>
+                    <td>
+                        ${result.ghiChu?.includes('Lỗi')
+                            ? '<span class="badge bg-warning">Lỗi</span>' 
+                            : result.soLuongViPham > 0 
+                                ? `<span class="badge bg-danger">${result.soLuongViPham} vi phạm</span>`
+                                : '<span class="badge bg-success">Sạch</span>'}
+                    </td>
+                    <td>
+                        ${result.ghiChu?.includes('Lỗi')
+                            ? `<small class="text-muted">${result.ghiChu}</small>`
+                            : result.soLuongViPham > 0 && result.noiDungViPham
+                                ? `<small>${result.noiDungViPham.substring(0, 50)}...</small>`
+                                : '-'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function populateViolationsTable(violations) {
+            const tbody = document.getElementById('violationsResultsBody');
+            tbody.innerHTML = '';
+
+            violations.forEach((result, index) => {
+                const row = document.querySelector(`tr[data-car-id="${result.carId}"]`);
+                const tenXe = row ? row.dataset.tenXe : '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong class="text-danger">${result.bienSo}</strong></td>
+                    <td>${tenXe}</td>
+                    <td><span class="badge bg-danger">${result.soLuongViPham}</span></td>
+                    <td>
+                        ${result.noiDungViPham ? `<small>${result.noiDungViPham}</small>` : '-'}<br/>
+                        ${result.diaDiemViPham ? `<small class="text-muted"><i class="fas fa-map-marker-alt"></i> ${result.diaDiemViPham}</small>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (violations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Không có vi phạm nào</td></tr>';
+            }
+        }
+
+        function populateCleanTable(clean) {
+            const tbody = document.getElementById('cleanResultsBody');
+            tbody.innerHTML = '';
+
+            clean.forEach((result, index) => {
+                const row = document.querySelector(`tr[data-car-id="${result.carId}"]`);
+                const tenXe = row ? row.dataset.tenXe : '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong class="text-success">${result.bienSo}</strong></td>
+                    <td>${tenXe}</td>
+                    <td><span class="badge bg-success"><i class="fas fa-check-circle"></i> Không vi phạm</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (clean.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Không có xe sạch nào</td></tr>';
+            }
+        }
+
+        function populateErrorsTable(errors) {
+            const tbody = document.getElementById('errorsResultsBody');
+            tbody.innerHTML = '';
+
+            errors.forEach((result, index) => {
+                const row = document.querySelector(`tr[data-car-id="${result.carId}"]`);
+                const tenXe = row ? row.dataset.tenXe : '';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong class="text-warning">${result.bienSo}</strong></td>
+                    <td>${tenXe}</td>
+                    <td><small class="text-danger">${result.ghiChu}</small></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (errors.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Không có lỗi nào</td></tr>';
+            }
+        }
+
+        // Parse Vietnamese date format "HH:mm, DD/MM/YYYY"
+        function parseVietnameseDate(dateStr) {
+            if (!dateStr) return null;
+
+            const parts = dateStr.trim().match(/(\d{2}):(\d{2}),?\s*(\d{2})\/(\d{2})\/(\d{4})/);
+            if (parts) {
+                // parts: [full, hour, minute, day, month, year]
+                const date = new Date(parts[5], parts[4] - 1, parts[3], parts[1], parts[2]);
+                return date.toISOString();
+            }
+            return null;
+        }
+
+        // Save all results (từ button chính hoặc modal)
+        async function saveAllResults() {
+            if (checkResults.size === 0) {
+                alert('Không có kết quả nào để lưu!');
+                return;
+            }
+
+            // Filter out error results
+            const validResults = Array.from(checkResults.values()).filter(r => !r.ghiChu?.includes('Lỗi'));
+
+            if (validResults.length === 0) {
+                alert('Không có kết quả hợp lệ nào để lưu!');
+                return;
+            }
+
+            if (!confirm(`Bạn có chắc muốn lưu ${validResults.length} kết quả kiểm tra hợp lệ?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('@Url.Action("Save", "BulkTrafficViolation")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(validResults)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(data.message);
+                    if (data.errors && data.errors.length > 0) {
+                        console.error('Errors:', data.errors);
+                        alert('Có một số lỗi khi lưu. Xem console để biết chi tiết.');
+                    }
+
+                    // Close modal if open
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('resultsSummaryModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+
+                    // Clear results and reload
+                    checkResults.clear();
+                    window.location.reload();
+                } else {
+                    alert('Lỗi khi lưu: ' + data.message);
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        // Save all results from main button
+        document.getElementById('btnSaveAll').addEventListener('click', saveAllResults);
+
+        // Save all results from modal button
+        document.getElementById('btnSaveFromModal').addEventListener('click', saveAllResults);
+
+        // Export to Excel
+        document.getElementById('btnExportResults').addEventListener('click', async function() {
+            if (checkResults.size === 0) {
+                alert('Không có kết quả nào để xuất!');
+                return;
+            }
+
+            const results = Array.from(checkResults.values());
+
+            try {
+                // Show loading state
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xuất...';
+
+                const response = await fetch('@Url.Action("ExportResults", "BulkTrafficViolation")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(results)
+                });
+
+                if (response.ok) {
+                    // Get filename from response header or use default
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = `KetQuaTraCuu_${new Date().getTime()}.xlsx`;
+
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                        if (filenameMatch && filenameMatch[1]) {
+                            filename = filenameMatch[1].replace(/['"]/g, '');
+                        }
+                    }
+
+                    // Download file
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+
+                    // Show success message
+                    alert('Đã xuất file Excel thành công!');
+                } else {
+                    const error = await response.text();
+                    alert('Lỗi khi xuất Excel: ' + error);
+                }
+            } catch (error) {
+                alert('Lỗi kết nối: ' + error.message);
+            } finally {
+                // Reset button state
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-file-export"></i> Xuất Excel';
+            }
+        });
+
+        // Single check button
+        document.querySelectorAll('.btn-check-single').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const carId = parseInt(this.dataset.carId);
+                await bulkCheckOnline([carId]);
+            });
+        });
+    </script>
+
+    @* Anti-forgery token for AJAX *@
+    @Html.AntiForgeryToken()
+}

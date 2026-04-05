@@ -1,4 +1,6 @@
-﻿@using ChargePoint.CarManagement.Models.ViewModels
+﻿@using ChargePoint.CarManagement.Extensions
+@using ChargePoint.CarManagement.Models.Enums
+@using ChargePoint.CarManagement.Models.ViewModels
 @using ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels
 @model PagedResult<TrafficViolationIndexVM>
 @{
@@ -8,6 +10,7 @@
     var pageSize = Model.PageSize;
     var totalCount = Model.TotalCount;
     var totalPages = Model.TotalPages;
+    var currentStatus = ViewBag.CurrentStatus as ViolationStatus?;
 }
 
 <div class="container-fluid">
@@ -16,12 +19,16 @@
             <i class="fas fa-gavel text-danger me-2"></i>
             Kiểm tra phạt nguội
         </h1>
+        <a asp-controller="BulkTrafficViolation" asp-action="Index" class="btn btn-success">
+            <i class="fas fa-tasks"></i> Tra cứu hàng loạt
+        </a>
     </div>
 
     <div class="row mb-3">
-        <div class="col-md-8">
+        <div class="col-md-6">
             <form asp-action="Index" method="get" class="d-flex" role="search">
                 <input name="q" value="@searchQuery" class="form-control me-2" placeholder="Tìm theo biển số, tên xe, VIN, khách hàng, màu..." aria-label="Search" />
+                <input type="hidden" name="status" value="@currentStatus" />
                 <button class="btn btn-outline-primary" type="submit">
                     <i class="fas fa-search"></i> Tìm
                 </button>
@@ -29,6 +36,25 @@
                 {
                     <a asp-action="Index" class="btn btn-outline-secondary ms-2">
                         <i class="fas fa-times"></i> Xóa
+                    </a>
+                }
+            </form>
+        </div>
+        <div class="col-md-6">
+            <form asp-action="Index" method="get" class="d-flex justify-content-end">
+                <input type="hidden" name="q" value="@searchQuery" />
+                <label class="me-2 align-self-center">Lọc theo trạng thái:</label>
+                <select name="status" class="form-select" style="width: auto;" onchange="this.form.submit()">
+                    <option value="">Tất cả</option>
+                    <option value="0" selected="@(currentStatus == ViolationStatus.DaBao ? "selected" : null)">Đã báo</option>
+                    <option value="1" selected="@(currentStatus == ViolationStatus.DangChoXuLy ? "selected" : null)">Đang chờ xử lý</option>
+                    <option value="2" selected="@(currentStatus == ViolationStatus.DangXuLy ? "selected" : null)">Đang xử lý</option>
+                    <option value="3" selected="@(currentStatus == ViolationStatus.DaXuLy ? "selected" : null)">Đã xử lý</option>
+                </select>
+                @if (currentStatus.HasValue)
+                {
+                    <a asp-action="Index" asp-route-q="@searchQuery" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-times"></i>
                     </a>
                 }
             </form>
@@ -100,6 +126,7 @@
                 <div>
                     <form asp-action="Index" method="get" class="d-inline">
                         <input type="hidden" name="q" value="@searchQuery" />
+                        <input type="hidden" name="status" value="@currentStatus" />
                         <label class="me-2">Hiển thị</label>
                         <select name="pageSize" class="form-select d-inline-block" style="width: auto;"
                                 onchange="this.form.submit()">
@@ -120,7 +147,8 @@
                             <th>Tên xe</th>
                             <th>Khách hàng</th>
                             <th>Lần check cuối</th>
-                            <th>Trạng thái</th>
+                            <th>Trạng thái vi phạm</th>
+                            <th>Trạng thái xử lý</th>
                             <th class="text-center">Thao tác</th>
                         </tr>
                     </thead>
@@ -183,6 +211,26 @@
                                         <span class="badge bg-secondary">Chưa kiểm tra</span>
                                     }
                                 </td>
+                                <td>
+                                    @if (lastCheck != null)
+                                    {
+                                        var statusClass = lastCheck.TrangThaiXuLy switch
+                                        {
+                                            ViolationStatus.DaBao => "bg-info",
+                                            ViolationStatus.DangChoXuLy => "bg-warning text-dark",
+                                            ViolationStatus.DangXuLy => "bg-primary",
+                                            ViolationStatus.DaXuLy => "bg-success",
+                                            _ => "bg-secondary"
+                                        };
+                                        <span class="badge @statusClass">
+                                            @lastCheck.TrangThaiXuLy.GetDisplayName()
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
                                 <td class="text-center">
                                     <div class="btn-group d-flex gap-2" role="group">
                                         @if (!string.IsNullOrEmpty(bienSoFormatted))
@@ -213,7 +261,133 @@
                     </tbody>
                 </table>
             </div>
+
+            @* Empty state *@
+            @if (!Model.Items.Any())
+            {
+                <div class="alert alert-info text-center mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    @if (!string.IsNullOrWhiteSpace(searchQuery))
+                    {
+                        <span>Không tìm thấy xe phù hợp với từ khóa "<strong>@searchQuery</strong>".</span>
+                    }
+                    else if (currentStatus.HasValue)
+                    {
+                        <span>Không có xe nào với trạng thái <strong>@currentStatus.Value.GetDisplayName()</strong>.</span>
+                    }
+                    else
+                    {
+                        <span>Chưa có xe nào trong hệ thống.</span>
+                    }
+                </div>
+            }
         </div>
+
+        @* Pagination *@
+        @if (totalPages > 1)
+        {
+            <div class="card-footer bg-light">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        <!-- Previous -->
+                        <li class="page-item @(page <= 1 ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                               asp-route-status="@currentStatus"
+                               asp-route-page="@(page - 1)" asp-route-pageSize="@pageSize"
+                               aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span> Trước
+                            </a>
+                        </li>
+
+                        @{
+                            var startPage = Math.Max(1, page - 2);
+                            var endPage = Math.Min(totalPages, page + 2);
+
+                            // Show first page if not in range
+                            if (startPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                                       asp-route-status="@currentStatus"
+                                       asp-route-page="1" asp-route-pageSize="@pageSize">1</a>
+                                </li>
+                                if (startPage > 2)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link">…</span>
+                                    </li>
+                                }
+                            }
+
+                            // Page numbers
+                            for (var p = startPage; p <= endPage; p++)
+                            {
+                                <li class="page-item @(p == page ? "active" : "")">
+                                    <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                                       asp-route-status="@currentStatus"
+                                       asp-route-page="@p" asp-route-pageSize="@pageSize">
+                                        @p
+                                        @if (p == page)
+                                        {
+                                            <span class="visually-hidden">(current)</span>
+                                        }
+                                    </a>
+                                </li>
+                            }
+
+                            // Show last page if not in range
+                            if (endPage < totalPages)
+                            {
+                                if (endPage < totalPages - 1)
+                                {
+                                    <li class="page-item disabled">
+                                        <span class="page-link">…</span>
+                                    </li>
+                                }
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                                       asp-route-status="@currentStatus"
+                                       asp-route-page="@totalPages" asp-route-pageSize="@pageSize">@totalPages</a>
+                                </li>
+                            }
+                        }
+
+                        <!-- Next -->
+                        <li class="page-item @(page >= totalPages ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index" asp-route-q="@searchQuery"
+                               asp-route-status="@currentStatus"
+                               asp-route-page="@(page + 1)" asp-route-pageSize="@pageSize"
+                               aria-label="Next">
+                                Sau <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                @* Page info *@
+                <div class="text-center mt-2">
+                    <small class="text-muted">
+                        @if (totalPages > 1)
+                        {
+                            <span>Trang <strong>@(page)</strong> / @totalPages</span>
+                            <span class="mx-2">|</span>
+                        }
+                        <span>Hiển thị @((page - 1) * pageSize + 1) - @Math.Min(page * pageSize, totalCount) trong tổng số <strong>@(totalCount)</strong> xe</span>
+                    </small>
+                </div>
+            </div>
+        }
+        else if (totalCount > 0)
+        {
+            <div class="card-footer bg-light">
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Hiển thị tất cả <strong>@totalCount</strong> xe
+                    </small>
+                </div>
+            </div>
+        }
     </div>
 </div>
 

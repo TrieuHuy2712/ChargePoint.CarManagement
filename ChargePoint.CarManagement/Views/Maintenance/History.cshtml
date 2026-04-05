@@ -85,15 +85,29 @@
                                     <strong>Nơi BD:</strong> @record.NoiBaoDuong
                                 </p>
                             }
-                            @if (record.NgayBaoDuongTiepTheo.HasValue)
+                            @if (record.SoKmBaoDuongTiepTheo.HasValue)
                             {
-                                var isOverdue = record.NgayBaoDuongTiepTheo.Value < DateTime.Now;
-                                <p class="mb-2 @(isOverdue ? "text-danger" : "")">
-                                    <i class="fas fa-clock me-2"></i>
-                                    <strong>Kỳ tiếp:</strong> @record.NgayBaoDuongTiepTheo.Value.ToString("dd/MM/yyyy")
+                                var kmRemaining = record.SoKmBaoDuongTiepTheo.Value - (car?.OdoXe ?? 0);
+                                var isOverdue = kmRemaining <= 0;
+                                var isUrgent = kmRemaining > 0 && kmRemaining <= 1000;
+                                var isWarning = kmRemaining > 1000 && kmRemaining <= 2000;
+
+                                var statusClass = isOverdue || isUrgent ? "text-danger" : isWarning ? "text-warning" : "";
+
+                                <p class="mb-2 @statusClass">
+                                    <i class="fas fa-road me-2"></i>
+                                    <strong>ODO BD tiếp:</strong> @record.SoKmBaoDuongTiepTheo.Value.ToString("N0") km
                                     @if (isOverdue)
                                     {
-                                        <span class="badge bg-danger ms-1">Quá hạn!</span>
+                                        <span class="badge bg-danger ms-1">Quá @Math.Abs(kmRemaining).ToString("N0") km!</span>
+                                    }
+                                    else if (isUrgent)
+                                    {
+                                        <span class="badge bg-danger ms-1">Còn @kmRemaining.ToString("N0") km!</span>
+                                    }
+                                    else if (isWarning)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-1">Còn @kmRemaining.ToString("N0") km</span>
                                     }
                                 </p>
                             }

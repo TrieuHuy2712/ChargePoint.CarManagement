@@ -1,4 +1,5 @@
-﻿@model ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels.TrafficViolationHistoryVM
+﻿@using ChargePoint.CarManagement.Extensions
+@model ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels.TrafficViolationHistoryVM
 @{
     ViewData["Title"] = "Lịch sử kiểm tra phạt nguội";
     var car = Model.Car;
@@ -34,7 +35,10 @@
                                 <th>Ngày kiểm tra</th>
                                 <th>Trạng thái</th>
                                 <th>Số vi phạm</th>
-                                <th>Tổng tiền phạt</th>
+                                <th>Ngày vi phạm</th>
+                                <th>Nội dung</th>
+                                <th>Địa điểm</th>
+                                <th>Trạng thái xử lý</th>
                                 <th>Người kiểm tra</th>
                                 <th>Ghi chú</th>
                                 <th>Thao tác</th>
@@ -55,17 +59,97 @@
                                             <span class="badge bg-success">Không vi phạm</span>
                                         }
                                     </td>
-                                    <td>@item.SoLuongViPham</td>
-                                    <td>@item.TongTienPhat.ToString("N0") VNĐ</td>
-                                    <td>@item.NguoiKiemTra</td>
-                                    <td>@item.GhiChu</td>
+                                    <td class="text-center">@item.SoLuongViPham</td>
                                     <td>
-                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" 
-                                              onsubmit="return confirm('Bạn có chắc muốn xóa?');">
-                                            <button type="submit" class="btn btn-danger btn-sm">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
+                                        @if (item.NgayGioViPham.HasValue)
+                                        {
+                                            @item.NgayGioViPham.Value.ToString("dd/MM/yyyy HH:mm")
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.NoiDungViPham))
+                                        {
+                                            <span title="@item.NoiDungViPham">
+                                                @(item.NoiDungViPham.Length > 50 ? item.NoiDungViPham.Substring(0, 50) + "..." : item.NoiDungViPham)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.DiaDiemViPham))
+                                        {
+                                            <span title="@item.DiaDiemViPham">
+                                                @(item.DiaDiemViPham.Length > 30 ? item.DiaDiemViPham.Substring(0, 30) + "..." : item.DiaDiemViPham)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @{
+                                            var statusClass = item.TrangThaiXuLy switch
+                                            {
+                                                ChargePoint.CarManagement.Models.Enums.ViolationStatus.DaBao => "bg-info",
+                                                ChargePoint.CarManagement.Models.Enums.ViolationStatus.DangChoXuLy => "bg-warning",
+                                                ChargePoint.CarManagement.Models.Enums.ViolationStatus.DangXuLy => "bg-primary",
+                                                ChargePoint.CarManagement.Models.Enums.ViolationStatus.DaXuLy => "bg-success",
+                                                _ => "bg-secondary"
+                                            };
+                                        }
+                                        <span class="badge @statusClass">@item.TrangThaiXuLy.GetDisplayName()</span>
+                                        @if (item.NgayCapNhatTrangThai.HasValue)
+                                        {
+                                            <br />
+                                            <small class="text-muted">@item.NgayCapNhatTrangThai.Value.ToString("dd/MM/yyyy")</small>
+                                        }
+                                    </td>
+                                    <td>@item.NguoiKiemTra</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.GhiChu))
+                                        {
+                                            <span title="@item.GhiChu">
+                                                @(item.GhiChu.Length > 30 ? item.GhiChu.Substring(0, 30) + "..." : item.GhiChu)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a asp-action="EditDetail" asp-route-id="@item.Id" 
+                                               class="btn btn-info btn-sm" 
+                                               title="Sửa chi tiết">
+                                                <i class="fas fa-pen"></i>
+                                            </a>
+                                            @if (item.TrangThaiXuLy != ChargePoint.CarManagement.Models.Enums.ViolationStatus.DaXuLy)
+                                            {
+                                                <button type="button" class="btn btn-primary btn-sm" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#statusModal"
+                                                        data-check-id="@item.Id"
+                                                        data-current-status="@((int)item.TrangThaiXuLy)"
+                                                        title="Cập nhật trạng thái nhanh">
+                                                    <i class="fas fa-tasks"></i>
+                                                </button>
+                                            }
+                                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" 
+                                                  onsubmit="return confirm('Bạn có chắc muốn xóa?');" class="d-inline">
+                                                <button type="submit" class="btn btn-danger btn-sm" title="Xóa">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -77,6 +161,63 @@
     </div>
 </div>
 
+<!-- Modal cập nhật trạng thái -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="statusForm" asp-action="UpdateStatus" method="post">
+                <input type="hidden" id="checkId" name="id" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="statusModalLabel">
+                        <i class="fas fa-edit me-2"></i>Cập nhật trạng thái xử lý
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="statusSelect" class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                        <select class="form-select" id="statusSelect" name="status" required>
+                            <option value="0">Đã báo</option>
+                            <option value="1">Đang chờ xử lý</option>
+                            <option value="2">Đang xử lý</option>
+                            <option value="3">Đã xử lý</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nguoiXuLy" class="form-label">Người xử lý</label>
+                        <input type="text" class="form-control" id="nguoiXuLy" name="nguoiXuLy" placeholder="Nhập tên người xử lý..." />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Hủy
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        // Handle status modal
+        const statusModal = document.getElementById('statusModal');
+        if (statusModal) {
+            statusModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const checkId = button.getAttribute('data-check-id');
+                const currentStatus = button.getAttribute('data-current-status');
+
+                const modalCheckId = statusModal.querySelector('#checkId');
+                const modalStatus = statusModal.querySelector('#statusSelect');
+
+                modalCheckId.value = checkId;
+                modalStatus.value = currentStatus;
+            });
+        }
+    </script>
 }

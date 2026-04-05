@@ -45,10 +45,6 @@ namespace ChargePoint.CarManagement.Models
         [Display(Name = "Cấp bảo dưỡng")]
         public CapBaoDuong CapBaoDuong { get; set; } = CapBaoDuong.Cap1;
 
-        [Display(Name = "Kỳ bảo dưỡng tiếp theo")]
-        [DataType(DataType.Date)]
-        public DateTime? NgayBaoDuongTiepTheo { get; set; }
-
         [Display(Name = "Số KM bảo dưỡng tiếp theo")]
         [Range(0, 9999999, ErrorMessage = "Số KM phải từ 0 đến 9,999,999")]
         public int? SoKmBaoDuongTiepTheo { get; set; }

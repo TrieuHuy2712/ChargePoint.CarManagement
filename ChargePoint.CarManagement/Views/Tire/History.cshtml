@@ -28,7 +28,16 @@
         <div class="alert alert-info">
             <i class="fas fa-car me-2"></i>
             <strong>Xe:</strong> @car.TenXe -
-            <strong>Biển số:</strong> @car.BienSo -
+            <strong>Biển số:</strong>
+            @if (car.MauBienSo == MauBienSo.Vang)
+            {
+                <span class="badge" style="background-color: #ffc107; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            else
+            {
+                <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            -
             <strong>ODO hiện tại:</strong> @car.OdoXe.ToString("N0") km
         </div>
     }
@@ -63,28 +72,83 @@
 
     @if (Model.Records == null || !Model.Records.Any())
     {
-        <div class="alert alert-warning">
-            <i class="fas fa-info-circle me-2"></i>
-            Chưa có lịch sử lốp nào.
+        <div class="card shadow">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted mb-0">
+                    @if (selectedViTri.HasValue)
+                    {
+                        <span>Chưa có lịch sử lốp nào cho vị trí <strong>@selectedViTri.Value.GetDisplayName()</strong></span>
+                    }
+                    else
+                    {
+                        <span>Chưa có lịch sử lốp nào.</span>
+                    }
+                </p>
+                <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@selectedViTri" 
+                   class="btn btn-success mt-3">
+                    <i class="fas fa-plus"></i> Thêm hồ sơ lốp
+                </a>
+            </div>
         </div>
     }
     else
     {
         <div class="card shadow">
-            <div class="card-body">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    @if (selectedViTri.HasValue)
+                    {
+                        <span>Lịch sử lốp <strong>@selectedViTri.Value.GetDisplayName()</strong></span>
+                    }
+                    else
+                    {
+                        <span>Tất cả lịch sử lốp (@Model.Records.Count() records)</span>
+                    }
+                </h5>
+            </div>
+            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="table table-hover align-middle mb-0">
                         <thead class="table-dark">
                             <tr>
-                                <th>Ngày</th>
-                                <th>Vị trí</th>
-                                <th>Thao tác</th>
-                                <th>ODO</th>
-                                <th>Hãng/Model lốp</th>
-                                <th>Chi phí</th>
-                                <th>Nơi thực hiện</th>
-                                <th>Ảnh</th>
-                                <th class="text-center">Thao tác</th>
+                                <th style="min-width: 110px;">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    Ngày thực hiện
+                                </th>
+                                <th style="min-width: 120px;">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    Vị trí lốp
+                                </th>
+                                <th style="min-width: 130px;">
+                                    <i class="fas fa-cog me-1"></i>
+                                    Loại thao tác
+                                </th>
+                                <th style="min-width: 110px;">
+                                    <i class="fas fa-tachometer-alt me-1"></i>
+                                    ODO (km)
+                                </th>
+                                <th style="min-width: 180px;">
+                                    <i class="fas fa-circle-notch me-1"></i>
+                                    Thông tin lốp
+                                </th>
+                                <th style="min-width: 110px;">
+                                    <i class="fas fa-money-bill-wave me-1"></i>
+                                    Chi phí
+                                </th>
+                                <th style="min-width: 150px;">
+                                    <i class="fas fa-store me-1"></i>
+                                    Nơi thực hiện
+                                </th>
+                                <th style="min-width: 90px;">
+                                    <i class="fas fa-images me-1"></i>
+                                    Hình ảnh
+                                </th>
+                                <th class="text-center" style="min-width: 120px;">
+                                    <i class="fas fa-tools me-1"></i>
+                                    Thao tác
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
@@ -93,7 +157,17 @@
                                 <tr>
                                     <td>@record.NgayThucHien.ToString("dd/MM/yyyy")</td>
                                     <td>
-                                        <span class="badge bg-secondary">
+                                        @{
+                                            var positionBadge = record.ViTriLop switch
+                                            {
+                                                ViTriLop.TruocTrai => "bg-primary text-white",
+                                                ViTriLop.TruocPhai => "bg-info text-dark",
+                                                ViTriLop.SauTrai => "bg-warning text-dark",
+                                                ViTriLop.SauPhai => "bg-danger text-white",
+                                                _ => "bg-secondary text-white"
+                                            };
+                                        }
+                                        <span class="badge @positionBadge">
                                             @record.IconViTri @record.TenViTriLop
                                         </span>
                                     </td>
@@ -101,10 +175,12 @@
                                         @{
                                             var actionBadge = record.LoaiThaoTac switch
                                             {
-                                                LoaiThaoTacLop.ThayMoi => "bg-success",
-                                                LoaiThaoTacLop.DaoLop => "bg-info",
+                                                LoaiThaoTacLop.ThayMoi => "bg-success text-white",
+                                                LoaiThaoTacLop.DaoLop => "bg-primary text-white",
                                                 LoaiThaoTacLop.VaLop => "bg-warning text-dark",
-                                                _ => "bg-secondary"
+                                                LoaiThaoTacLop.BomLop => "bg-info text-dark",
+                                                LoaiThaoTacLop.CanBangDong => "bg-secondary text-white",
+                                                _ => "bg-secondary text-white"
                                             };
                                         }
                                         <span class="badge @actionBadge">
@@ -126,27 +202,40 @@
                                             <span class="text-muted">-</span>
                                         }
                                     </td>
-                                    <td>@record.ChiPhi.ToString("N0") đ</td>
-                                    <td>@(record.NoiThucHien ?? "-")</td>
                                     <td>
-                                        @if (record.DanhSachHinhAnh.Any())
+                                        @if (record.ChiPhi > 0)
                                         {
-                                            <a href="@record.DanhSachHinhAnh.First()" target="_blank">
-                                                <img src="@record.DanhSachHinhAnh.First()" class="img-thumbnail"
-                                                     style="width: 50px; height: 50px; object-fit: cover;" />
-                                            </a>
-                                            @if (record.DanhSachHinhAnh.Count > 1)
-                                            {
-                                                <span class="badge bg-secondary">+@(record.DanhSachHinhAnh.Count - 1)</span>
-                                            }
+                                            <strong class="text-success">@record.ChiPhi.ToString("N0") ₫</strong>
                                         }
                                         else
                                         {
                                             <span class="text-muted">-</span>
                                         }
                                     </td>
+                                    <td>@(record.NoiThucHien ?? "-")</td>
+                                    <td>
+                                        @if (record.DanhSachHinhAnh.Any())
+                                        {
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img src="@record.DanhSachHinhAnh.First()" 
+                                                     class="img-thumbnail cursor-pointer border-primary"
+                                                     style="width: 50px; height: 50px; object-fit: cover;"
+                                                     onclick="showImageModal('@record.DanhSachHinhAnh.First()')"
+                                                     role="button" 
+                                                     title="Click để xem chi tiết" />
+                                                @if (record.DanhSachHinhAnh.Count > 1)
+                                                {
+                                                    <span class="badge bg-info">+@(record.DanhSachHinhAnh.Count - 1)</span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted"><i class="fas fa-image"></i></span>
+                                        }
+                                    </td>
                                     <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
+                                        <div class="btn-group btn-group-sm" role="group">
                                             <a asp-action="Details" asp-route-id="@record.Id"
                                                class="btn btn-outline-info" title="Chi tiết">
                                                 <i class="fas fa-eye"></i>
@@ -156,7 +245,8 @@
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <form asp-action="Delete" asp-route-id="@record.Id" method="post"
-                                                  class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa?');">
+                                                  class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa hồ sơ lốp này?');">
+                                                @Html.AntiForgeryToken()
                                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -173,6 +263,89 @@
     }
 </div>
 
+<!-- Modal xem ảnh phóng to -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xem ảnh</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" />
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        function showImageModal(imageUrl) {
+            document.getElementById('modalImage').src = imageUrl;
+            new bootstrap.Modal(document.getElementById('imageModal')).show();
+        }
+    </script>
+    <style>
+        .cursor-pointer {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .cursor-pointer:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Màu sắc cho badge vị trí lốp */
+        .badge.bg-primary {
+            background-color: #0d6efd !important;
+            color: #fff !important;
+        }
+        .badge.bg-info {
+            background-color: #0dcaf0 !important;
+            color: #000 !important;
+        }
+        .badge.bg-warning {
+            background-color: #ffc107 !important;
+            color: #000 !important;
+        }
+        .badge.bg-danger {
+            background-color: #dc3545 !important;
+            color: #fff !important;
+        }
+        .badge.bg-success {
+            background-color: #198754 !important;
+            color: #fff !important;
+        }
+        .badge.bg-secondary {
+            background-color: #6c757d !important;
+            color: #fff !important;
+        }
+
+        /* Hover effect cho buttons */
+        .btn-outline-info:hover {
+            background-color: #0dcaf0;
+            color: #000;
+        }
+        .btn-outline-warning:hover {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
+            color: #fff;
+        }
+
+        /* Table row hover */
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Image thumbnail border */
+        .border-primary {
+            border-color: #0d6efd !important;
+            border-width: 2px !important;
+        }
+    </style>
 }

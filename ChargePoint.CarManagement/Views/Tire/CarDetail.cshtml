@@ -61,18 +61,106 @@
                                     <div class="tire-position">↖️ TRƯỚC TRÁI</div>
                                     @if (truocTraiRecord != null)
                                     {
+                                        @* Hình ảnh Chứng từ và DOT *@
+                                        <div class="tire-images mb-2">
+                                            <div class="row g-1">
+                                                @* Hình ảnh Chứng từ *@
+                                                <div class="col-6">
+                                                    <div class="image-container">
+                                                        <small class="d-block text-muted mb-1" style="font-size: 10px;">📄 Chứng từ</small>
+                                                        @if (truocTraiRecord.DanhSachHinhAnh?.Any() == true)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <img src="@truocTraiRecord.DanhSachHinhAnh.First()" 
+                                                                     class="img-thumbnail w-100" 
+                                                                     style="height: 80px; object-fit: cover; cursor: pointer;"
+                                                                     onclick="showImageModal('@truocTraiRecord.DanhSachHinhAnh.First()', 'Chứng từ - Lốp trước trái')"
+                                                                     alt="Chứng từ lốp trước trái"
+                                                                     title="Click để xem chi tiết" />
+                                                                @if (truocTraiRecord.DanhSachHinhAnh.Count > 1)
+                                                                {
+                                                                    <span class="badge bg-info position-absolute top-0 end-0" style="font-size: 9px; padding: 2px 4px;">
+                                                                        +@(truocTraiRecord.DanhSachHinhAnh.Count - 1)
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="placeholder-img" style="height: 80px;">
+                                                                <i class="fas fa-image text-muted"></i>
+                                                                <p class="mb-0" style="font-size: 9px;">Chưa có</p>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                @* Hình ảnh DOT *@
+                                                <div class="col-6">
+                                                    <div class="image-container">
+                                                        <small class="d-block text-muted mb-1" style="font-size: 10px;">📅 DOT</small>
+
+                                                        @* DEBUG: Kiểm tra xem có data không *@
+                                                        @if (truocTraiRecord.DanhSachHinhAnhDOT != null)
+                                                        {
+                                                            @* <small class="text-danger">Count: @truocTraiRecord.DanhSachHinhAnhDOT.Count</small> *@
+                                                        }
+
+                                                        @if (truocTraiRecord.DanhSachHinhAnhDOT?.Any() == true)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <img src="@truocTraiRecord.DanhSachHinhAnhDOT.First()" 
+                                                                     class="img-thumbnail w-100 border-warning" 
+                                                                     style="height: 80px; object-fit: cover; cursor: pointer;"
+                                                                     onclick="showImageModal('@truocTraiRecord.DanhSachHinhAnhDOT.First()', 'DOT - Lốp trước trái')"
+                                                                     alt="DOT lốp trước trái"
+                                                                     title="Click để xem chi tiết" />
+                                                                @if (truocTraiRecord.DanhSachHinhAnhDOT.Count > 1)
+                                                                {
+                                                                    <span class="badge bg-warning text-dark position-absolute top-0 end-0" style="font-size: 9px; padding: 2px 4px;">
+                                                                        +@(truocTraiRecord.DanhSachHinhAnhDOT.Count - 1)
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="placeholder-img placeholder-dot" style="height: 80px;">
+                                                                <i class="fas fa-calendar-alt text-muted"></i>
+                                                                <p class="mb-0" style="font-size: 9px;">Chưa có</p>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="tire-info">
                                             <small class="d-block"><strong>@truocTraiRecord.HangLop @truocTraiRecord.ModelLop</strong></small>
                                             <small class="d-block text-muted">@truocTraiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
                                             <small class="d-block text-muted">@truocTraiRecord.OdoThayLop.ToString("N0") km</small>
                                         </div>
-                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.TruocTrai)"
-                                           class="btn btn-sm btn-outline-primary mt-2">
-                                            <i class="fas fa-plus"></i> Cập nhật
-                                        </a>
+                                        <div class="btn-group mt-2" role="group">
+                                            <a asp-action="Details" asp-route-id="@truocTraiRecord.Id"
+                                               class="btn btn-sm btn-info" title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@truocTraiRecord.Id"
+                                               class="btn btn-sm btn-warning" title="Sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.TruocTrai)"
+                                               class="btn btn-sm btn-success" title="Thêm mới">
+                                                <i class="fas fa-plus"></i>
+                                            </a>
+                                        </div>
                                     }
                                     else
                                     {
+                                        <div class="placeholder-img-empty mb-2" style="height: 100px;">
+                                            <i class="fas fa-question-circle fa-2x text-muted mb-2"></i>
+                                            <p class="mb-0 text-muted" style="font-size: 11px;">Chưa có dữ liệu lốp</p>
+                                        </div>
                                         <div class="tire-info text-muted">
                                             <small>Chưa có dữ liệu</small>
                                         </div>
@@ -92,18 +180,99 @@
                                     <div class="tire-position">TRƯỚC PHẢI ↗️</div>
                                     @if (truocPhaiRecord != null)
                                     {
+                                        @* Hình ảnh Chứng từ và DOT *@
+                                        <div class="tire-images mb-2">
+                                            <div class="row g-1">
+                                                @* Hình ảnh Chứng từ *@
+                                                <div class="col-6">
+                                                    <div class="image-container">
+                                                        <small class="d-block text-muted mb-1" style="font-size: 10px;">📄 Chứng từ</small>
+                                                        @if (truocPhaiRecord.DanhSachHinhAnh?.Any() == true)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <img src="@truocPhaiRecord.DanhSachHinhAnh.First()" 
+                                                                     class="img-thumbnail w-100" 
+                                                                     style="height: 80px; object-fit: cover; cursor: pointer;"
+                                                                     onclick="showImageModal('@truocPhaiRecord.DanhSachHinhAnh.First()', 'Chứng từ - Lốp trước phải')"
+                                                                     alt="Chứng từ lốp trước phải"
+                                                                     title="Click để xem chi tiết" />
+                                                                @if (truocPhaiRecord.DanhSachHinhAnh.Count > 1)
+                                                                {
+                                                                    <span class="badge bg-info position-absolute top-0 end-0" style="font-size: 9px; padding: 2px 4px;">
+                                                                        +@(truocPhaiRecord.DanhSachHinhAnh.Count - 1)
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="placeholder-img" style="height: 80px;">
+                                                                <i class="fas fa-image text-muted"></i>
+                                                                <p class="mb-0" style="font-size: 9px;">Chưa có</p>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                @* Hình ảnh DOT *@
+                                                <div class="col-6">
+                                                    <div class="image-container">
+                                                        <small class="d-block text-muted mb-1" style="font-size: 10px;">📅 DOT</small>
+                                                        @if (truocPhaiRecord.DanhSachHinhAnhDOT?.Any() == true)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <img src="@truocPhaiRecord.DanhSachHinhAnhDOT.First()" 
+                                                                     class="img-thumbnail w-100 border-warning" 
+                                                                     style="height: 80px; object-fit: cover; cursor: pointer;"
+                                                                     onclick="showImageModal('@truocPhaiRecord.DanhSachHinhAnhDOT.First()', 'DOT - Lốp trước phải')"
+                                                                     alt="DOT lốp trước phải"
+                                                                     title="Click để xem chi tiết" />
+                                                                @if (truocPhaiRecord.DanhSachHinhAnhDOT.Count > 1)
+                                                                {
+                                                                    <span class="badge bg-warning text-dark position-absolute top-0 end-0" style="font-size: 9px; padding: 2px 4px;">
+                                                                        +@(truocPhaiRecord.DanhSachHinhAnhDOT.Count - 1)
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="placeholder-img placeholder-dot" style="height: 80px;">
+                                                                <i class="fas fa-calendar-alt text-muted"></i>
+                                                                <p class="mb-0" style="font-size: 9px;">Chưa có</p>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="tire-info">
                                             <small class="d-block"><strong>@truocPhaiRecord.HangLop @truocPhaiRecord.ModelLop</strong></small>
                                             <small class="d-block text-muted">@truocPhaiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
                                             <small class="d-block text-muted">@truocPhaiRecord.OdoThayLop.ToString("N0") km</small>
                                         </div>
-                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.TruocPhai)"
-                                           class="btn btn-sm btn-outline-primary mt-2">
-                                            <i class="fas fa-plus"></i> Cập nhật
-                                        </a>
+                                        <div class="btn-group mt-2" role="group">
+                                            <a asp-action="Details" asp-route-id="@truocPhaiRecord.Id"
+                                               class="btn btn-sm btn-info" title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@truocPhaiRecord.Id"
+                                               class="btn btn-sm btn-warning" title="Sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.TruocPhai)"
+                                               class="btn btn-sm btn-success" title="Thêm mới">
+                                                <i class="fas fa-plus"></i>
+                                            </a>
+                                        </div>
                                     }
                                     else
                                     {
+                                        <div class="placeholder-img-empty mb-2" style="height: 100px;">
+                                            <i class="fas fa-question-circle fa-2x text-muted mb-2"></i>
+                                            <p class="mb-0 text-muted" style="font-size: 11px;">Chưa có dữ liệu lốp</p>
+                                        </div>
                                         <div class="tire-info text-muted">
                                             <small>Chưa có dữ liệu</small>
                                         </div>
@@ -134,18 +303,101 @@
                                     <div class="tire-position">↙️ SAU TRÁI</div>
                                     @if (sauTraiRecord != null)
                                     {
+                                        @* Hình ảnh Chứng từ và DOT *@
+                                        <div class="tire-images mb-2">
+                                            <div class="row g-1">
+                                                @* Hình ảnh Chứng từ *@
+                                                <div class="col-6">
+                                                    <div class="image-container">
+                                                        <small class="d-block text-muted mb-1" style="font-size: 10px;">📄 Chứng từ</small>
+                                                        @if (sauTraiRecord.DanhSachHinhAnh?.Any() == true)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <img src="@sauTraiRecord.DanhSachHinhAnh.First()" 
+                                                                     class="img-thumbnail w-100" 
+                                                                     style="height: 80px; object-fit: cover; cursor: pointer;"
+                                                                     onclick="showImageModal('@sauTraiRecord.DanhSachHinhAnh.First()', 'Chứng từ - Lốp sau trái')"
+                                                                     alt="Chứng từ lốp sau trái"
+                                                                     title="Click để xem chi tiết" />
+                                                                @if (sauTraiRecord.DanhSachHinhAnh.Count > 1)
+                                                                {
+                                                                    <span class="badge bg-info position-absolute top-0 end-0" style="font-size: 9px; padding: 2px 4px;">
+                                                                        +@(sauTraiRecord.DanhSachHinhAnh.Count - 1)
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="placeholder-img" style="height: 80px;">
+                                                                <i class="fas fa-image text-muted"></i>
+                                                                <p class="mb-0" style="font-size: 9px;">Chưa có</p>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                @* Hình ảnh DOT *@
+                                                <div class="col-6">
+                                                    <div class="image-container">
+                                                        <small class="d-block text-muted mb-1" style="font-size: 10px;">📅 DOT</small>
+                                                        @if (sauTraiRecord.DanhSachHinhAnhDOT?.Any() == true)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <img src="@sauTraiRecord.DanhSachHinhAnhDOT.First()" 
+                                                                     class="img-thumbnail w-100 border-warning" 
+                                                                     style="height: 80px; object-fit: cover; cursor: pointer;"
+                                                                     onclick="showImageModal('@sauTraiRecord.DanhSachHinhAnhDOT.First()', 'DOT - Lốp sau trái')"
+                                                                     alt="DOT lốp sau trái"
+                                                                     title="Click để xem chi tiết" />
+                                                                @if (sauTraiRecord.DanhSachHinhAnhDOT.Count > 1)
+                                                                {
+                                                                    <span class="badge bg-warning text-dark position-absolute top-0 end-0" style="font-size: 9px; padding: 2px 4px;">
+                                                                        +@(sauTraiRecord.DanhSachHinhAnhDOT.Count - 1)
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="placeholder-img placeholder-dot" style="height: 80px;">
+                                                                <i class="fas fa-calendar-alt text-muted"></i>
+                                                                <p class="mb-0" style="font-size: 9px;">Chưa có</p>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="tire-info">
                                             <small class="d-block"><strong>@sauTraiRecord.HangLop @sauTraiRecord.ModelLop</strong></small>
                                             <small class="d-block text-muted">@sauTraiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
                                             <small class="d-block text-muted">@sauTraiRecord.OdoThayLop.ToString("N0") km</small>
                                         </div>
-                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.SauTrai)"
-                                           class="btn btn-sm btn-outline-primary mt-2">
-                                            <i class="fas fa-plus"></i> Cập nhật
-                                        </a>
+                                        <div class="btn-group mt-2" role="group">
+                                            <a asp-action="Details" asp-route-id="@sauTraiRecord.Id"
+                                               class="btn btn-sm btn-info" title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@sauTraiRecord.Id"
+                                               class="btn btn-sm btn-warning" title="Sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.SauTrai)"
+                                               class="btn btn-sm btn-success" title="Thêm mới">
+                                                <i class="fas fa-plus"></i>
+                                            </a>
+                                        </div>
                                     }
                                     else
                                     {
+                                        <div class="placeholder-image mb-2" style="width: 100%; height: 120px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 2px dashed #dee2e6;">
+                                            <div class="text-center">
+                                                <i class="fas fa-question-circle fa-2x text-muted mb-2"></i>
+                                                <p class="mb-0 text-muted" style="font-size: 11px;">Chưa có dữ liệu lốp</p>
+                                            </div>
+                                        </div>
                                         <div class="tire-info text-muted">
                                             <small>Chưa có dữ liệu</small>
                                         </div>
@@ -165,18 +417,101 @@
                                     <div class="tire-position">SAU PHẢI ↘️</div>
                                     @if (sauPhaiRecord != null)
                                     {
+                                        @* Hình ảnh Chứng từ và DOT *@
+                                        <div class="tire-images mb-2">
+                                            <div class="row g-1">
+                                                @* Hình ảnh Chứng từ *@
+                                                <div class="col-6">
+                                                    <div class="image-container">
+                                                        <small class="d-block text-muted mb-1" style="font-size: 10px;">📄 Chứng từ</small>
+                                                        @if (sauPhaiRecord.DanhSachHinhAnh?.Any() == true)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <img src="@sauPhaiRecord.DanhSachHinhAnh.First()" 
+                                                                     class="img-thumbnail w-100" 
+                                                                     style="height: 80px; object-fit: cover; cursor: pointer;"
+                                                                     onclick="showImageModal('@sauPhaiRecord.DanhSachHinhAnh.First()', 'Chứng từ - Lốp sau phải')"
+                                                                     alt="Chứng từ lốp sau phải"
+                                                                     title="Click để xem chi tiết" />
+                                                                @if (sauPhaiRecord.DanhSachHinhAnh.Count > 1)
+                                                                {
+                                                                    <span class="badge bg-info position-absolute top-0 end-0" style="font-size: 9px; padding: 2px 4px;">
+                                                                        +@(sauPhaiRecord.DanhSachHinhAnh.Count - 1)
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="placeholder-img" style="height: 80px;">
+                                                                <i class="fas fa-image text-muted"></i>
+                                                                <p class="mb-0" style="font-size: 9px;">Chưa có</p>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+
+                                                @* Hình ảnh DOT *@
+                                                <div class="col-6">
+                                                    <div class="image-container">
+                                                        <small class="d-block text-muted mb-1" style="font-size: 10px;">📅 DOT</small>
+                                                        @if (sauPhaiRecord.DanhSachHinhAnhDOT?.Any() == true)
+                                                        {
+                                                            <div class="position-relative">
+                                                                <img src="@sauPhaiRecord.DanhSachHinhAnhDOT.First()" 
+                                                                     class="img-thumbnail w-100 border-warning" 
+                                                                     style="height: 80px; object-fit: cover; cursor: pointer;"
+                                                                     onclick="showImageModal('@sauPhaiRecord.DanhSachHinhAnhDOT.First()', 'DOT - Lốp sau phải')"
+                                                                     alt="DOT lốp sau phải"
+                                                                     title="Click để xem chi tiết" />
+                                                                @if (sauPhaiRecord.DanhSachHinhAnhDOT.Count > 1)
+                                                                {
+                                                                    <span class="badge bg-warning text-dark position-absolute top-0 end-0" style="font-size: 9px; padding: 2px 4px;">
+                                                                        +@(sauPhaiRecord.DanhSachHinhAnhDOT.Count - 1)
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="placeholder-img placeholder-dot" style="height: 80px;">
+                                                                <i class="fas fa-calendar-alt text-muted"></i>
+                                                                <p class="mb-0" style="font-size: 9px;">Chưa có</p>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="tire-info">
                                             <small class="d-block"><strong>@sauPhaiRecord.HangLop @sauPhaiRecord.ModelLop</strong></small>
                                             <small class="d-block text-muted">@sauPhaiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
                                             <small class="d-block text-muted">@sauPhaiRecord.OdoThayLop.ToString("N0") km</small>
                                         </div>
-                                        <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.SauPhai)"
-                                           class="btn btn-sm btn-outline-primary mt-2">
-                                            <i class="fas fa-plus"></i> Cập nhật
-                                        </a>
+                                        <div class="btn-group mt-2" role="group">
+                                            <a asp-action="Details" asp-route-id="@sauPhaiRecord.Id"
+                                               class="btn btn-sm btn-info" title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@sauPhaiRecord.Id"
+                                               class="btn btn-sm btn-warning" title="Sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a asp-action="Create" asp-route-id="@car?.Id" asp-route-viTri="@((int)ViTriLop.SauPhai)"
+                                               class="btn btn-sm btn-success" title="Thêm mới">
+                                                <i class="fas fa-plus"></i>
+                                            </a>
+                                        </div>
                                     }
                                     else
                                     {
+                                        <div class="placeholder-image mb-2" style="width: 100%; height: 120px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 2px dashed #dee2e6;">
+                                            <div class="text-center">
+                                                <i class="fas fa-question-circle fa-2x text-muted mb-2"></i>
+                                                <p class="mb-0 text-muted" style="font-size: 11px;">Chưa có dữ liệu lốp</p>
+                                            </div>
+                                        </div>
                                         <div class="tire-info text-muted">
                                             <small>Chưa có dữ liệu</small>
                                         </div>
@@ -195,16 +530,41 @@
     </div>
 </div>
 
+<!-- Modal xem ảnh phóng to -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Xem ảnh lốp</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" style="max-height: 70vh;" />
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <script>
+        function showImageModal(imageUrl, title) {
+            document.getElementById('modalImage').src = imageUrl;
+            document.getElementById('modalTitle').textContent = title || 'Xem ảnh lốp';
+            new bootstrap.Modal(document.getElementById('imageModal')).show();
+        }
+    </script>
+
     <style>
         .tire-card {
             background: white;
             border: 2px dashed #dee2e6;
             border-radius: 12px;
             padding: 15px;
-            min-height: 140px;
+            min-height: 300px;
             transition: all 0.3s;
+            position: relative;
         }
         .tire-card.has-data {
             border: 2px solid #198754;
@@ -225,6 +585,56 @@
         }
         .car-icon {
             opacity: 0.5;
+        }
+
+        /* Image styles */
+        .tire-images img {
+            border-radius: 6px;
+            transition: transform 0.2s;
+        }
+        .tire-images img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Placeholder styles */
+        .placeholder-img, .placeholder-img-empty {
+            background: #f1f3f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .placeholder-img {
+            border: 1px dashed #dee2e6;
+        }
+        .placeholder-img-empty {
+            border: 2px dashed #dee2e6;
+            background: #f8f9fa;
+        }
+        .placeholder-img:hover, .placeholder-img-empty:hover {
+            background: #e9ecef;
+        }
+        .placeholder-dot {
+            border-color: #ffc107 !important;
+        }
+
+        /* Badge cho số lượng ảnh */
+        .tire-images .badge {
+            font-size: 9px;
+            padding: 2px 4px;
+        }
+
+        /* Button styles */
+        .btn-sm {
+            font-size: 11px;
+            padding: 4px 8px;
+        }
+
+        /* Image container */
+        .image-container {
+            position: relative;
         }
     </style>
 }

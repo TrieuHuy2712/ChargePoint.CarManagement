@@ -1,0 +1,431 @@
+﻿@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
+@model TireEditVM
+@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+
+@{
+    ViewData["Title"] = "Sửa hồ sơ lốp";
+    var settings = FileUploadSettings.Value;
+    var car = Model.Car;
+    var tireRecord = Model.Record!;
+}
+
+<div class="container">
+    <h1 class="mb-4">
+        <i class="fas fa-edit text-primary"></i> Sửa hồ sơ lốp
+    </h1>
+
+    @if (car != null)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-car me-2"></i>
+            <strong>Xe:</strong> @car.TenXe -
+            <strong>Biển số:</strong>
+            @if (car.MauBienSo == MauBienSo.Vang)
+            {
+                <span class="license-plate license-plate-yellow">@car.BienSo</span>
+            }
+            else
+            {
+                <span class="license-plate license-plate-white">@car.BienSo</span>
+            }
+            -
+            <strong>ODO hiện tại:</strong> @car.OdoXe.ToString("N0") km
+        </div>
+    }
+
+    <div class="card shadow">
+        <div class="card-body">
+            <form asp-action="Edit" enctype="multipart/form-data" id="tireForm">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                <input type="hidden" asp-for="Record.Id" />
+                <input type="hidden" asp-for="Record.CarId" />
+                <input type="hidden" asp-for="Record.HinhAnhChungTu" />
+                <input type="hidden" asp-for="Record.HinhAnhDOT" />
+                <input type="hidden" asp-for="Record.NgayTao" />
+                <input type="hidden" asp-for="Record.NguoiTao" />
+
+                <div class="row">
+                    <!-- Vị trí lốp -->
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.ViTriLop" class="form-label"></label>
+                            <div class="row g-2">
+                                @foreach (ViTriLop viTri in Enum.GetValues(typeof(ViTriLop)))
+                                {
+                                    var icon = viTri switch
+                                    {
+                                        ViTriLop.TruocTrai => "↖️",
+                                        ViTriLop.TruocPhai => "↗️",
+                                        ViTriLop.SauTrai => "↙️",
+                                        ViTriLop.SauPhai => "↘️",
+                                        _ => "⚪"
+                                    };
+                                    var label = viTri switch
+                                    {
+                                        ViTriLop.TruocTrai => "Trước trái",
+                                        ViTriLop.TruocPhai => "Trước phải",
+                                        ViTriLop.SauTrai => "Sau trái",
+                                        ViTriLop.SauPhai => "Sau phải",
+                                        _ => ""
+                                    };
+                                    <div class="col-6">
+                                        <div class="form-check tire-position-check">
+                                            <input class="form-check-input" type="radio"
+                                                   name="Record.ViTriLop" id="viTri@((int)viTri)"
+                                                   value="@((int)viTri)"
+                                                   @(tireRecord.ViTriLop == viTri ? "checked" : "") />
+                                            <label class="form-check-label w-100" for="viTri@((int)viTri)">
+                                                <span class="tire-badge">
+                                                    @icon @label
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            <span asp-validation-for="Record.ViTriLop" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Loại thao tác -->
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.LoaiThaoTac" class="form-label"></label>
+                            <select asp-for="Record.LoaiThaoTac" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<LoaiThaoTacLop>()">
+                            </select>
+                            <span asp-validation-for="Record.LoaiThaoTac" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.NgayThucHien" class="form-label"></label>
+                            <input asp-for="Record.NgayThucHien" class="form-control" type="date" />
+                            <span asp-validation-for="Record.NgayThucHien" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.OdoThayLop" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="Record.OdoThayLop" class="form-control" type="number" id="odoThayLop" />
+                                <span class="input-group-text">km</span>
+                            </div>
+                            <span asp-validation-for="Record.OdoThayLop" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mt-4 mb-3 text-primary">
+                    <i class="fas fa-circle-notch"></i> Thông tin lốp
+                </h5>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.HangLop" class="form-label"></label>
+                            <input asp-for="Record.HangLop" class="form-control" placeholder="VD: Michelin, Bridgestone..." />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.ModelLop" class="form-label"></label>
+                            <input asp-for="Record.ModelLop" class="form-control" placeholder="VD: Pilot Sport 4..." />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.KichThuocLop" class="form-label"></label>
+                            <input asp-for="Record.KichThuocLop" class="form-control" placeholder="VD: 235/45R18" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.OdoThayTiepTheo" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="Record.OdoThayTiepTheo" class="form-control"
+                                       id="odoThayTiepTheo"
+                                       placeholder="VD: @((car?.OdoXe ?? 0) + 60000)" />
+                                <span class="input-group-text">km</span>
+                            </div>
+                            <span asp-validation-for="Record.OdoThayTiepTheo" class="text-danger"></span>
+                            <small class="form-text text-muted">Tự động tính = ODO thay lốp + 60,000 km</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.ChiPhi" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="Record.ChiPhi" class="form-control" type="number" />
+                                <span class="input-group-text">VNĐ</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label asp-for="Record.NoiThucHien" class="form-label"></label>
+                            <input asp-for="Record.NoiThucHien" class="form-control" placeholder="VD: Garage ABC..." />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Record.GhiChu" class="form-label"></label>
+                    <textarea asp-for="Record.GhiChu" class="form-control" rows="2"
+                              placeholder="Ghi chú thêm..."></textarea>
+                </div>
+
+                <!-- Hình ảnh chứng từ hiện có -->
+                @if (tireRecord.DanhSachHinhAnh.Any())
+                {
+                    <h5 class="mt-4 mb-3 text-primary">
+                        <i class="fas fa-images"></i> Hình ảnh hiện có
+                    </h5>
+                    <div class="row g-3 mb-4" id="existingImages">
+                        @foreach (var imageUrl in tireRecord.DanhSachHinhAnh)
+                        {
+                            <div class="col-md-2 col-sm-3 col-4 image-item" data-url="@imageUrl">
+                                <div class="position-relative">
+                                    <img src="@imageUrl" class="img-thumbnail w-100" style="height: 120px; object-fit: cover;" 
+                                         onclick="showImageModal('@imageUrl')" role="button" />
+                                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 delete-image-btn"
+                                            data-record-id="@tireRecord.Id" data-image-url="@imageUrl"
+                                            title="Xóa ảnh">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Hình ảnh DOT hiện có -->
+                @if (tireRecord.DanhSachHinhAnhDOT.Any())
+                {
+                    <h5 class="mt-4 mb-3 text-warning">
+                        <i class="fas fa-calendar-check"></i> Hình ảnh DOT hiện có
+                    </h5>
+                    <div class="row g-3 mb-4" id="existingDOTImages">
+                        @foreach (var imageUrl in tireRecord.DanhSachHinhAnhDOT)
+                        {
+                            <div class="col-md-2 col-sm-3 col-4 image-item" data-url="@imageUrl">
+                                <div class="position-relative">
+                                    <img src="@imageUrl" class="img-thumbnail w-100 border border-warning" style="height: 120px; object-fit: cover;" 
+                                         onclick="showImageModal('@imageUrl')" role="button" />
+                                    <span class="badge bg-warning text-dark position-absolute top-0 start-0 m-1">DOT</span>
+                                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 delete-dot-image-btn"
+                                            data-record-id="@tireRecord.Id" data-image-url="@imageUrl"
+                                            title="Xóa ảnh DOT">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Thêm hình ảnh mới (sử dụng shared partial view) -->
+                <h5 class="mt-4 mb-3 text-info">
+                    <i class="fas fa-plus-circle"></i> Thêm hình ảnh mới
+                </h5>
+                @await Html.PartialAsync("_TireSharedImage")
+
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-primary" id="btnSubmit">
+                        <i class="fas fa-save"></i> Cập nhật
+                    </button>
+                    <a asp-action="CarDetail" asp-route-id="@tireRecord.CarId" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal xem ảnh phóng to -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xem ảnh</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" />
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <script>
+        // Tự động tính ODO thay tiếp theo = ODO thay lốp + 60,000
+        const odoThayLopInput = document.getElementById('odoThayLop');
+        const odoThayTiepTheoInput = document.getElementById('odoThayTiepTheo');
+
+        if (odoThayLopInput && odoThayTiepTheoInput) {
+            odoThayLopInput.addEventListener('input', function() {
+                const odoThayLop = parseInt(this.value) || 0;
+                if (odoThayLop > 0) {
+                    odoThayTiepTheoInput.value = odoThayLop + 60000;
+                }
+            });
+        }
+
+        // Delete existing image (chứng từ)
+        document.querySelectorAll('.delete-image-btn').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!confirm('Bạn có chắc muốn xóa ảnh này?')) return;
+
+                const recordId = this.dataset.recordId;
+                const imageUrl = this.dataset.imageUrl;
+                const imageItem = this.closest('.image-item');
+
+                try {
+                    const response = await fetch('@Url.Action("DeleteImage", "Tire")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: JSON.stringify({ recordId, imageUrl, imageType: 'ChungTu' })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        imageItem.remove();
+
+                        // Check if no images left
+                        const existingImagesDiv = document.getElementById('existingImages');
+                        if (existingImagesDiv && existingImagesDiv.children.length === 0) {
+                            existingImagesDiv.previousElementSibling.style.display = 'none';
+                            existingImagesDiv.style.display = 'none';
+                        }
+
+                        alert('Đã xóa ảnh thành công!');
+                    } else {
+                        alert('Lỗi: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('Có lỗi xảy ra: ' + error.message);
+                }
+            });
+        });
+
+        // Delete existing DOT image
+        document.querySelectorAll('.delete-dot-image-btn').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!confirm('Bạn có chắc muốn xóa ảnh DOT này?')) return;
+
+                const recordId = this.dataset.recordId;
+                const imageUrl = this.dataset.imageUrl;
+                const imageItem = this.closest('.image-item');
+
+                try {
+                    const response = await fetch('@Url.Action("DeleteImage", "Tire")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: JSON.stringify({ recordId, imageUrl, imageType: 'DOT' })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        imageItem.remove();
+
+                        // Check if no DOT images left
+                        const existingDOTImagesDiv = document.getElementById('existingDOTImages');
+                        if (existingDOTImagesDiv && existingDOTImagesDiv.children.length === 0) {
+                            existingDOTImagesDiv.previousElementSibling.style.display = 'none';
+                            existingDOTImagesDiv.style.display = 'none';
+                        }
+
+                        alert('Đã xóa ảnh DOT thành công!');
+                    } else {
+                        alert('Lỗi: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('Có lỗi xảy ra: ' + error.message);
+                }
+            });
+        });
+
+        // Show image in modal
+        function showImageModal(imageUrl) {
+            document.getElementById('modalImage').src = imageUrl;
+            new bootstrap.Modal(document.getElementById('imageModal')).show();
+        }
+
+        // Submit button loading state
+        document.getElementById('tireForm').addEventListener('submit', function() {
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang cập nhật...';
+        });
+    </script>
+
+    <style>
+        .tire-position-check {
+            margin-bottom: 0;
+        }
+        .tire-position-check .form-check-input {
+            display: none;
+        }
+        .tire-position-check .tire-badge {
+            display: block;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .tire-position-check .form-check-input:checked + .form-check-label .tire-badge {
+            border-color: #0d6efd;
+            background: linear-gradient(135deg, #e7f1ff, #cfe2ff);
+            color: #084298;
+        }
+        .tire-position-check .tire-badge:hover {
+            border-color: #0d6efd;
+            transform: translateY(-2px);
+        }
+        .image-item {
+            transition: opacity 0.3s;
+        }
+        .image-item:hover {
+            opacity: 0.9;
+        }
+        .delete-image-btn, .delete-dot-image-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .delete-image-btn:hover, .delete-dot-image-btn:hover {
+            transform: scale(1.1);
+        }
+    </style>
+}

@@ -36,7 +36,7 @@ namespace ChargePoint.CarManagement.Models.ViewModels
         [Display(Name = "ODO xe")]
         public int OdoXe { get; set; }
 
-        // Image / video friendly properties used by views
+        // Image friendly properties used by views
         public string? PrimaryImageUrl { get; set; }
         public string? FirstGsmImageUrl { get; set; }
         public string? FirstKhImageUrl { get; set; }
@@ -44,9 +44,6 @@ namespace ChargePoint.CarManagement.Models.ViewModels
         public string? HinhAnhBanGiaoKHThucTe { get; set; }
         public string? HinhAnhNhanBanGiao { get; set; }
         public string? HinhAnhBanGiaoKH { get; set; }
-
-        public string? VideoNhanBanGiao { get; set; }
-        public string? VideoBanGiaoKH { get; set; }
 
         // Existing media collection for Edit view
         public ICollection<CarMedia>? Media { get; set; }
@@ -77,11 +74,10 @@ namespace ChargePoint.CarManagement.Models.ViewModels
 
             if (car.Media != null && car.Media.Any())
             {
-                vm.FirstGsmImageUrl = car.Media.FirstOrDefault(m => m.Type == MediaType.Image_GSM)?.Url;
-                vm.FirstKhImageUrl = car.Media.FirstOrDefault(m => m.Type == MediaType.Image_KH)?.Url;
-
-                vm.VideoNhanBanGiao = car.Media.FirstOrDefault(m => m.Type == MediaType.Video_GSM)?.Url;
-                vm.VideoBanGiaoKH = car.Media.FirstOrDefault(m => m.Type == MediaType.Video_KH)?.Url;
+                // Lấy ảnh đầu tiên từ nhóm thân xe GSM
+                vm.FirstGsmImageUrl = car.Media.FirstOrDefault(m => m.Type.IsThanXe() && m.Type.IsGSM())?.Url;
+                // Lấy ảnh đầu tiên từ nhóm thân xe KH
+                vm.FirstKhImageUrl = car.Media.FirstOrDefault(m => m.Type.IsThanXe() && m.Type.IsKH())?.Url;
 
                 if (string.IsNullOrEmpty(vm.PrimaryImageUrl))
                 {

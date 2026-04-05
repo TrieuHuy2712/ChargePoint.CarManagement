@@ -1,6 +1,6 @@
 ﻿@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
 @model TireCreateVM
-@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+@inject Microsoft.Extensions.Options.IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
 
 @{
     ViewData["Title"] = "Thêm hồ sơ lốp";
@@ -22,11 +22,11 @@
             <strong>Biển số:</strong>
             @if (car.MauBienSo == MauBienSo.Vang)
             {
-                <span class="badge" style="background-color: #ffc107; color: #000; border: 1px solid #333;">@car.BienSo</span>
+                <span class="license-plate license-plate-yellow">@car.BienSo</span>
             }
             else
             {
-                <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333;">@car.BienSo</span>
+                <span class="license-plate license-plate-white">@car.BienSo</span>
             }
             -
             <strong>ODO hiện tại:</strong> @car.OdoXe.ToString("N0") km
@@ -37,13 +37,13 @@
         <div class="card-body">
             <form asp-action="Create" enctype="multipart/form-data" id="tireForm">
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-                <input type="hidden" asp-for="@tireRecord.CarId" />
+                <input type="hidden" asp-for="TireRecord.CarId" />
 
                 <div class="row">
                     <!-- Vị trí lốp -->
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.ViTriLop" class="form-label"></label>
+                            <label asp-for="TireRecord.ViTriLop" class="form-label"></label>
                             <div class="row g-2">
                                 @foreach (ViTriLop viTri in Enum.GetValues(typeof(ViTriLop)))
                                 {
@@ -66,9 +66,9 @@
                                     <div class="col-6">
                                         <div class="form-check tire-position-check">
                                             <input class="form-check-input" type="radio"
-                                                   name="ViTriLop" id="viTri@((int)viTri)"
+                                                   name="TireRecord.ViTriLop" id="viTri@((int)viTri)"
                                                    value="@((int)viTri)"
-                                                   @(@tireRecord.ViTriLop == viTri ? "checked" : "") />
+                                                   @(tireRecord.ViTriLop == viTri ? "checked" : "") />
                                             <label class="form-check-label w-100" for="viTri@((int)viTri)">
                                                 <span class="tire-badge">
                                                     @icon @label
@@ -78,18 +78,18 @@
                                     </div>
                                 }
                             </div>
-                            <span asp-validation-for="@tireRecord.ViTriLop" class="text-danger"></span>
+                            <span asp-validation-for="TireRecord.ViTriLop" class="text-danger"></span>
                         </div>
                     </div>
 
                     <!-- Loại thao tác -->
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.LoaiThaoTac" class="form-label"></label>
-                            <select asp-for="@tireRecord.LoaiThaoTac" class="form-select"
+                            <label asp-for="TireRecord.LoaiThaoTac" class="form-label"></label>
+                            <select asp-for="TireRecord.LoaiThaoTac" class="form-select"
                                     asp-items="Html.GetEnumSelectList<LoaiThaoTacLop>()">
                             </select>
-                            <span asp-validation-for="@tireRecord.LoaiThaoTac" class="text-danger"></span>
+                            <span asp-validation-for="TireRecord.LoaiThaoTac" class="text-danger"></span>
                         </div>
                     </div>
                 </div>
@@ -97,19 +97,19 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.NgayThucHien" class="form-label"></label>
-                            <input asp-for="@tireRecord.NgayThucHien" class="form-control" type="date" />
-                            <span asp-validation-for="@tireRecord.NgayThucHien" class="text-danger"></span>
+                            <label asp-for="TireRecord.NgayThucHien" class="form-label"></label>
+                            <input asp-for="TireRecord.NgayThucHien" class="form-control" type="date" />
+                            <span asp-validation-for="TireRecord.NgayThucHien" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.OdoThayLop" class="form-label"></label>
+                            <label asp-for="TireRecord.OdoThayLop" class="form-label"></label>
                             <div class="input-group">
-                                <input asp-for="@tireRecord.OdoThayLop" class="form-control" type="number" />
+                                <input asp-for="TireRecord.OdoThayLop" class="form-control" type="number" id="odoThayLop" />
                                 <span class="input-group-text">km</span>
                             </div>
-                            <span asp-validation-for="@tireRecord.OdoThayLop" class="text-danger"></span>
+                            <span asp-validation-for="TireRecord.OdoThayLop" class="text-danger"></span>
                         </div>
                     </div>
                 </div>
@@ -121,20 +121,20 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.HangLop" class="form-label"></label>
-                            <input asp-for="@tireRecord.HangLop" class="form-control" placeholder="VD: Michelin, Bridgestone..." />
+                            <label asp-for="TireRecord.HangLop" class="form-label"></label>
+                            <input asp-for="TireRecord.HangLop" class="form-control" placeholder="VD: Michelin, Bridgestone..." />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.ModelLop" class="form-label"></label>
-                            <input asp-for="@tireRecord.ModelLop" class="form-control" placeholder="VD: Pilot Sport 4..." />
+                            <label asp-for="TireRecord.ModelLop" class="form-label"></label>
+                            <input asp-for="TireRecord.ModelLop" class="form-control" placeholder="VD: Pilot Sport 4..." />
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.KichThuocLop" class="form-label"></label>
-                            <input asp-for="@tireRecord.KichThuocLop" class="form-control" placeholder="VD: 235/45R18" />
+                            <label asp-for="TireRecord.KichThuocLop" class="form-label"></label>
+                            <input asp-for="TireRecord.KichThuocLop" class="form-control" placeholder="VD: 235/45R18" />
                         </div>
                     </div>
                 </div>
@@ -142,54 +142,42 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.OdoThayTiepTheo" class="form-label"></label>
+                            <label asp-for="TireRecord.OdoThayTiepTheo" class="form-label"></label>
                             <div class="input-group">
-                                <input asp-for="@tireRecord.OdoThayTiepTheo" class="form-control" type="number"
-                                       placeholder="VD: @((car?.OdoXe ?? 0) + 40000)" />
+                                <input asp-for="TireRecord.OdoThayTiepTheo" class="form-control" type="number"
+                                       id="odoThayTiepTheo"
+                                       value="@((car?.OdoXe ?? 0) + 60000)"
+                                       placeholder="VD: @((car?.OdoXe ?? 0) + 60000)" />
                                 <span class="input-group-text">km</span>
                             </div>
-                            <small class="form-text text-muted">Thường thay sau 40,000 - 60,000 km</small>
+                            <small class="form-text text-muted">Tự động tính = ODO hiện tại + 60,000 km</small>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.ChiPhi" class="form-label"></label>
+                            <label asp-for="TireRecord.ChiPhi" class="form-label"></label>
                             <div class="input-group">
-                                <input asp-for="@tireRecord.ChiPhi" class="form-control" type="number" />
+                                <input asp-for="TireRecord.ChiPhi" class="form-control" type="number" />
                                 <span class="input-group-text">VNĐ</span>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group mb-3">
-                            <label asp-for="@tireRecord.NoiThucHien" class="form-label"></label>
-                            <input asp-for="@tireRecord.NoiThucHien" class="form-control" placeholder="VD: Garage ABC..." />
+                            <label asp-for="TireRecord.NoiThucHien" class="form-label"></label>
+                            <input asp-for="TireRecord.NoiThucHien" class="form-control" placeholder="VD: Garage ABC..." />
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group mb-3">
-                    <label asp-for="@tireRecord.GhiChu" class="form-label"></label>
-                    <textarea asp-for="@tireRecord.GhiChu" class="form-control" rows="2"
+                    <label asp-for="TireRecord.GhiChu" class="form-label"></label>
+                    <textarea asp-for="TireRecord.GhiChu" class="form-control" rows="2"
                               placeholder="Ghi chú thêm..."></textarea>
                 </div>
 
-                <!-- Hình ảnh chứng từ -->
-                <h5 class="mt-4 mb-3 text-primary">
-                    <i class="fas fa-images"></i> Hình ảnh chứng từ
-                </h5>
-                <div class="form-group mb-3">
-                    <label class="form-label">
-                        <i class="fas fa-file-image"></i> Tải lên hình ảnh (hóa đơn, lốp mới...)
-                    </label>
-                    <input type="file" name="HinhAnhChungTuFiles" class="form-control" multiple
-                           accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))"
-                           id="imageInput" />
-                    <small class="form-text text-muted">
-                        Có thể chọn nhiều ảnh. Tối đa @settings.MaxImageSizeMB MB mỗi ảnh.
-                    </small>
-                    <div id="imagePreview" class="mt-3 d-flex flex-wrap gap-2"></div>
-                </div>
+                @* Sử dụng shared partial view cho hình ảnh *@
+                @await Html.PartialAsync("_TireSharedImage")
 
                 <div class="form-group mt-4">
                     <button type="submit" class="btn btn-success" id="btnSubmit">
@@ -209,58 +197,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <script>
-        document.getElementById('imageInput').addEventListener('change', function(e) {
-            const preview = document.getElementById('imagePreview');
-            preview.innerHTML = '';
+        // Tự động tính ODO thay tiếp theo = ODO thay lốp + 60,000
+        const odoThayLopInput = document.getElementById('odoThayLop');
+        const odoThayTiepTheoInput = document.getElementById('odoThayTiepTheo');
 
-            Array.from(e.target.files).forEach((file, index) => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const div = document.createElement('div');
-                        div.className = 'position-relative';
-                        div.innerHTML = `
-                            <img src="${e.target.result}" class="img-thumbnail" style="width: 100px; height: 100px; object-fit: cover;">
-                        `;
-                        preview.appendChild(div);
-                    };
-                    reader.readAsDataURL(file);
+        if (odoThayLopInput && odoThayTiepTheoInput) {
+            odoThayLopInput.addEventListener('input', function() {
+                const odoThayLop = parseInt(this.value) || 0;
+                if (odoThayLop > 0) {
+                    odoThayTiepTheoInput.value = odoThayLop + 60000;
                 }
             });
-        });
+        }
 
+        // Submit button loading state
         document.getElementById('tireForm').addEventListener('submit', function() {
             const btn = document.getElementById('btnSubmit');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
         });
     </script>
-
-    <style>
-        .tire-position-check {
-            margin-bottom: 0;
-        }
-        .tire-position-check .form-check-input {
-            display: none;
-        }
-        .tire-position-check .tire-badge {
-            display: block;
-            padding: 12px;
-            border: 2px solid #dee2e6;
-            border-radius: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-        .tire-position-check .form-check-input:checked + .form-check-label .tire-badge {
-            border-color: #198754;
-            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-            color: #166534;
-        }
-        .tire-position-check .tire-badge:hover {
-            border-color: #198754;
-            transform: translateY(-2px);
-        }
-    </style>
 }

@@ -1,0 +1,143 @@
+﻿@model ChargePoint.CarManagement.Models.MaintenanceRecord
+
+@{
+    ViewData["Title"] = "Chi tiết bảo dưỡng";
+    var car = Model.Car;
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-info-circle text-info me-2"></i>
+            Chi tiết bảo dưỡng
+        </h1>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                <i class="fas fa-edit"></i> Sửa
+            </a>
+            <a asp-action="History" asp-route-id="@Model.CarId" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+        </div>
+    </div>
+
+    @if (car != null)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-car me-2"></i>
+            <strong>Xe:</strong> @car.TenXe -
+            <strong>Biển số:</strong>
+            @if (car.MauBienSo == MauBienSo.Vang)
+            {
+                <span class="badge" style="background-color: #ffc107; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+            else
+            {
+                <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333;">@car.BienSo</span>
+            }
+        </div>
+    }
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-clipboard-list me-2"></i>
+                Thông tin bảo dưỡng
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Ngày bảo dưỡng</label>
+                    <p class="fs-5"><i class="fas fa-calendar text-primary me-2"></i>@Model.NgayBaoDuong.ToString("dd/MM/yyyy")</p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Số KM lúc bảo dưỡng</label>
+                    <p class="fs-5"><i class="fas fa-tachometer-alt text-primary me-2"></i>@Model.SoKmBaoDuong.ToString("N0") km</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Cấp bảo dưỡng</label>
+                    <p class="fs-5">
+                        @{
+                            var badgeClass = Model.CapBaoDuong switch
+                            {
+                                CapBaoDuong.Cap1 => "bg-info",
+                                CapBaoDuong.Cap2 => "bg-primary",
+                                CapBaoDuong.Cap3 => "bg-success",
+                                _ => "bg-secondary"
+                            };
+                        }
+                        <span class="badge @badgeClass fs-6 py-2 px-3">Cấp @((int)Model.CapBaoDuong)</span>
+                    </p>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Chi phí</label>
+                    <p class="fs-5"><i class="fas fa-money-bill-wave text-success me-2"></i>@Model.ChiPhi.ToString("N0") VNĐ</p>
+                </div>
+            </div>
+
+            @if (Model.SoKmBaoDuongTiepTheo.HasValue)
+            {
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="text-muted small">Số KM bảo dưỡng tiếp theo</label>
+                        <p class="fs-5">
+                            <i class="fas fa-road text-warning me-2"></i>@Model.SoKmBaoDuongTiepTheo.Value.ToString("N0") km
+                        </p>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.NoiBaoDuong))
+            {
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="text-muted small">Nơi bảo dưỡng</label>
+                        <p class="fs-5"><i class="fas fa-map-marker-alt text-danger me-2"></i>@Model.NoiBaoDuong</p>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.NoiDungBaoDuong))
+            {
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="text-muted small">Nội dung bảo dưỡng</label>
+                        <div class="alert alert-light border">
+                            <i class="fas fa-clipboard-list text-primary me-2"></i>
+                            @Model.NoiDungBaoDuong
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.GhiChu))
+            {
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="text-muted small">Ghi chú</label>
+                        <div class="alert alert-secondary">
+                            <i class="fas fa-sticky-note text-muted me-2"></i>
+                            @Model.GhiChu
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (Model.DanhSachHinhAnh != null && Model.DanhSachHinhAnh.Count > 0)
+            {
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="text-muted small mb-2">Hình ảnh chứng từ</label>
+                        <!-- Use the shared image slider partial -->
+                        <partial name="_ImageSliderPartial" model="Model.DanhSachHinhAnh" />
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+

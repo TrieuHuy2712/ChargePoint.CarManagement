@@ -64,39 +64,50 @@
 
                     <form asp-action="Check" method="post">
                         @* Chỉ giữ CarId, KHÔNG có hidden input cho Id *@
-                        <input type="hidden" asp-for="@checkViolation.CarId" />
+                        <input type="hidden" asp-for="TrafficViolationCheck.CarId" />
 
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox"
-                                       asp-for="@checkViolation.CoViPham" id="coViPhamSwitch">
-                                <label class="form-check-label" for="coViPhamSwitch">
-                                    <strong>Có vi phạm</strong>
-                                </label>
+                        @* Hiển thị lỗi validation *@
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        @* Hidden field để tự động set CoViPham dựa trên SoLuongViPham *@
+                        <input type="hidden" asp-for="TrafficViolationCheck.CoViPham" id="coViPhamHidden" />
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TrafficViolationCheck.SoLuongViPham" class="form-label"></label>
+                                <input asp-for="TrafficViolationCheck.SoLuongViPham" class="form-control" type="number" min="0" id="soLuongViPhamInput" />
+                                <span asp-validation-for="TrafficViolationCheck.SoLuongViPham" class="text-danger"></span>
+                                <small class="text-muted">Nhập 0 nếu không có vi phạm</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TrafficViolationCheck.NgayGioViPham" class="form-label"></label>
+                                <input asp-for="TrafficViolationCheck.NgayGioViPham" class="form-control" type="datetime-local" id="ngayGioViPhamInput" />
+                                <span asp-validation-for="TrafficViolationCheck.NgayGioViPham" class="text-danger"></span>
                             </div>
                         </div>
-
-                        <div id="violationDetails" style="display: none;">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label asp-for="@checkViolation.SoLuongViPham" class="form-label"></label>
-                                    <input asp-for="@checkViolation.SoLuongViPham" class="form-control" type="number" min="0" />
-                                    <span asp-validation-for="@checkViolation.SoLuongViPham" class="text-danger"></span>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label asp-for="@checkViolation.TongTienPhat" class="form-label"></label>
-                                    <div class="input-group">
-                                        <input asp-for="@checkViolation.TongTienPhat" class="form-control" type="number" min="0" />
-                                        <span class="input-group-text">VNĐ</span>
-                                    </div>
-                                    <span asp-validation-for="@checkViolation.TongTienPhat" class="text-danger"></span>
-                                </div>
-                            </div>
+                        <div class="mb-3">
+                            <label asp-for="TrafficViolationCheck.NoiDungViPham" class="form-label"></label>
+                            <textarea asp-for="TrafficViolationCheck.NoiDungViPham" class="form-control" rows="2"
+                                      placeholder="Nhập nội dung vi phạm (nếu có)..."></textarea>
+                            <span asp-validation-for="TrafficViolationCheck.NoiDungViPham" class="text-danger"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="TrafficViolationCheck.DiaDiemViPham" class="form-label"></label>
+                            <input asp-for="TrafficViolationCheck.DiaDiemViPham" class="form-control" 
+                                   placeholder="Nhập địa điểm vi phạm (nếu có)..." />
+                            <span asp-validation-for="TrafficViolationCheck.DiaDiemViPham" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="@checkViolation.GhiChu" class="form-label"></label>
-                            <textarea asp-for="@checkViolation.GhiChu" class="form-control" rows="3"
+                            <label asp-for="TrafficViolationCheck.TrangThaiXuLy" class="form-label"></label>
+                            <select asp-for="TrafficViolationCheck.TrangThaiXuLy" class="form-select" asp-items="Html.GetEnumSelectList<ChargePoint.CarManagement.Models.Enums.ViolationStatus>()">
+                            </select>
+                            <span asp-validation-for="TrafficViolationCheck.TrangThaiXuLy" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TrafficViolationCheck.GhiChu" class="form-label"></label>
+                            <textarea asp-for="TrafficViolationCheck.GhiChu" class="form-control" rows="3"
                                       placeholder="Nhập ghi chú về kết quả kiểm tra..."></textarea>
                         </div>
 
@@ -118,14 +129,23 @@
 @section Scripts {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script>
-        // Toggle violation details
-        document.getElementById('coViPhamSwitch').addEventListener('change', function() {
-            document.getElementById('violationDetails').style.display = this.checked ? 'block' : 'none';
-        });
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-update CoViPham based on SoLuongViPham
+            const soLuongInput = document.getElementById('soLuongViPhamInput');
+            const coViPhamHidden = document.getElementById('coViPhamHidden');
 
-        if (document.getElementById('coViPhamSwitch').checked) {
-            document.getElementById('violationDetails').style.display = 'block';
-        }
+            function updateCoViPham() {
+                const soLuong = parseInt(soLuongInput.value) || 0;
+                coViPhamHidden.value = soLuong > 0 ? 'true' : 'false';
+                console.log('Auto-set CoViPham:', soLuong > 0, 'based on SoLuong:', soLuong);
+            }
+
+            if (soLuongInput && coViPhamHidden) {
+                soLuongInput.addEventListener('input', updateCoViPham);
+                soLuongInput.addEventListener('change', updateCoViPham);
+                updateCoViPham(); // Initial update
+            }
+        });
 
         // Lưu kết quả tra cứu
         let lastCheckResult = null;
@@ -221,40 +241,107 @@
         // Áp dụng kết quả vào form
         document.getElementById('btnApplyResult').addEventListener('click', function() {
             if (lastCheckResult) {
-                // Set checkbox và hiện details
-                document.getElementById('coViPhamSwitch').checked = lastCheckResult.coViPham;
-                document.getElementById('violationDetails').style.display = lastCheckResult.coViPham ? 'block' : 'none';
+                console.log('Applying result:', lastCheckResult);
 
-                // Set số lượng và tổng tiền
-                document.getElementById('SoLuongViPham').value = lastCheckResult.soLuongViPham || 0;
-
-                // Tính tổng tiền phạt
-                let tongTien = 0;
-                if (lastCheckResult.danhSachViPham) {
-                    lastCheckResult.danhSachViPham.forEach(v => {
-                        tongTien += v.soTienPhat || 0;
-                    });
+                // Set số lượng vi phạm (tự động update CoViPham qua event listener)
+                const soLuongInput = document.querySelector('[name="TrafficViolationCheck.SoLuongViPham"]');
+                if (soLuongInput) {
+                    soLuongInput.value = lastCheckResult.soLuongViPham || 0;
+                    soLuongInput.dispatchEvent(new Event('input')); // Trigger CoViPham update
+                    console.log('Set SoLuongViPham:', soLuongInput.value);
                 }
-                document.getElementById('TongTienPhat').value = tongTien;
+
+                // Set ngày giờ vi phạm, nội dung, địa điểm (nếu có)
+                if (lastCheckResult.danhSachViPham && lastCheckResult.danhSachViPham.length > 0) {
+                    const firstViolation = lastCheckResult.danhSachViPham[0];
+                    console.log('First violation:', firstViolation);
+
+                    // Set ngày giờ vi phạm
+                    const ngayViPhamInput = document.querySelector('[name="TrafficViolationCheck.NgayGioViPham"]');
+                    if (ngayViPhamInput && firstViolation.ngayViPham) {
+                        try {
+                            const dateStr = firstViolation.ngayViPham.trim();
+                            let date;
+
+                            console.log('Parsing date string:', dateStr);
+
+                            // Try to parse HH:mm, DD/MM/YYYY format (e.g., "10:19, 10/01/2026")
+                            let parts = dateStr.match(/(\d{2}):(\d{2}),?\s*(\d{2})\/(\d{2})\/(\d{4})/);
+                            if (parts) {
+                                console.log('Matched HH:mm, DD/MM/YYYY format:', parts);
+                                date = new Date(parts[5], parts[4] - 1, parts[3], parts[1], parts[2]);
+                            } else {
+                                // Try to parse DD/MM/YYYY HH:mm format
+                                parts = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}):(\d{2})/);
+                                if (parts) {
+                                    console.log('Matched DD/MM/YYYY HH:mm format:', parts);
+                                    date = new Date(parts[3], parts[2] - 1, parts[1], parts[4], parts[5]);
+                                } else {
+                                    console.log('Using default Date parsing');
+                                    date = new Date(dateStr);
+                                }
+                            }
+
+                            if (date && !isNaN(date.getTime())) {
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+
+                                ngayViPhamInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+                                console.log('Set NgayGioViPham:', ngayViPhamInput.value, 'from date:', date);
+                            } else {
+                                console.error('Invalid date object:', date);
+                            }
+                        } catch (e) {
+                            console.error('Error parsing date:', e, 'Input:', firstViolation.ngayViPham);
+                        }
+                    }
+
+                    // Set nội dung vi phạm
+                    const noiDungInput = document.querySelector('[name="TrafficViolationCheck.NoiDungViPham"]');
+                    if (noiDungInput && firstViolation.hanhVi) {
+                        noiDungInput.value = firstViolation.hanhVi;
+                        console.log('Set NoiDungViPham:', noiDungInput.value);
+                    }
+
+                    // Set địa điểm vi phạm
+                    const diaDiemInput = document.querySelector('[name="TrafficViolationCheck.DiaDiemViPham"]');
+                    if (diaDiemInput && firstViolation.diaDiem) {
+                        diaDiemInput.value = firstViolation.diaDiem;
+                        console.log('Set DiaDiemViPham:', diaDiemInput.value);
+                    }
+                }
 
                 // Tạo ghi chú
                 let ghiChu = `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}\n`;
                 if (lastCheckResult.coViPham && lastCheckResult.danhSachViPham) {
                     ghiChu += `Phát hiện ${lastCheckResult.soLuongViPham} vi phạm:\n`;
                     lastCheckResult.danhSachViPham.forEach((v, i) => {
-                        ghiChu += `${i+1}. ${v.ngayViPham || ''} - ${v.hanhVi || ''} - ${(v.soTienPhat || 0).toLocaleString('vi-VN')}đ\n`;
+                        ghiChu += `${i+1}. ${v.ngayViPham || ''} - ${v.hanhVi || ''} tại ${v.diaDiem || ''}\n`;
                     });
                 } else {
                     ghiChu += 'Không có vi phạm';
                 }
-                document.getElementById('GhiChu').value = ghiChu;
+                const ghiChuInput = document.querySelector('[name="TrafficViolationCheck.GhiChu"]');
+                if (ghiChuInput) {
+                    ghiChuInput.value = ghiChu;
+                    console.log('Set GhiChu');
+                }
 
                 // Đóng panel kết quả
                 document.getElementById('onlineResult').style.display = 'none';
 
                 // Thông báo
                 alert('Đã áp dụng kết quả tra cứu vào form!');
+            } else {
+                console.error('No check result available');
+                alert('Không có kết quả tra cứu để áp dụng!');
             }
         });
     </script>
+
+    @* Validation scripts *@
+    <partial name="_ValidationScriptsPartial" />
 }

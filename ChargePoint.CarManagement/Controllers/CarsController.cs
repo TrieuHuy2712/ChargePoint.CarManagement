@@ -30,9 +30,11 @@ namespace ChargePoint.CarManagement.Controllers
             {
                 var key = q.Trim();
                 var keyLower = key.ToLower();
+                var keyNormalized = keyLower.Replace("-", "").Replace(".", "");
 
                 query = query.Where(c =>
-                    (c.BienSo != null && c.BienSo.ToLower().Contains(keyLower)) ||
+                    (c.BienSo != null && (c.BienSo.ToLower().Contains(keyLower) || 
+                                          c.BienSo.Replace("-", "").Replace(".", "").ToLower().Contains(keyNormalized))) ||
                     (c.TenXe != null && c.TenXe.ToLower().Contains(keyLower)) ||
                     (c.TenKhachHang != null && c.TenKhachHang.ToLower().Contains(keyLower)) ||
                     (c.SoVIN != null && c.SoVIN.ToLower().Contains(keyLower)) ||
@@ -94,14 +96,10 @@ namespace ChargePoint.CarManagement.Controllers
         // POST: Cars/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequestSizeLimit(150 * 1024 * 1024)] // 150MB cho video
         public async Task<IActionResult> Create(
             [Bind("Id,Stt,TenXe,SoLuong,MauXe,SoVIN,BienSo,MauBienSo,TenKhachHang,ThongTinChoThue,OdoXe")] Car car,
             IFormFile? PrimaryImageFile,
-            IFormFile[]? HinhAnhNhanBanGiaoFiles,
-            IFormFile[]? HinhAnhBanGiaoKHFiles,
-            IFormFile[]? VideoNhanBanGiaoFiles,
-            IFormFile[]? VideoBanGiaoKHFiles)
+            Dictionary<string, List<IFormFile>>? ImageFiles)
         {
             if (ModelState.IsValid)
             {
@@ -113,7 +111,6 @@ namespace ChargePoint.CarManagement.Controllers
                     var mediaList = new List<CarMedia>();
 
                     // 1) PRIMARY IMAGE: if provided, upload and mark as primary.
-                    // This primary image is independent and will NOT be inferred from other uploads.
                     if (PrimaryImageFile != null && PrimaryImageFile.Length > 0)
                     {
                         var primaryUrl = await _imageUploadService.UploadFileAsync(PrimaryImageFile, bienSo, "Primary");
@@ -128,63 +125,28 @@ namespace ChargePoint.CarManagement.Controllers
                         car.PrimaryImageUrl = primaryUrl;
                     }
 
-                    // 2) Upload GSM images (do NOT mark any of these as primary)
-                    if (HinhAnhNhanBanGiaoFiles != null)
+                    // 2) Upload categorized images
+                    if (ImageFiles != null && ImageFiles.Any())
                     {
-                        foreach (var file in HinhAnhNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
+                        foreach (var kvp in ImageFiles)
                         {
-                            var url = await _imageUploadService.UploadFileAsync(file, bienSo, "NhanBanGiao_GSM");
-                            mediaList.Add(new CarMedia
+                            if (Enum.TryParse<MediaType>(kvp.Key, out var mediaType))
                             {
-                                Type = MediaType.Image_GSM,
-                                Url = url,
-                                FileName = file.FileName
-                            });
-                        }
-                    }
-
-                    // 3) Upload KH images (do NOT mark any of these as primary)
-                    if (HinhAnhBanGiaoKHFiles != null)
-                    {
-                        foreach (var file in HinhAnhBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
-                        {
-                            var url = await _imageUploadService.UploadFileAsync(file, bienSo, "BanGiao_KH");
-                            mediaList.Add(new CarMedia
-                            {
-                                Type = MediaType.Image_KH,
-                                Url = url,
-                                FileName = file.FileName
-                            });
-                        }
-                    }
-
-                    // 4) Upload GSM videos
-                    if (VideoNhanBanGiaoFiles != null)
-                    {
-                        foreach (var file in VideoNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
-                        {
-                            var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_NhanBanGiao");
-                            mediaList.Add(new CarMedia
-                            {
-                                Type = MediaType.Video_GSM,
-                                Url = url,
-                                FileName = file.FileName
-                            });
-                        }
-                    }
-
-                    // 5) Upload KH videos
-                    if (VideoBanGiaoKHFiles != null)
-                    {
-                        foreach (var file in VideoBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
-                        {
-                            var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_BanGiaoKH");
-                            mediaList.Add(new CarMedia
-                            {
-                                Type = MediaType.Video_KH,
-                                Url = url,
-                                FileName = file.FileName
-                            });
+                                var typeDisplayName = mediaType.GetDisplayName();
+                                foreach (var file in kvp.Value)
+                                {
+                                    if (file != null && file.Length > 0)
+                                    {
+                                        var url = await _imageUploadService.UploadFileAsync(file, bienSo, typeDisplayName);
+                                        mediaList.Add(new CarMedia
+                                        {
+                                            Type = mediaType,
+                                            Url = url,
+                                            FileName = file.FileName
+                                        });
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -230,15 +192,11 @@ namespace ChargePoint.CarManagement.Controllers
         // POST: Cars/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequestSizeLimit(150 * 1024 * 1024)]
         public async Task<IActionResult> Edit(
             int id,
             CarViewModel vm,
             IFormFile? PrimaryImageFile,
-            IFormFile[]? HinhAnhNhanBanGiaoFiles,
-            IFormFile[]? HinhAnhBanGiaoKHFiles,
-            IFormFile[]? VideoNhanBanGiaoFiles,
-            IFormFile[]? VideoBanGiaoKHFiles)
+            Dictionary<string, List<IFormFile>>? ImageFiles)
         {
             if (id != vm.Id)
             {
@@ -317,64 +275,29 @@ namespace ChargePoint.CarManagement.Controllers
                     existing.PrimaryImageUrl = primaryUrl;
                 }
 
-                // Handle new uploads (append)
-                if (HinhAnhNhanBanGiaoFiles != null)
+                // Handle new categorized image uploads (append)
+                if (ImageFiles != null && ImageFiles.Any())
                 {
-                    foreach (var file in HinhAnhNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
+                    foreach (var kvp in ImageFiles)
                     {
-                        var url = await _imageUploadService.UploadFileAsync(file, bienSo, "NhanBanGiao_GSM");
-                        existing.Media.Add(new CarMedia
+                        if (Enum.TryParse<MediaType>(kvp.Key, out var mediaType))
                         {
-                            CarId = existing.Id,
-                            Type = MediaType.Image_GSM,
-                            Url = url,
-                            FileName = file.FileName
-                        });
-                    }
-                }
-
-                if (HinhAnhBanGiaoKHFiles != null)
-                {
-                    foreach (var file in HinhAnhBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
-                    {
-                        var url = await _imageUploadService.UploadFileAsync(file, bienSo, "BanGiao_KH");
-                        existing.Media.Add(new CarMedia
-                        {
-                            CarId = existing.Id,
-                            Type = MediaType.Image_KH,
-                            Url = url,
-                            FileName = file.FileName
-                        });
-                    }
-                }
-
-                if (VideoNhanBanGiaoFiles != null)
-                {
-                    foreach (var file in VideoNhanBanGiaoFiles.Where(f => f != null && f.Length > 0))
-                    {
-                        var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_NhanBanGiao");
-                        existing.Media.Add(new CarMedia
-                        {
-                            CarId = existing.Id,
-                            Type = MediaType.Video_GSM,
-                            Url = url,
-                            FileName = file.FileName
-                        });
-                    }
-                }
-
-                if (VideoBanGiaoKHFiles != null)
-                {
-                    foreach (var file in VideoBanGiaoKHFiles.Where(f => f != null && f.Length > 0))
-                    {
-                        var url = await _imageUploadService.UploadVideoAsync(file, bienSo, "Video_BanGiaoKH");
-                        existing.Media.Add(new CarMedia
-                        {
-                            CarId = existing.Id,
-                            Type = MediaType.Video_KH,
-                            Url = url,
-                            FileName = file.FileName
-                        });
+                            var typeDisplayName = mediaType.GetDisplayName();
+                            foreach (var file in kvp.Value)
+                            {
+                                if (file != null && file.Length > 0)
+                                {
+                                    var url = await _imageUploadService.UploadFileAsync(file, bienSo, typeDisplayName);
+                                    existing.Media.Add(new CarMedia
+                                    {
+                                        CarId = existing.Id,
+                                        Type = mediaType,
+                                        Url = url,
+                                        FileName = file.FileName
+                                    });
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -452,19 +375,9 @@ namespace ChargePoint.CarManagement.Controllers
                         {
                             try
                             {
-                                if (m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH)
+                                if (!string.IsNullOrEmpty(m.Url))
                                 {
-                                    if (!string.IsNullOrEmpty(m.Url))
-                                    {
-                                        await _imageUploadService.DeleteFileAsync(m.Url);
-                                    }
-                                }
-                                else
-                                {
-                                    if (!string.IsNullOrEmpty(m.Url))
-                                    {
-                                        await _imageUploadService.DeleteVideoAsync(m.Url);
-                                    }
+                                    await _imageUploadService.DeleteFileAsync(m.Url);
                                 }
                             }
                             catch (Exception ex)
@@ -525,19 +438,9 @@ namespace ChargePoint.CarManagement.Controllers
                         {
                             try
                             {
-                                if (m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH)
+                                if (!string.IsNullOrEmpty(m.Url))
                                 {
-                                    if (!string.IsNullOrEmpty(m.Url))
-                                    {
-                                        await _imageUploadService.DeleteFileAsync(m.Url);
-                                    }
-                                }
-                                else
-                                {
-                                    if (!string.IsNullOrEmpty(m.Url))
-                                    {
-                                        await _imageUploadService.DeleteVideoAsync(m.Url);
-                                    }
+                                    await _imageUploadService.DeleteFileAsync(m.Url);
                                 }
                             }
                             catch (Exception ex)
@@ -573,17 +476,9 @@ namespace ChargePoint.CarManagement.Controllers
 
             try
             {
-                // delete physical file/video
-                if (media.Type == MediaType.Image_GSM || media.Type == MediaType.Image_KH)
-                {
-                    if (!string.IsNullOrEmpty(media.Url))
-                        await _imageUploadService.DeleteFileAsync(media.Url);
-                }
-                else
-                {
-                    if (!string.IsNullOrEmpty(media.Url))
-                        await _imageUploadService.DeleteVideoAsync(media.Url);
-                }
+                // delete physical file
+                if (!string.IsNullOrEmpty(media.Url))
+                    await _imageUploadService.DeleteFileAsync(media.Url);
 
                 var car = media.Car;
                 var deletedUrl = media.Url;
@@ -595,7 +490,7 @@ namespace ChargePoint.CarManagement.Controllers
                 if (car != null && car.PrimaryImageUrl == deletedUrl)
                 {
                     var replacement = await _context.CarMedias
-                        .Where(m => m.CarId == car.Id && (m.Type == MediaType.Image_GSM || m.Type == MediaType.Image_KH))
+                        .Where(m => m.CarId == car.Id && m.Type != MediaType.Image_Primary)
                         .OrderByDescending(m => m.IsPrimary)
                         .ThenBy(m => m.CreatedAt)
                         .FirstOrDefaultAsync();
