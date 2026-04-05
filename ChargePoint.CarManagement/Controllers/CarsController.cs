@@ -98,8 +98,7 @@ namespace ChargePoint.CarManagement.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
             [Bind("Id,Stt,TenXe,SoLuong,MauXe,SoVIN,BienSo,MauBienSo,TenKhachHang,ThongTinChoThue,OdoXe")] Car car,
-            IFormFile? PrimaryImageFile,
-            Dictionary<string, List<IFormFile>>? ImageFiles)
+            IFormFile? PrimaryImageFile)
         {
             if (ModelState.IsValid)
             {
@@ -126,17 +125,23 @@ namespace ChargePoint.CarManagement.Controllers
                     }
 
                     // 2) Upload categorized images
-                    if (ImageFiles != null && ImageFiles.Any())
+                    var imageFiles = HttpContext.Request.Form.Files.Where(f => f.Name.StartsWith("ImageFiles[")).ToList();
+                    if (imageFiles.Any())
                     {
-                        foreach (var kvp in ImageFiles)
+                        foreach (var file in imageFiles)
                         {
-                            if (Enum.TryParse<MediaType>(kvp.Key, out var mediaType))
+                            if (file != null && file.Length > 0)
                             {
-                                var typeDisplayName = mediaType.GetDisplayName();
-                                foreach (var file in kvp.Value)
+                                var name = file.Name;
+                                var startIdx = name.IndexOf('[') + 1;
+                                var endIdx = name.IndexOf(']');
+
+                                if (startIdx > 0 && endIdx > startIdx)
                                 {
-                                    if (file != null && file.Length > 0)
+                                    var typeStr = name.Substring(startIdx, endIdx - startIdx);
+                                    if (Enum.TryParse<MediaType>(typeStr, out var mediaType))
                                     {
+                                        var typeDisplayName = mediaType.GetDisplayName();
                                         var url = await _imageUploadService.UploadFileAsync(file, bienSo, typeDisplayName);
                                         mediaList.Add(new CarMedia
                                         {
@@ -195,8 +200,7 @@ namespace ChargePoint.CarManagement.Controllers
         public async Task<IActionResult> Edit(
             int id,
             CarViewModel vm,
-            IFormFile? PrimaryImageFile,
-            Dictionary<string, List<IFormFile>>? ImageFiles)
+            IFormFile? PrimaryImageFile)
         {
             if (id != vm.Id)
             {
@@ -276,17 +280,23 @@ namespace ChargePoint.CarManagement.Controllers
                 }
 
                 // Handle new categorized image uploads (append)
-                if (ImageFiles != null && ImageFiles.Any())
+                var imageFiles = HttpContext.Request.Form.Files.Where(f => f.Name.StartsWith("ImageFiles[")).ToList();
+                if (imageFiles.Any())
                 {
-                    foreach (var kvp in ImageFiles)
+                    foreach (var file in imageFiles)
                     {
-                        if (Enum.TryParse<MediaType>(kvp.Key, out var mediaType))
+                        if (file != null && file.Length > 0)
                         {
-                            var typeDisplayName = mediaType.GetDisplayName();
-                            foreach (var file in kvp.Value)
+                            var name = file.Name;
+                            var startIdx = name.IndexOf('[') + 1;
+                            var endIdx = name.IndexOf(']');
+
+                            if (startIdx > 0 && endIdx > startIdx)
                             {
-                                if (file != null && file.Length > 0)
+                                var typeStr = name.Substring(startIdx, endIdx - startIdx);
+                                if (Enum.TryParse<MediaType>(typeStr, out var mediaType))
                                 {
+                                    var typeDisplayName = mediaType.GetDisplayName();
                                     var url = await _imageUploadService.UploadFileAsync(file, bienSo, typeDisplayName);
                                     existing.Media.Add(new CarMedia
                                     {
