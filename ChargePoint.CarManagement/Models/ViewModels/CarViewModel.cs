@@ -24,6 +24,9 @@ namespace ChargePoint.CarManagement.Models.ViewModels
         [Display(Name = "Biển số")]
         public string? BienSo { get; set; }
 
+        [Display(Name = "Biển số cũ")]
+        public string? BienSoCu { get; set; }
+
         [Display(Name = "Màu biển số")]
         public MauBienSo MauBienSo { get; set; } = MauBienSo.Trang;
 
@@ -62,6 +65,7 @@ namespace ChargePoint.CarManagement.Models.ViewModels
                 MauXe = car.MauXe,
                 SoVIN = car.SoVIN,
                 BienSo = car.BienSo,
+                BienSoCu = car.BienSoCu,
                 MauBienSo = car.MauBienSo,
                 TenKhachHang = car.TenKhachHang,
                 ThongTinChoThue = car.ThongTinChoThue,

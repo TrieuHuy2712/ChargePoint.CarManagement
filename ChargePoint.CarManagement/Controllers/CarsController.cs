@@ -97,7 +97,7 @@ namespace ChargePoint.CarManagement.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
-            [Bind("Id,Stt,TenXe,SoLuong,MauXe,SoVIN,BienSo,MauBienSo,TenKhachHang,ThongTinChoThue,OdoXe")] Car car,
+            [Bind("Id,Stt,TenXe,SoLuong,MauXe,SoVIN,BienSo,BienSoCu,MauBienSo,TenKhachHang,ThongTinChoThue,OdoXe")] Car car,
             IFormFile? PrimaryImageFile)
         {
             if (ModelState.IsValid)
@@ -221,6 +221,7 @@ namespace ChargePoint.CarManagement.Controllers
                     populated.MauXe = vm.MauXe;
                     populated.SoVIN = vm.SoVIN;
                     populated.BienSo = vm.BienSo;
+                    populated.BienSoCu = vm.BienSoCu;
                     populated.MauBienSo = vm.MauBienSo;
                     populated.TenKhachHang = vm.TenKhachHang;
                     populated.ThongTinChoThue = vm.ThongTinChoThue;
@@ -249,6 +250,7 @@ namespace ChargePoint.CarManagement.Controllers
                 existing.MauXe = vm.MauXe;
                 existing.SoVIN = vm.SoVIN;
                 existing.BienSo = vm.BienSo;
+                existing.BienSoCu = vm.BienSoCu;
                 existing.MauBienSo = vm.MauBienSo;
                 existing.TenKhachHang = vm.TenKhachHang;
                 existing.ThongTinChoThue = vm.ThongTinChoThue;

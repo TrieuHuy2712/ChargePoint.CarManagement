@@ -168,8 +168,73 @@
 
             <hr />
 
-            <!-- Images split: GSM / KH -->
-            <h5 class="mb-3"><i class="fas fa-images"></i> Hình ảnh</h5>
+            @{
+                // Lấy tất cả hình ảnh, loại trừ 2 nhóm folder Image_GSM và Image_KH (nếu có), sắp xếp để ảnh cùng bộ phận nằm cạnh nhau
+                var sliderMedia = Model.Media?
+                .Where(m => !string.IsNullOrEmpty(m.Url) && m.Type != MediaType.Image_GSM && m.Type != MediaType.Image_KH && m.Type != MediaType.Image_Primary)
+                    .OrderBy(m => m.Type)
+                    .ThenByDescending(m => m.CreatedAt)
+                    .ToList();
+            }
+
+            @if (sliderMedia != null && sliderMedia.Any())
+            {
+                <h5 class="mb-3 mt-4 text-primary"><i class="fas fa-film"></i> Trình duyệt tất cả hình ảnh (Slider)</h5>
+                <div class="card mb-4 pb-2 border-primary border-opacity-25">
+                    <div class="card-body bg-light">
+                        <!-- Swiper CSS -->
+                        <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+                        <style>
+                            .detail-slider-wrapper { position: relative; padding: 0 50px; }
+                            .detail-slider-wrapper .swiper-button-next,
+                            .detail-slider-wrapper .swiper-button-prev { 
+                                top: 45%; transform: translateY(-50%); width: 40px; height: 40px; background: rgba(0,0,0,0.5); border-radius: 50%; color: white; border: 1px solid #fff;
+                            }
+                            .detail-slider-wrapper .swiper-button-next::after, 
+                            .detail-slider-wrapper .swiper-button-prev::after { font-size: 18px; }
+                        </style>
+
+                        <div class="detail-slider-wrapper">
+                            <div class="swiper-button-prev detail-prev"></div>
+                            <div class="swiper-button-next detail-next"></div>
+
+                            <div class="swiper-container detail-image-slider" style="overflow: hidden; border-radius: 8px;">
+                                <div class="swiper-wrapper">
+                                    @foreach (var m in sliderMedia)
+                                    {
+                                        <div class="swiper-slide text-center position-relative">
+                                            <a href="@m.Url" target="_blank" title="Mở hình ảnh">
+                                                <img src="@m.Url" style="height: 500px; width: 100%; object-fit: contain; background: #e9ecef;" />
+                                            </a>
+                                            <!-- Hiển thị thông tin ảnh đè lên dưới cùng -->
+                                            <div class="position-absolute bottom-0 start-0 w-100 bg-dark bg-opacity-75 text-white py-2" style="z-index: 10;">
+                                                <h6 class="mb-1 text-warning fw-bold">@m.Type.GetDisplayName()</h6>
+                                                <small class="text-light">Tải lên: @m.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="swiper-pagination detail-pagination" style="position: relative; margin-top: 15px;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Swiper JS -->
+                        <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function () {
+                                new Swiper('.detail-image-slider', {
+                                    loop: false,
+                                    grabCursor: true,
+                                    pagination: { el: '.detail-pagination', clickable: true },
+                                    navigation: { nextEl: '.detail-next', prevEl: '.detail-prev' },
+                                });
+                            });
+                        </script>
+                    </div>
+                </div>
+            }
+
+            <h5 class="mb-3 mt-4"><i class="fas fa-images"></i> Tất cả Quản lý Hình ảnh (Dạng lưới)</h5>
 
             @{
                 var gsmThanXeImages = Model.Media?.Where(m => m.Type.IsThanXe() && m.Type.IsGSM()).ToList();

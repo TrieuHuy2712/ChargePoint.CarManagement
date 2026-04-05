@@ -49,6 +49,10 @@ namespace ChargePoint.CarManagement.Models
         [Display(Name = "Màu biển số")]
         public MauBienSo MauBienSo { get; set; } = MauBienSo.Trang;
 
+        [Display(Name = "Biển số cũ")]
+        [StringLength(20)]
+        public string? BienSoCu { get; set; }
+
         [Display(Name = "Tên khách hàng")]
         [StringLength(100)]
         public string? TenKhachHang { get; set; }

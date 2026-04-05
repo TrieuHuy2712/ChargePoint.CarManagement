@@ -80,6 +80,14 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
+                            <label asp-for="BienSoCu" class="form-label"></label>
+                            <input asp-for="BienSoCu" class="form-control" />
+                            <span asp-validation-for="BienSoCu" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
                             <label asp-for="MauBienSo" class="form-label"></label>
                             <div class="d-flex gap-4 mt-2">
                                 <div class="form-check">
@@ -108,7 +116,9 @@
                             <span asp-validation-for="MauBienSo" class="text-danger"></span>
                         </div>
                     </div>
+                </div>
 
+                <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
                             <label asp-for="TenKhachHang" class="form-label"></label>
@@ -116,9 +126,7 @@
                             <span asp-validation-for="TenKhachHang" class="text-danger"></span>
                         </div>
                     </div>
-                </div>
 
-                <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
                             <label asp-for="OdoXe" class="form-label"></label>
@@ -178,7 +186,73 @@
                         </div>
                     </div>
 
-                    <h6 class="mt-2"><i class="fas fa-images"></i> Hình ảnh hiện tại</h6>
+                    @{
+                        // Lấy tất cả hình ảnh, loại trừ 2 nhóm folder Image_GSM và Image_KH (nếu có), sắp xếp để ảnh cùng bộ phận nằm cạnh nhau
+                        var sliderMedia = Model.Media?
+                            .Where(m => !string.IsNullOrEmpty(m.Url) && m.Type != MediaType.Image_GSM && m.Type != MediaType.Image_KH && m.Type != MediaType.Image_Primary)
+                            .OrderBy(m => m.Type)
+                            .ThenByDescending(m => m.CreatedAt)
+                            .ToList();
+                    }
+
+                    @if (sliderMedia != null && sliderMedia.Any())
+                    {
+                        <h6 class="mt-4"><i class="fas fa-film text-primary"></i> Trình duyệt tất cả hình ảnh (Slider)</h6>
+                        <div class="card mb-4 pb-2">
+                            <div class="card-body bg-light">
+                                <!-- Swiper CSS -->
+                                <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+                                <style>
+                                    .edit-slider-wrapper { position: relative; padding: 0 50px; }
+                                    .edit-slider-wrapper .swiper-button-next,
+                                    .edit-slider-wrapper .swiper-button-prev { 
+                                        top: 45%; transform: translateY(-50%); width: 40px; height: 40px; background: rgba(0,0,0,0.5); border-radius: 50%; color: white; border: 1px solid #fff;
+                                    }
+                                    .edit-slider-wrapper .swiper-button-next::after, 
+                                    .edit-slider-wrapper .swiper-button-prev::after { font-size: 18px; }
+                                </style>
+
+                                <div class="edit-slider-wrapper">
+                                    <div class="swiper-button-prev edit-prev"></div>
+                                    <div class="swiper-button-next edit-next"></div>
+
+                                    <div class="swiper-container edit-image-slider" style="overflow: hidden; border-radius: 8px;">
+                                        <div class="swiper-wrapper">
+                                            @foreach (var m in sliderMedia)
+                                            {
+                                                <div class="swiper-slide text-center position-relative">
+                                                    <a href="@m.Url" target="_blank" title="Mở hình ảnh">
+                                                        <img src="@m.Url" style="height: 400px; width: 100%; object-fit: contain; background: #e9ecef;" />
+                                                    </a>
+                                                    <!-- Hiển thị thông tin ảnh đè lên dưới cùng -->
+                                                    <div class="position-absolute bottom-0 start-0 w-100 bg-dark bg-opacity-75 text-white py-2" style="z-index: 10;">
+                                                        <h6 class="mb-1 text-warning fw-bold">@m.Type.GetDisplayName()</h6>
+                                                        <small class="text-light">Tải lên: @m.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="swiper-pagination edit-pagination" style="position: relative; margin-top: 15px;"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Swiper JS -->
+                                <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+                                <script>
+                                    document.addEventListener('DOMContentLoaded', function () {
+                                        new Swiper('.edit-image-slider', {
+                                            loop: false,
+                                            grabCursor: true,
+                                            pagination: { el: '.edit-pagination', clickable: true },
+                                            navigation: { nextEl: '.edit-next', prevEl: '.edit-prev' },
+                                        });
+                                    });
+                                </script>
+                            </div>
+                        </div>
+                    }
+
+                    <h6 class="mt-4"><i class="fas fa-images"></i> Quản lý Hình ảnh hiện tại</h6>
 
                     @{
                         var gsmThanXeImages = Model.Media?.Where(m => m.Type.IsThanXe() && m.Type.IsGSM()).ToList();
