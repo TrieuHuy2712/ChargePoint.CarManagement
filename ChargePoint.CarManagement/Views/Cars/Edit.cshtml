@@ -1,7 +1,8 @@
 ﻿@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
 @using ChargePoint.CarManagement.Models.ViewModels
+@using Microsoft.Extensions.Options
+@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
 @model CarViewModel
-@using ChargePoint.CarManagement.Models
 
 @{
     ViewData["Title"] = "Chỉnh sửa xe";
@@ -152,16 +153,34 @@
                 @* Primary image input (upload alongside main form) *@
                 <div class="card mb-4 border-warning">
                     <div class="card-header bg-warning text-dark">
-                        <strong><i class="fas fa-star"></i> Ảnh chính</strong>
+                        <strong><i class="fas fa-star"></i> Ảnh chính (Đổi ảnh đại diện xe khác)</strong>
                     </div>
-                    <div class="card-body">
-                        <input type="file" name="PrimaryImageFile" id="PrimaryImageFile" accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" class="form-control" />
-                        <small class="form-text text-muted">Nếu chọn ảnh chính ở đây, file sẽ được upload khi bạn nhấn 'Lưu thay đổi'. Nếu không chọn, hệ thống dùng ảnh chính hiện tại hoặc tự chọn ảnh GSM đầu tiên.</small>
-                        <div id="primaryPreview" class="mt-2">
-                            @if (!string.IsNullOrEmpty(Model.PrimaryImageUrl))
-                            {
-                                <img src="@Model.PrimaryImageUrl" class="img-thumbnail" style="max-height:150px;" />
-                            }
+                    <div class="card-body p-3">
+                        <div class="drop-zone d-flex align-items-center rounded shadow-sm border border-warning p-3" id="dropZone-PrimaryImage" onclick="document.getElementById('input-PrimaryImage').click()" tabindex="0" title="Click, Kéo thả hoặc Ctrl+V để tải ảnh chính mới" style="cursor: pointer;">
+                            <!-- Icon Indicator -->
+                            <div class="flex-shrink-0 d-flex justify-content-center align-items-center text-warning" style="width: 50px;">
+                                <i class="fas fa-star fs-3"></i>
+                            </div>
+
+                            <!-- Text Information -->
+                            <div class="flex-grow-1 overflow-hidden ms-3">
+                                <div class="fw-bold text-dark mb-1">
+                                    Tải lên ảnh kích thước tiêu chuẩn
+                                </div>
+                                <small class="text-muted d-block text-wrap">
+                                    Kéo thả, Click, hoặc <kbd>Ctrl+V</kbd>. Nếu chọn ảnh ở đây, ảnh này sẽ ghi đè làm ảnh chính khi bấm Lưu.
+                                </small>
+                            </div>
+
+                            <!-- Hidden Input -->
+                            <input type="file" name="PrimaryImageFile" id="input-PrimaryImage" class="d-none image-upload-input" accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))" />
+                        </div>
+
+                        <!-- Image Preview Thumbnail Side (Moved Below) -->
+                        <div id="preview-PrimaryImage" class="image-preview-container d-flex flex-wrap mt-3 empty-hide">
+                            <div class="d-flex w-100 justify-content-center">
+                                <i class="fas fa-image text-muted" style="opacity: 0.2; font-size: 2rem; display: none;"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -421,6 +440,7 @@
                             }
                         </div>
                         <hr/>
+                        <h6 class="text-success mb-3 mt-2"><i class="fas fa-file-alt"></i> Hình ảnh giấy tờ xe từ GSM</h6>
                         <div class="row">
                             @foreach (var type in MediaTypeHelper.GetGSMGiayToTypes())
                             {
@@ -447,6 +467,7 @@
                             }
                         </div>
                         <hr/>
+                        <h6 class="text-info mb-3 mt-2"><i class="fas fa-file-alt"></i> Hình ảnh giấy tờ xe cho Khách hàng</h6>
                         <div class="row">
                             @foreach (var type in MediaTypeHelper.GetKHGiayToTypes())
                             {

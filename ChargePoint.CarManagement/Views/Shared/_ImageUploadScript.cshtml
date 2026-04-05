@@ -117,12 +117,23 @@
                 previewContainer.innerHTML = '';
             }
 
-            Array.from(files).forEach(file => {
+            if (!input.hasAttribute('multiple')) {
+                // Input chỉ nhận 1 ảnh (như Ảnh chính)
+                previewContainer.innerHTML = '';
+                dataTransfer.clearData();
+                const file = files[0];
                 if (validateFile(file, input)) {
                     dataTransfer.items.add(file);
                     renderPreview(file, dataTransfer, input, previewContainer);
                 }
-            });
+            } else {
+                Array.from(files).forEach(file => {
+                    if (validateFile(file, input)) {
+                        dataTransfer.items.add(file);
+                        renderPreview(file, dataTransfer, input, previewContainer);
+                    }
+                });
+            }
 
             input.files = dataTransfer.files;
         }
@@ -139,19 +150,26 @@
         }
 
         function renderPreview(file, dataTransfer, input, previewContainer) {
+            const isSingle = !input.hasAttribute('multiple');
             const reader = new FileReader();
             reader.onload = function (e) {
                 const div = document.createElement('div');
                 div.className = 'position-relative preview-item flex-shrink-0 bg-white rounded shadow-sm border border-secondary border-opacity-25';
-                div.style = 'width: 44px; height: 44px; overflow: hidden; display: inline-block;';
+
+                if (isSingle) {
+                    div.style = 'height: 150px; width: auto; overflow: hidden; display: inline-block; padding: 4px;';
+                } else {
+                    div.style = 'width: 44px; height: 44px; overflow: hidden; display: inline-block;';
+                }
+
                 div.setAttribute('data-filename', file.name);
 
                 div.innerHTML = `
-                    <img src="${e.target.result}" class="w-100 h-100" style="object-fit: cover;">
-                    <button type="button" class="btn btn-danger btn-sm position-absolute rounded-circle m-0 p-0 remove-preview-btn d-flex justify-content-center align-items-center bg-danger opacity-75 text-white" style="width: 14px; height: 14px; top: 2px; right: 2px; font-size: 8px; border:none; z-index:100;" title="Xóa ảnh">
+                    <img src="${e.target.result}" class="${isSingle ? 'h-100 rounded' : 'w-100 h-100'}" style="object-fit: cover;">
+                    <button type="button" class="btn btn-danger btn-sm position-absolute rounded-circle m-0 p-0 remove-preview-btn d-flex justify-content-center align-items-center bg-danger opacity-75 text-white" style="${isSingle ? 'width: 24px; height: 24px; top: 8px; right: 8px; font-size: 12px;' : 'width: 14px; height: 14px; top: 2px; right: 2px; font-size: 8px;'} border:none; z-index:100;" title="Xóa ảnh">
                         <i class="fas fa-times"></i>
                     </button>
-                    <div class="position-absolute bottom-0 text-center w-100 bg-dark bg-opacity-50 text-white fw-bold" style="font-size:0.55rem; line-height: 1;">OK</div>
+                    ${isSingle ? '' : '<div class="position-absolute bottom-0 text-center w-100 bg-dark bg-opacity-50 text-white fw-bold" style="font-size:0.55rem; line-height: 1;">OK</div>'}
                 `;
 
                 previewContainer.appendChild(div);
@@ -178,11 +196,17 @@
 
             // Nếu xóa hết ảnh, đưa icon trống về lại
             if (dataTransfer.files.length === 0) {
-                previewContainer.innerHTML = '<div class="d-flex w-100 justify-content-center"><i class="fas fa-image text-muted" style="opacity: 0.2; font-size: 1.5rem;"></i></div>';
+                if (input.hasAttribute('multiple')) {
+                    previewContainer.innerHTML = '<div class="d-flex w-100 justify-content-center"><i class="fas fa-image text-muted" style="opacity: 0.2; font-size: 1.5rem;"></i></div>';
+                } else {
+                    previewContainer.innerHTML = '';
+                }
             }
         }
 
         function initializePrimaryImagePreview() {
+            // Function retained for any legacy markup or if needed.
+            // Using the generic drag & drop logic for primary image instead.
             const primaryFileInput = document.getElementById('PrimaryImageFile');
             if (!primaryFileInput) return;
             const primaryPreview = document.getElementById('primaryPreview');
@@ -208,7 +232,7 @@
             if (!form) return;
             form.addEventListener('submit', function (e) {
                 const hasFiles = Array.from(fileInputs.values()).some(f => f.dataTransfer.files.length > 0) ||
-                               (document.getElementById('PrimaryImageFile')?.files.length > 0);
+                               (document.getElementById('input-PrimaryImage')?.files.length > 0);
 
                 if (hasFiles) {
                     btnSubmit.disabled = true;

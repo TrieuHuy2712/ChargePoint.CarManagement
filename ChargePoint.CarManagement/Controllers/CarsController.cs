@@ -100,6 +100,11 @@ namespace ChargePoint.CarManagement.Controllers
             [Bind("Id,Stt,TenXe,SoLuong,MauXe,SoVIN,BienSo,BienSoCu,MauBienSo,TenKhachHang,ThongTinChoThue,OdoXe")] Car car,
             IFormFile? PrimaryImageFile)
         {
+            if (await _context.Cars.AnyAsync(c => c.SoVIN.ToLower() == car.SoVIN.ToLower()))
+            {
+                ModelState.AddModelError("SoVIN", "Số VIN này đã tồn tại trong hệ thống.");
+            }
+
             if (ModelState.IsValid)
             {
                 try
@@ -205,6 +210,11 @@ namespace ChargePoint.CarManagement.Controllers
             if (id != vm.Id)
             {
                 return NotFound();
+            }
+
+            if (await _context.Cars.AnyAsync(c => c.SoVIN.ToLower() == vm.SoVIN.ToLower() && c.Id != id))
+            {
+                ModelState.AddModelError("SoVIN", "Số VIN này đã tồn tại trong hệ thống.");
             }
 
             if (!ModelState.IsValid)

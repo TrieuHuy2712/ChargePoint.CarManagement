@@ -1,8 +1,11 @@
 ﻿@model CarViewModel
 @using ChargePoint.CarManagement.Models.ViewModels
+@using ChargePoint.CarManagement.Models
+@inject Microsoft.Extensions.Options.IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
 
 @{
     ViewData["Title"] = "Chi tiết xe";
+    var settings = FileUploadSettings.Value;
 }
 
 <div class="container">
