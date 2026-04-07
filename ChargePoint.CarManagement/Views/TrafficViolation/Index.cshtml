@@ -102,9 +102,9 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times"></i> Đóng
                     </button>
-                    <a id="btnGhiNhan" href="#" class="btn btn-success">
+                    <button type="button" id="btnGhiNhan" class="btn btn-success">
                         <i class="fas fa-plus"></i> Ghi nhận kết quả
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -395,6 +395,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script>
         let currentCarId = null;
+        let lastModalResult = null;
 
         // Xử lý click nút tra cứu
         document.querySelectorAll('.btn-check-online').forEach(btn => {
@@ -403,6 +404,7 @@
                 const bienSo = this.dataset.bienSo;
                 const bienSoDisplay = this.dataset.bienSoDisplay;
                 currentCarId = carId;
+                lastModalResult = null;
 
                 // Hiển thị modal
                 const modal = new bootstrap.Modal(document.getElementById('resultModal'));
@@ -425,6 +427,7 @@
                     });
 
                     const data = await response.json();
+                    lastModalResult = data;
 
                     document.getElementById('modalLoading').style.display = 'none';
 
@@ -441,6 +444,63 @@
             });
         });
 
+        // Nút "Ghi nhận kết quả" — redirect sang Check với data pre-fill
+        document.getElementById('btnGhiNhan').addEventListener('click', function() {
+            if (!currentCarId) return;
+
+            const baseUrl = '@Url.Action("Check", "TrafficViolation")/' + currentCarId;
+            const params = new URLSearchParams();
+
+            if (lastModalResult && lastModalResult.success) {
+                params.set('soLuongViPham', lastModalResult.soLuongViPham || 0);
+
+                if (lastModalResult.danhSachViPham && lastModalResult.danhSachViPham.length > 0) {
+                    // Gộp tất cả vi phạm vào nội dung + địa điểm
+                    const noiDungArr = [];
+                    const diaDiemArr = [];
+                    let firstDate = null;
+
+                    lastModalResult.danhSachViPham.forEach((v, i) => {
+                        const prefix = lastModalResult.danhSachViPham.length > 1 ? `${i + 1}. ` : '';
+                        if (v.hanhVi) noiDungArr.push(prefix + v.hanhVi);
+                        if (v.diaDiem) diaDiemArr.push(prefix + v.diaDiem);
+                        if (!firstDate && v.ngayViPham) firstDate = v.ngayViPham;
+                    });
+
+                    if (noiDungArr.length > 0) params.set('noiDungViPham', noiDungArr.join('\n'));
+                    if (diaDiemArr.length > 0) params.set('diaDiemViPham', diaDiemArr.join('\n'));
+
+                    // Parse ngày vi phạm đầu tiên
+                    if (firstDate) {
+                        const parts = firstDate.match(/(\d{2}):(\d{2}),?\s*(\d{2})\/(\d{2})\/(\d{4})/);
+                        if (parts) {
+                            params.set('ngayGioViPham', `${parts[5]}-${parts[4]}-${parts[3]}T${parts[1]}:${parts[2]}`);
+                        } else {
+                            const parts2 = firstDate.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}):(\d{2})/);
+                            if (parts2) {
+                                params.set('ngayGioViPham', `${parts2[3]}-${parts2[2]}-${parts2[1]}T${parts2[4]}:${parts2[5]}`);
+                            }
+                        }
+                    }
+                }
+
+                // Tạo ghi chú tự động
+                let ghiChu = `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}\n`;
+                if (lastModalResult.coViPham && lastModalResult.danhSachViPham) {
+                    ghiChu += `Phát hiện ${lastModalResult.soLuongViPham} vi phạm:\n`;
+                    lastModalResult.danhSachViPham.forEach((v, i) => {
+                        ghiChu += `${i + 1}. ${v.ngayViPham || ''} - ${v.hanhVi || ''} tại ${v.diaDiem || ''}\n`;
+                    });
+                } else {
+                    ghiChu += 'Không có vi phạm';
+                }
+                params.set('ghiChu', ghiChu);
+            }
+
+            const separator = params.toString() ? '?' : '';
+            window.location.href = baseUrl + separator + params.toString();
+        });
+
         // Hiển thị lỗi
         function showError(message, bienSo) {
             document.getElementById('modalError').style.display = 'block';
@@ -454,7 +514,6 @@
             document.getElementById('modalContent').style.display = 'block';
             document.getElementById('modalFooter').style.display = 'flex';
             document.getElementById('modalBienSo').textContent = bienSoDisplay;
-            document.getElementById('btnGhiNhan').href = '@Url.Action("Check", "TrafficViolation")/' + currentCarId;
 
             const statusDiv = document.getElementById('modalStatus');
             const listDiv = document.getElementById('modalViolationList');

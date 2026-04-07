@@ -38,6 +38,9 @@ services:
       - GoogleDrive__ApplicationName=${GoogleDrive__ApplicationName}
       - GoogleDrive__RootFolderId=${GoogleDrive__RootFolderId}
 
+      # Traffic Violation lookup provider ("PhatNguoiApp" or "CheckPhatNguoiVn")
+      - TrafficViolation__Provider=${TrafficViolation__Provider:-PhatNguoiApp}
+
     volumes:
       # Persistent sqlite DB and uploads
       - data:/data

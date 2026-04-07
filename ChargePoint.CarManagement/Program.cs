@@ -22,6 +22,7 @@ builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection(
 builder.Services.AddScoped<IImageUploadService, CloudinaryService>();
 
 // Add Traffic Violation Service
+builder.Services.Configure<TrafficViolationSettings>(builder.Configuration.GetSection("TrafficViolation"));
 builder.Services.AddHttpClient<ITrafficViolationService, TrafficViolationService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);

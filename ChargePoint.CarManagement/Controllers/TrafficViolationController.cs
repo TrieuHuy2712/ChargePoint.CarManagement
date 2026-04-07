@@ -115,7 +115,9 @@ namespace ChargePoint.CarManagement.Controllers
         }
 
         // GET: TrafficViolation/Check/5
-        public async Task<IActionResult> Check(int? id)
+        public async Task<IActionResult> Check(int? id,
+            int? soLuongViPham, string? noiDungViPham, string? diaDiemViPham,
+            string? ngayGioViPham, string? ghiChu)
         {
             if (id == null) return NotFound();
 
@@ -128,6 +130,21 @@ namespace ChargePoint.CarManagement.Controllers
                 NgayKiemTra = DateTime.Now,
                 NguoiTao = User.Identity?.Name
             };
+
+            // Pre-fill từ kết quả tra cứu (nếu có)
+            if (soLuongViPham.HasValue)
+            {
+                model.SoLuongViPham = soLuongViPham.Value;
+                model.CoViPham = soLuongViPham.Value > 0;
+                model.NoiDungViPham = noiDungViPham;
+                model.DiaDiemViPham = diaDiemViPham;
+                model.GhiChu = ghiChu;
+
+                if (DateTime.TryParse(ngayGioViPham, out var parsedDate))
+                {
+                    model.NgayGioViPham = parsedDate;
+                }
+            }
 
             return View(new TrafficViolationCheckVM
             {
