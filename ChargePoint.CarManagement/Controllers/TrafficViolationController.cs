@@ -126,7 +126,7 @@ namespace ChargePoint.CarManagement.Controllers
             {
                 CarId = car.Id,
                 NgayKiemTra = DateTime.Now,
-                NguoiKiemTra = User.Identity?.Name
+                NguoiTao = User.Identity?.Name
             };
 
             return View(new TrafficViolationCheckVM
@@ -153,10 +153,15 @@ namespace ChargePoint.CarManagement.Controllers
         // POST: TrafficViolation/Check
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Check(TrafficViolationCheck model)
+        public async Task<IActionResult> Check(TrafficViolationCheckVM viewModel)
         {
-            // Loại bỏ validation cho Id vì sẽ tự sinh
-            ModelState.Remove("Id");
+            // Loại bỏ validation cho các field không cần thiết khi tạo mới
+            ModelState.Remove("TrafficViolationCheck.Id");
+            ModelState.Remove("TrafficViolationCheck.Car");
+            ModelState.Remove("TrafficViolationCheck.NguoiTao");
+            ModelState.Remove("Car");
+
+            var model = viewModel.TrafficViolationCheck!;
 
             if (ModelState.IsValid)
             {
@@ -167,9 +172,13 @@ namespace ChargePoint.CarManagement.Controllers
                     {
                         CarId = model.CarId,
                         NgayKiemTra = DateTime.Now,
-                        NguoiKiemTra = User.Identity?.Name,
+                        NguoiTao = User.Identity?.Name,
                         CoViPham = model.CoViPham,
                         SoLuongViPham = model.SoLuongViPham,
+                        NoiDungViPham = model.NoiDungViPham,
+                        DiaDiemViPham = model.DiaDiemViPham,
+                        NgayGioViPham = model.NgayGioViPham,
+                        TrangThaiXuLy = model.TrangThaiXuLy,
                         GhiChu = model.GhiChu
                     };
 
@@ -186,11 +195,8 @@ namespace ChargePoint.CarManagement.Controllers
             }
 
             var car = await _context.Cars.FindAsync(model.CarId);
-            return View(new TrafficViolationCheckVM
-            {
-                Car = car,
-                TrafficViolationCheck = model,
-            });
+            viewModel.Car = car!;
+            return View(viewModel);
         }
 
         // POST: TrafficViolation/Delete/5
@@ -247,7 +253,7 @@ namespace ChargePoint.CarManagement.Controllers
             // Remove validation for fields we don't need
             ModelState.Remove("TrafficViolationCheck.Car");
             ModelState.Remove("Car");
-            ModelState.Remove("TrafficViolationCheck.NguoiKiemTra");
+            ModelState.Remove("TrafficViolationCheck.NguoiTao");
 
             if (ModelState.IsValid)
             {
@@ -270,6 +276,8 @@ namespace ChargePoint.CarManagement.Controllers
                     check.NgayCapNhatTrangThai = DateTime.Now;
                     check.NguoiXuLy = model.NguoiXuLy;
                     check.GhiChu = model.GhiChu;
+                    check.NgayCapNhat = DateTime.Now;
+                    check.NguoiCapNhat = User.Identity?.Name;
 
                     _context.Update(check);
                     await _context.SaveChangesAsync();
@@ -314,6 +322,8 @@ namespace ChargePoint.CarManagement.Controllers
             check.TrangThaiXuLy = status;
             check.NgayCapNhatTrangThai = DateTime.Now;
             check.NguoiXuLy = nguoiXuLy ?? User.Identity?.Name;
+            check.NgayCapNhat = DateTime.Now;
+            check.NguoiCapNhat = User.Identity?.Name;
 
             await _context.SaveChangesAsync();
             TempData["SuccessMessage"] = "Đã cập nhật trạng thái xử lý!";

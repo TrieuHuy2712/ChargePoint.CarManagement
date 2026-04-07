@@ -15,7 +15,7 @@ namespace ChargePoint.CarManagement.Models
         Vang = 1
     }
 
-    public class Car
+    public class Car : BaseAuditEntity
     {
         public int Id { get; set; }
 
@@ -61,6 +61,14 @@ namespace ChargePoint.CarManagement.Models
         [StringLength(500)]
         public string? ThongTinChoThue { get; set; }
 
+        [Display(Name = "Ngày thuê")]
+        [DataType(DataType.Date)]
+        public DateTime? NgayThue { get; set; }
+
+        [Display(Name = "Ngày hết hạn")]
+        [DataType(DataType.Date)]
+        public DateTime? NgayHetHan { get; set; }
+
         [Required(ErrorMessage = "Vui lòng nhập ODO xe")]
         [Display(Name = "ODO xe (km)")]
         [Range(0, 999999, ErrorMessage = "ODO phải từ 0 đến 999999")]
@@ -74,11 +82,5 @@ namespace ChargePoint.CarManagement.Models
         // Navigation: all media items for this car (images)
         [Display(Name = "Media")]
         public ICollection<CarMedia>? Media { get; set; } = new List<CarMedia>();
-
-        [Display(Name = "Ngày tạo")]
-        public DateTime NgayTao { get; set; } = DateTime.Now;
-
-        [Display(Name = "Ngày cập nhật")]
-        public DateTime? NgayCapNhat { get; set; }
     }
 }

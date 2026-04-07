@@ -154,7 +154,7 @@ namespace ChargePoint.CarManagement.Controllers
                     {
                         CarId = item.CarId,
                         NgayKiemTra = DateTime.Now,
-                        NguoiKiemTra = User.Identity?.Name,
+                        NguoiTao = User.Identity?.Name,
                         CoViPham = coViPham,
                         SoLuongViPham = item.SoLuongViPham,
                         NgayGioViPham = item.NgayGioViPham,

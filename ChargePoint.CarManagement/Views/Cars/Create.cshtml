@@ -127,6 +127,24 @@
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="NgayThue" class="form-label"></label>
+                            <input asp-for="NgayThue" class="form-control" type="date" id="NgayThue" />
+                            <span asp-validation-for="NgayThue" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label asp-for="NgayHetHan" class="form-label"></label>
+                            <input asp-for="NgayHetHan" class="form-control" type="date" id="NgayHetHan" />
+                            <span asp-validation-for="NgayHetHan" class="text-danger"></span>
+                            <small class="text-muted">Mặc định được tự động cộng 1 năm từ Ngày thuê.</small>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group mb-3">
                     <label asp-for="ThongTinChoThue" class="form-label"></label>
                     <textarea asp-for="ThongTinChoThue" class="form-control" rows="3"></textarea>
@@ -260,6 +278,27 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Auto calculate Expiration Date (+1 Year)
+            const ngayThueInput = document.getElementById('NgayThue');
+            const ngayHetHanInput = document.getElementById('NgayHetHan');
+
+            if (ngayThueInput && ngayHetHanInput) {
+                ngayThueInput.addEventListener('change', function() {
+                    const dateVal = this.value;
+                    if (dateVal) {
+                        const thueDate = new Date(dateVal);
+                        thueDate.setFullYear(thueDate.getFullYear() + 1);
+
+                        // Format to YYYY-MM-DD for input[type="date"]
+                        const year = thueDate.getFullYear();
+                        const month = String(thueDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(thueDate.getDate()).padStart(2, '0');
+
+                        ngayHetHanInput.value = `${year}-${month}-${day}`;
+                    }
+                });
+            }
+
             const form = document.getElementById('createCarForm');
             const btnSubmit = document.getElementById('btnSubmit');
             const settings = {

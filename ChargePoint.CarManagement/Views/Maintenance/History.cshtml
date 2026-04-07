@@ -146,6 +146,20 @@
                             }
                         </div>
                         <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">
+                                    @if (!string.IsNullOrEmpty(record.NguoiTao))
+                                    {
+                                        <i class="fas fa-user-plus"></i> @record.NguoiTao
+                                    }
+                                </small>
+                                <small class="text-muted">
+                                    @if (record.NgayCapNhat.HasValue && !string.IsNullOrEmpty(record.NguoiCapNhat))
+                                    {
+                                        <i class="fas fa-user-edit"></i> @record.NguoiCapNhat
+                                    }
+                                </small>
+                            </div>
                             <div class="btn-group btn-group-sm w-100">
                                 <a asp-action="Details" asp-route-id="@record.Id" class="btn btn-outline-info">
                                     <i class="fas fa-eye"></i> Chi tiết

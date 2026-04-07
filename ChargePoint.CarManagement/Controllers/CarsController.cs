@@ -97,7 +97,7 @@ namespace ChargePoint.CarManagement.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(
-            [Bind("Id,Stt,TenXe,SoLuong,MauXe,SoVIN,BienSo,BienSoCu,MauBienSo,TenKhachHang,ThongTinChoThue,OdoXe")] Car car,
+            [Bind("Id,Stt,TenXe,SoLuong,MauXe,SoVIN,BienSo,BienSoCu,MauBienSo,TenKhachHang,ThongTinChoThue,NgayThue,NgayHetHan,OdoXe")] Car car,
             IFormFile? PrimaryImageFile)
         {
             if (await _context.Cars.AnyAsync(c => c.SoVIN.ToLower() == car.SoVIN.ToLower()))
@@ -162,6 +162,7 @@ namespace ChargePoint.CarManagement.Controllers
 
                     car.Media = mediaList;
                     car.NgayTao = DateTime.Now;
+                    car.NguoiTao = User.Identity?.Name;
                     _context.Add(car);
                     await _context.SaveChangesAsync();
 
@@ -235,6 +236,8 @@ namespace ChargePoint.CarManagement.Controllers
                     populated.MauBienSo = vm.MauBienSo;
                     populated.TenKhachHang = vm.TenKhachHang;
                     populated.ThongTinChoThue = vm.ThongTinChoThue;
+                    populated.NgayThue = vm.NgayThue;
+                    populated.NgayHetHan = vm.NgayHetHan;
                     populated.OdoXe = vm.OdoXe;
                     populated.PrimaryImageUrl = vm.PrimaryImageUrl;
                     return View(populated);
@@ -264,6 +267,8 @@ namespace ChargePoint.CarManagement.Controllers
                 existing.MauBienSo = vm.MauBienSo;
                 existing.TenKhachHang = vm.TenKhachHang;
                 existing.ThongTinChoThue = vm.ThongTinChoThue;
+                existing.NgayThue = vm.NgayThue;
+                existing.NgayHetHan = vm.NgayHetHan;
                 existing.OdoXe = vm.OdoXe;
 
                 existing.Media ??= new List<CarMedia>();
@@ -340,6 +345,7 @@ namespace ChargePoint.CarManagement.Controllers
                 }
 
                 existing.NgayCapNhat = DateTime.Now;
+                existing.NguoiCapNhat = User.Identity?.Name;
                 _context.Update(existing);
                 await _context.SaveChangesAsync();
 

@@ -324,6 +324,7 @@ namespace ChargePoint.CarManagement.Controllers
                     existingRecord.NoiBaoDuong = model.NoiBaoDuong;
                     existingRecord.GhiChu = model.GhiChu;
                     existingRecord.NgayCapNhat = DateTime.Now;
+                    existingRecord.NguoiCapNhat = User.Identity?.Name;
 
                     // Upload new images (append)
                     if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)

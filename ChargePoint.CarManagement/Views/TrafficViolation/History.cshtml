@@ -40,6 +40,7 @@
                                 <th>Địa điểm</th>
                                 <th>Trạng thái xử lý</th>
                                 <th>Người kiểm tra</th>
+                                <th>Người cập nhật</th>
                                 <th>Ghi chú</th>
                                 <th>Thao tác</th>
                             </tr>
@@ -112,7 +113,22 @@
                                             <small class="text-muted">@item.NgayCapNhatTrangThai.Value.ToString("dd/MM/yyyy")</small>
                                         }
                                     </td>
-                                    <td>@item.NguoiKiemTra</td>
+                                    <td>@(item.NguoiTao ?? "-")</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.NguoiCapNhat))
+                                        {
+                                            <span>@item.NguoiCapNhat</span>
+                                            @if (item.NgayCapNhat.HasValue)
+                                            {
+                                                <br />
+                                                <small class="text-muted">@item.NgayCapNhat.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
                                     <td>
                                         @if (!string.IsNullOrEmpty(item.GhiChu))
                                         {

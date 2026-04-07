@@ -4,7 +4,7 @@ using ChargePoint.CarManagement.Models.Enums;
 
 namespace ChargePoint.CarManagement.Models
 {
-    public class TrafficViolationCheck
+    public class TrafficViolationCheck : BaseAuditEntity
     {
         public int Id { get; set; }
 
@@ -47,9 +47,5 @@ namespace ChargePoint.CarManagement.Models
         [Display(Name = "Ghi chú")]
         [StringLength(1000)]
         public string? GhiChu { get; set; }
-
-        [Display(Name = "Người kiểm tra")]
-        [StringLength(100)]
-        public string? NguoiKiemTra { get; set; }
     }
 }

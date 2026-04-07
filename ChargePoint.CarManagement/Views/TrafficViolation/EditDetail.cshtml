@@ -63,12 +63,12 @@
                         <input type="hidden" asp-for="TrafficViolationCheck.Id" />
                         <input type="hidden" asp-for="TrafficViolationCheck.CarId" />
                         <input type="hidden" asp-for="TrafficViolationCheck.NgayKiemTra" />
-                        <input type="hidden" asp-for="TrafficViolationCheck.NguoiKiemTra" />
+                        <input type="hidden" asp-for="TrafficViolationCheck.NguoiTao" />
 
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>Ngày kiểm tra:</strong> @check.NgayKiemTra.ToString("dd/MM/yyyy HH:mm") 
-                            | <strong>Người kiểm tra:</strong> @check.NguoiKiemTra
+                            | <strong>Người kiểm tra:</strong> @check.NguoiTao
                         </div>
 
                         <div class="row">

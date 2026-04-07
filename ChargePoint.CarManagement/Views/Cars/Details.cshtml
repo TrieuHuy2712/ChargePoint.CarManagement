@@ -92,13 +92,13 @@
                                 @if (Model.MauBienSo == MauBienSo.Vang)
                                 {
                                     <span class="badge" style="background-color: #ffc107; color: #000;">
-                                        <i class="fas fa-taxi"></i> Biển vàng (Kinh doanh)
+                                        <i class="fas fa-taxi"></i> Biển vàng
                                     </span>
                                 }
                                 else
                                 {
                                     <span class="badge" style="background-color: #fff; color: #000; border: 1px solid #333;">
-                                        <i class="fas fa-car"></i> Biển trắng (Cá nhân)
+                                        <i class="fas fa-car"></i> Biển trắng
                                     </span>
                                 }
                             </td>
@@ -130,6 +130,32 @@
                             </td>
                         </tr>
                         <tr>
+                            <th>@Html.DisplayNameFor(model => model.NgayThue)</th>
+                            <td>
+                                @if (Model.NgayThue.HasValue)
+                                {
+                                    <i class="fas fa-calendar-alt text-primary"></i> @Model.NgayThue.Value.ToString("dd/MM/yyyy")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa có</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.NgayHetHan)</th>
+                            <td>
+                                @if (Model.NgayHetHan.HasValue)
+                                {
+                                    <i class="fas fa-calendar-times text-danger"></i> @Model.NgayHetHan.Value.ToString("dd/MM/yyyy")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa có</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
                             <th>@Html.DisplayNameFor(model => model.ThongTinChoThue)</th>
                             <td>
                                 @if (!string.IsNullOrEmpty(Model.ThongTinChoThue))
@@ -145,10 +171,38 @@
                             </td>
                         </tr>
                         <tr>
+                            <th>@Html.DisplayNameFor(model => model.NguoiTao)</th>
+                            <td>
+                                @if (!string.IsNullOrEmpty(Model.NguoiTao))
+                                {
+                                    <i class="fas fa-user-plus text-success"></i>
+                                    @Model.NguoiTao
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
                             <th>@Html.DisplayNameFor(model => model.NgayTao)</th>
                             <td>
                                 <i class="fas fa-calendar-plus text-success"></i>
                                 @Model.NgayTao.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>@Html.DisplayNameFor(model => model.NguoiCapNhat)</th>
+                            <td>
+                                @if (!string.IsNullOrEmpty(Model.NguoiCapNhat))
+                                {
+                                    <i class="fas fa-user-edit text-warning"></i>
+                                    @Model.NguoiCapNhat
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
                             </td>
                         </tr>
                         <tr>

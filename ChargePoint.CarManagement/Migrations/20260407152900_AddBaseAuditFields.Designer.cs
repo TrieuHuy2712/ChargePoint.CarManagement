@@ -3,6 +3,7 @@ using System;
 using ChargePoint.CarManagement.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChargePoint.CarManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260407152900_AddBaseAuditFields")]
+    partial class AddBaseAuditFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.25");
@@ -101,7 +104,7 @@ namespace ChargePoint.CarManagement.Migrations
                             BienSo = "30A-12345",
                             MauBienSo = 0,
                             MauXe = "Đỏ",
-                            NgayTao = new DateTime(2026, 4, 7, 22, 37, 59, 614, DateTimeKind.Local).AddTicks(2280),
+                            NgayTao = new DateTime(2026, 4, 7, 22, 28, 59, 799, DateTimeKind.Local).AddTicks(8087),
                             OdoXe = 15000,
                             SoLuong = 5,
                             SoVIN = "LVSHCAMB1NE000001",
@@ -116,7 +119,7 @@ namespace ChargePoint.CarManagement.Migrations
                             BienSo = "30B-67890",
                             MauBienSo = 0,
                             MauXe = "Trắng",
-                            NgayTao = new DateTime(2026, 4, 7, 22, 37, 59, 614, DateTimeKind.Local).AddTicks(2285),
+                            NgayTao = new DateTime(2026, 4, 7, 22, 28, 59, 799, DateTimeKind.Local).AddTicks(8092),
                             OdoXe = 8000,
                             SoLuong = 3,
                             SoVIN = "LVSHCAMB2NE000002",
@@ -315,9 +318,6 @@ namespace ChargePoint.CarManagement.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("NgayCapNhat")
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime?>("NgayCapNhatTrangThai")
                         .HasColumnType("TEXT");
 
@@ -327,14 +327,7 @@ namespace ChargePoint.CarManagement.Migrations
                     b.Property<DateTime>("NgayKiemTra")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("NgayTao")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NguoiCapNhat")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NguoiTao")
+                    b.Property<string>("NguoiKiemTra")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 

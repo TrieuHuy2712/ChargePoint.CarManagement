@@ -336,6 +336,7 @@ namespace ChargePoint.CarManagement.Controllers
                 existingRecord.NoiThucHien = model.NoiThucHien;
                 existingRecord.GhiChu = model.GhiChu;
                 existingRecord.NgayCapNhat = DateTime.Now;
+                existingRecord.NguoiCapNhat = User.Identity?.Name;
 
                 var bienSo = car.BienSo ?? "NoPlate";
 

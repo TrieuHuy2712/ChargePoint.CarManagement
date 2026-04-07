@@ -271,16 +271,34 @@
                             @Model.NgayTao.ToString("dd/MM/yyyy HH:mm")
                         </p>
                     </div>
-                    @if (Model.NgayCapNhat.HasValue)
-                    {
-                        <div>
-                            <label class="text-muted small">Cập nhật lần cuối</label>
-                            <p class="mb-0">
+                    <div class="mb-3">
+                        <label class="text-muted small">Người cập nhật</label>
+                        <p class="mb-0">
+                            @if (!string.IsNullOrEmpty(Model.NguoiCapNhat))
+                            {
+                                <i class="fas fa-user-edit me-2"></i>
+                                @Model.NguoiCapNhat
+                            }
+                            else
+                            {
+                                <span class="text-muted">Chưa cập nhật</span>
+                            }
+                        </p>
+                    </div>
+                    <div>
+                        <label class="text-muted small">Ngày cập nhật</label>
+                        <p class="mb-0">
+                            @if (Model.NgayCapNhat.HasValue)
+                            {
                                 <i class="fas fa-sync-alt me-2"></i>
                                 @Model.NgayCapNhat.Value.ToString("dd/MM/yyyy HH:mm")
-                            </p>
-                        </div>
-                    }
+                            }
+                            else
+                            {
+                                <span class="text-muted">Chưa cập nhật</span>
+                            }
+                        </p>
+                    </div>
                 </div>
             </div>
 

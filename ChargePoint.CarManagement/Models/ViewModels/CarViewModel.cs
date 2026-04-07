@@ -36,6 +36,14 @@ namespace ChargePoint.CarManagement.Models.ViewModels
         [Display(Name = "Thông tin xe cho thuê")]
         public string? ThongTinChoThue { get; set; }
 
+        [Display(Name = "Ngày thuê")]
+        [DataType(DataType.Date)]
+        public DateTime? NgayThue { get; set; }
+
+        [Display(Name = "Ngày hết hạn")]
+        [DataType(DataType.Date)]
+        public DateTime? NgayHetHan { get; set; }
+
         [Display(Name = "ODO xe")]
         public int OdoXe { get; set; }
 
@@ -51,7 +59,16 @@ namespace ChargePoint.CarManagement.Models.ViewModels
         // Existing media collection for Edit view
         public ICollection<CarMedia>? Media { get; set; }
 
+        [Display(Name = "Người tạo")]
+        public string? NguoiTao { get; set; }
+
+        [Display(Name = "Người cập nhật")]
+        public string? NguoiCapNhat { get; set; }
+
+        [Display(Name = "Ngày tạo")]
         public DateTime NgayTao { get; set; }
+
+        [Display(Name = "Ngày cập nhật")]
         public DateTime? NgayCapNhat { get; set; }
 
         public static CarViewModel FromCar(Car car)
@@ -69,8 +86,12 @@ namespace ChargePoint.CarManagement.Models.ViewModels
                 MauBienSo = car.MauBienSo,
                 TenKhachHang = car.TenKhachHang,
                 ThongTinChoThue = car.ThongTinChoThue,
+                NgayThue = car.NgayThue,
+                NgayHetHan = car.NgayHetHan,
                 OdoXe = car.OdoXe,
                 PrimaryImageUrl = car.PrimaryImageUrl,
+                NguoiTao = car.NguoiTao,
+                NguoiCapNhat = car.NguoiCapNhat,
                 NgayTao = car.NgayTao,
                 NgayCapNhat = car.NgayCapNhat,
                 Media = car.Media

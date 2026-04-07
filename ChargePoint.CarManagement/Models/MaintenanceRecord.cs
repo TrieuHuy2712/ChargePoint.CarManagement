@@ -21,7 +21,7 @@ namespace ChargePoint.CarManagement.Models
     /// <summary>
     /// Hồ sơ bảo dưỡng xe
     /// </summary>
-    public class MaintenanceRecord
+    public class MaintenanceRecord : BaseAuditEntity
     {
         public int Id { get; set; }
 
@@ -69,16 +69,6 @@ namespace ChargePoint.CarManagement.Models
         [Display(Name = "Ghi chú")]
         [StringLength(1000)]
         public string? GhiChu { get; set; }
-
-        [Display(Name = "Người tạo")]
-        [StringLength(100)]
-        public string? NguoiTao { get; set; }
-
-        [Display(Name = "Ngày tạo")]
-        public DateTime NgayTao { get; set; } = DateTime.Now;
-
-        [Display(Name = "Ngày cập nhật")]
-        public DateTime? NgayCapNhat { get; set; }
 
         // Helper để lấy danh sách ảnh
         [NotMapped]
