@@ -228,13 +228,6 @@ namespace ChargePoint.CarManagement.Controllers
                         newRecord.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
                     }
 
-                    // Cập nhật ODO xe nếu số KM bảo dưỡng lớn hơn
-                    if (newRecord.SoKmBaoDuong > car.OdoXe)
-                    {
-                        car.OdoXe = newRecord.SoKmBaoDuong;
-                        car.NgayCapNhat = DateTime.Now;
-                    }
-
                     _context.MaintenanceRecords.Add(newRecord);
                     await _context.SaveChangesAsync();
 
