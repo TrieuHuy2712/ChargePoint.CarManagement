@@ -49,7 +49,7 @@
     </div>
 
     <input type="file" name="HinhAnhChungTuFiles" class="form-control d-none" multiple
-           accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => "image/" + e.TrimStart('.')))"
+           accept="@string.Join(",", settings.AllowedImageExtensions.Select(e => e))"
            id="imageInput" />
     <small class="form-text text-muted">
         <i class="fas fa-info-circle"></i>

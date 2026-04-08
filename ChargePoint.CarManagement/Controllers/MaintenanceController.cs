@@ -169,9 +169,10 @@ namespace ChargePoint.CarManagement.Controllers
         [ValidateAntiForgeryToken]
         [RequestSizeLimit(50 * 1024 * 1024)] // 50MB
         public async Task<IActionResult> Create(
-            MaintenanceRecord model,
+            MaintenanceCreateVM viewModel, // ✅ Đúng: khớp với cấu trúc form
             List<IFormFile>? HinhAnhChungTuFiles)
         {
+            var model = viewModel.MaintenanceRecord; // Lấy model từ ViewModel
             // Ensure EF will generate Id - remove any incoming Id validation
             ModelState.Remove(nameof(MaintenanceRecord.Id));
 
@@ -183,7 +184,13 @@ namespace ChargePoint.CarManagement.Controllers
                     if (car == null)
                     {
                         ModelState.AddModelError("", "Không tìm thấy xe");
-                        return View(model);
+                        var errorVM = new MaintenanceCreateVM
+                        {
+                            MaintenanceRecord = model,
+                            Cars = [],
+                            SelectListCars = new SelectList(await _context.Cars.OrderBy(c => c.BienSo).ToListAsync(), "Id", "BienSo")
+                        };
+                        return View(errorVM);
                     }
 
                     // Create a new entity instance to avoid inserting with a supplied Id
