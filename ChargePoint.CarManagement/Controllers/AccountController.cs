@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
+using ChargePoint.CarManagement.Models;
+
 namespace ChargePoint.CarManagement.Controllers
 {
     public class AccountController : Controller
@@ -12,10 +14,10 @@ namespace ChargePoint.CarManagement.Controllers
         // Danh sách tài khoản tĩnh cho demo (Thay vì database)
         private readonly Dictionary<string, (string Password, string Role, string FullName)> _users = new()
         {
-            { "admin", ("123456", "Admin", "Quản trị viên") },
-            { "trieuhuy", ("123456", "User", "Triệu Huy") },
-            { "root", ("123456", "Admin", "Quản trị viên") },
-            { "giaphan", ("123456", "User", "Giáp Phan") }
+            { "root", ("123456", AppRoles.RootAdmin, "Root Administrator") },
+            { "admin", ("123456", AppRoles.Admin, "Quản trị viên") },
+            { "trieuhuy", ("123456", AppRoles.User, "Triệu Huy") },
+            { "giaphan", ("123456", AppRoles.User, "Giáp Phan") }
         };
 
         [AllowAnonymous]

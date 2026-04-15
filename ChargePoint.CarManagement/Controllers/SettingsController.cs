@@ -1,5 +1,6 @@
 using ChargePoint.CarManagement.Data;
 using ChargePoint.CarManagement.Models;
+using ChargePoint.CarManagement.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,22 +17,41 @@ namespace ChargePoint.CarManagement.Controllers
             _context = context;
         }
 
-        // GET: Settings
         public async Task<IActionResult> Index()
         {
             var settings = await _context.SystemSettings.ToListAsync();
-            return View(settings);
+            bool isRoot = User.IsInRole(AppRoles.RootAdmin);
+
+            var vm = new SystemSettingIndexVM
+            {
+                IsRootUser = isRoot,
+                Settings = settings.Select(s => new SystemSettingItemVM
+                {
+                    Key = s.Key,
+                    Value = s.Value,
+                    Description = s.Description,
+                    Type = s.Type,
+                    IsDisabled = (s.Key == SystemSettingKeys.MaintenanceMode && !isRoot),
+                    DisabledReason = (s.Key == SystemSettingKeys.MaintenanceMode && !isRoot) ? "Chỉ root mới được thay đổi" : ""
+                }).ToList()
+            };
+
+            return View(vm);
         }
 
-        // POST: Settings/Save
-        [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Save(IFormCollection form)
         {
             var dbSettings = await _context.SystemSettings.ToListAsync();
+            bool isRoot = User.IsInRole(AppRoles.RootAdmin);
 
             foreach (var setting in dbSettings)
             {
+                // Root validation constraint
+                if (setting.Key == SystemSettingKeys.MaintenanceMode && !isRoot)
+                {
+                    continue; // Bỏ qua, không cho phép lưu thay đổi cấu hình này nếu không phải root
+                }
+
                 var inputName = $"settings[{setting.Key}]";
 
                 if (form.ContainsKey(inputName))

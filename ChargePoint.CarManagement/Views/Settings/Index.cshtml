@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ChargePoint.CarManagement.Models.SystemSetting>
+﻿@model ChargePoint.CarManagement.Models.ViewModels.SystemSettingIndexVM
 
 @{
     ViewData["Title"] = "Cài đặt hệ thống";
@@ -17,7 +17,7 @@
         </div>
         <div class="card-body">
             <form asp-controller="Settings" asp-action="Save" method="post">
-                @foreach (var setting in Model)
+                @foreach (var setting in Model.Settings)
                 {
                     <div class="row align-items-center mb-3 p-3 bg-light rounded shadow-sm mx-0">
                         <div class="col-md-9 mb-2 mb-md-0">
@@ -29,14 +29,17 @@
                         <div class="col-md-3 text-md-end text-start">
                             @if (setting.Type == "boolean")
                             {
-                                <div class="form-check form-switch form-switch-lg d-inline-block">
+                                <div class="form-check form-switch form-switch-lg d-inline-block"
+                                     title="@setting.DisabledReason">
                                     <input type="hidden" name="settings[@setting.Key]" value="false" />
                                     <!-- Using value="true" to send "true" if checked -->
                                     <input class="form-check-input" type="checkbox" role="switch"
                                            id="switch_@setting.Key" 
                                            name="settings[@setting.Key]" 
                                            value="true"
-                                           @(setting.Value == "true" ? "checked" : "") style="cursor:pointer;" />
+                                           @(setting.Value == "true" ? "checked" : "") 
+                                           @(setting.IsDisabled ? "disabled" : "")
+                                           style="cursor:@(setting.IsDisabled ? "not-allowed" : "pointer");" />
                                 </div>
                             }
                             else if (setting.Type == "number")

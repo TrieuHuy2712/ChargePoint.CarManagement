@@ -44,8 +44,8 @@ namespace ChargePoint.CarManagement.Middleware
 
             if (isMaintenanceMode)
             {
-                // Kiểm tra xem User hiện tại có phải là root (admin) hay không
-                bool isRoot = context.User.Identity?.IsAuthenticated == true && context.User.Identity.Name == "root";
+                // Kiểm tra xem User hiện tại có phải là RootAdmin hay không
+                bool isRoot = context.User.Identity?.IsAuthenticated == true && context.User.IsInRole(AppRoles.RootAdmin);
 
                 if (!isRoot)
                 {
