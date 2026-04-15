@@ -243,11 +243,17 @@ namespace ChargePoint.CarManagement.Controllers
                 model.NgayTao = DateTime.Now;
                 model.NguoiTao = User.Identity?.Name;
 
-                // Cập nhật ODO xe nếu cần
-                if (model.OdoThayLop > car.OdoXe)
+                // Kiểm tra setting trước khi ghi đè ODO
+                var settingAutoOdo = await _context.SystemSettings
+                    .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Tire);
+
+                if (settingAutoOdo != null && settingAutoOdo.Value == "true")
                 {
-                    car.OdoXe = model.OdoThayLop;
-                    car.NgayCapNhat = DateTime.Now;
+                    if (model.OdoThayLop > car.OdoXe)
+                    {
+                        car.OdoXe = model.OdoThayLop;
+                        car.NgayCapNhat = DateTime.Now;
+                    }
                 }
 
                 _context.TireRecords.Add(model);
@@ -374,6 +380,19 @@ namespace ChargePoint.CarManagement.Controllers
                     }
 
                     existingRecord.HinhAnhDOT = JsonSerializer.Serialize(existingDOTImages);
+                }
+
+                // Kiểm tra setting trước khi ghi đè ODO
+                var settingAutoOdo = await _context.SystemSettings
+                    .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Tire);
+
+                if (settingAutoOdo != null && settingAutoOdo.Value == "true")
+                {
+                    if (existingRecord.OdoThayLop > car.OdoXe)
+                    {
+                        car.OdoXe = existingRecord.OdoThayLop;
+                        car.NgayCapNhat = DateTime.Now;
+                    }
                 }
 
                 await _context.SaveChangesAsync();

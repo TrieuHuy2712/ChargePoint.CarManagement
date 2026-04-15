@@ -41,6 +41,21 @@
         </div>
     }
 
+    <!-- Chú thích / Note -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex justify-content-around align-items-center flex-wrap" style="font-size: 13px;">
+                        <span class="me-3 mb-1"><i class="fas fa-square text-success me-1"></i> Tốt (An toàn)</span>
+                        <span class="me-3 mb-1"><i class="fas fa-square text-warning me-1"></i> Sắp đến hạn thay (≤ @TireRecord.WarningThresholdKm km)</span>
+                        <span class="mb-1"><i class="fas fa-square text-danger me-1"></i> Quá hạn (Cần thay)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Sơ đồ lốp xe -->
     <div class="card shadow mb-4">
         <div class="card-header bg-dark text-white">
@@ -56,10 +71,11 @@
                                 @{
                                     var truocTrai = tiresByPosition?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.TruocTrai);
                                     var truocTraiRecord = truocTrai?.LastRecord as TireRecord;
+                                    var truocTraiStatus = Model.GetTireStatus(truocTraiRecord);
                                 }
-                                <div class="tire-card @(truocTraiRecord != null ? "has-data" : "")">
+                                <div class="tire-card @(truocTraiStatus != null ? $"has-data {truocTraiStatus.BorderClass}" : "")">
                                     <div class="tire-position">↖️ TRƯỚC TRÁI</div>
-                                    @if (truocTraiRecord != null)
+                                    @if (truocTraiRecord != null && truocTraiStatus != null)
                                     {
                                         @* Hình ảnh Chứng từ và DOT *@
                                         <div class="tire-images mb-2">
@@ -126,7 +142,7 @@
                                                         else
                                                         {
                                                             <div class="placeholder-img placeholder-dot" style="height: 80px;">
-                                                                <i class="fas fa-calendar-alt text-muted"></i>
+                                                                <i class="fas fa-image text-muted"></i>
                                                                 <p class="mb-0" style="font-size: 9px;">Chưa có</p>
                                                             </div>
                                                         }
@@ -138,7 +154,13 @@
                                         <div class="tire-info">
                                             <small class="d-block"><strong>@truocTraiRecord.HangLop @truocTraiRecord.ModelLop</strong></small>
                                             <small class="d-block text-muted">@truocTraiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
-                                            <small class="d-block text-muted">@truocTraiRecord.OdoThayLop.ToString("N0") km</small>
+                                            <small class="d-block text-info fw-bold">ODO thay lốp: @truocTraiRecord.OdoThayLop.ToString("N0") km</small>
+
+                                            <small class="d-block @truocTraiStatus.TextClass" title="Thay tại: @truocTraiRecord.OdoThayLop.ToString("N0") km | Dự kiến thay tiếp: @truocTraiStatus.ExpectedNextOdo.ToString("N0") km">
+                                                @if (truocTraiStatus.IsError) { <i class="fas fa-exclamation-triangle me-1"></i> <span>Lỗi: ODO thay lốp lớn hơn ODO xe</span> } 
+                                                else { <i class="fas fa-road me-1"></i> <span>Đã chạy: @truocTraiStatus.DrivenKm.ToString("N0") km</span> }
+                                                @if(truocTraiStatus.RemainingKm > 0 && !truocTraiStatus.IsError) { <span class="text-muted fw-normal">(@truocTraiStatus.RemainingKm.ToString("N0") km nữa)</span> }
+                                            </small>
                                         </div>
                                         <div class="btn-group mt-2" role="group">
                                             <a asp-action="Details" asp-route-id="@truocTraiRecord.Id"
@@ -175,10 +197,11 @@
                                 @{
                                     var truocPhai = tiresByPosition?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.TruocPhai);
                                     var truocPhaiRecord = truocPhai?.LastRecord as TireRecord;
+                                    var truocPhaiStatus = Model.GetTireStatus(truocPhaiRecord);
                                 }
-                                <div class="tire-card @(truocPhaiRecord != null ? "has-data" : "")">
+                                <div class="tire-card @(truocPhaiStatus != null ? $"has-data {truocPhaiStatus.BorderClass}" : "")">
                                     <div class="tire-position">TRƯỚC PHẢI ↗️</div>
-                                    @if (truocPhaiRecord != null)
+                                    @if (truocPhaiRecord != null && truocPhaiStatus != null)
                                     {
                                         @* Hình ảnh Chứng từ và DOT *@
                                         <div class="tire-images mb-2">
@@ -238,7 +261,7 @@
                                                         else
                                                         {
                                                             <div class="placeholder-img placeholder-dot" style="height: 80px;">
-                                                                <i class="fas fa-calendar-alt text-muted"></i>
+                                                                <i class="fas fa-image text-muted"></i>
                                                                 <p class="mb-0" style="font-size: 9px;">Chưa có</p>
                                                             </div>
                                                         }
@@ -250,7 +273,13 @@
                                         <div class="tire-info">
                                             <small class="d-block"><strong>@truocPhaiRecord.HangLop @truocPhaiRecord.ModelLop</strong></small>
                                             <small class="d-block text-muted">@truocPhaiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
-                                            <small class="d-block text-muted">@truocPhaiRecord.OdoThayLop.ToString("N0") km</small>
+                                            <small class="d-block text-info fw-bold">ODO thay lốp: @truocPhaiRecord.OdoThayLop.ToString("N0") km</small>
+
+                                            <small class="d-block @truocPhaiStatus.TextClass" title="Thay tại: @truocPhaiRecord.OdoThayLop.ToString("N0") km | Dự kiến thay tiếp: @truocPhaiStatus.ExpectedNextOdo.ToString("N0") km">
+                                                @if (truocPhaiStatus.IsError) { <i class="fas fa-exclamation-triangle me-1"></i> <span>Lỗi: ODO thay lốp lớn hơn ODO xe</span> } 
+                                                else { <i class="fas fa-road me-1"></i> <span>Đã chạy: @truocPhaiStatus.DrivenKm.ToString("N0") km</span> }
+                                                @if(truocPhaiStatus.RemainingKm > 0 && !truocPhaiStatus.IsError) { <span class="text-muted fw-normal">(@truocPhaiStatus.RemainingKm.ToString("N0") km nữa)</span> }
+                                            </small>
                                         </div>
                                         <div class="btn-group mt-2" role="group">
                                             <a asp-action="Details" asp-route-id="@truocPhaiRecord.Id"
@@ -298,10 +327,11 @@
                                 @{
                                     var sauTrai = tiresByPosition?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.SauTrai);
                                     var sauTraiRecord = sauTrai?.LastRecord as TireRecord;
+                                    var sauTraiStatus = Model.GetTireStatus(sauTraiRecord);
                                 }
-                                <div class="tire-card @(sauTraiRecord != null ? "has-data" : "")">
+                                <div class="tire-card @(sauTraiStatus != null ? $"has-data {sauTraiStatus.BorderClass}" : "")">
                                     <div class="tire-position">↙️ SAU TRÁI</div>
-                                    @if (sauTraiRecord != null)
+                                    @if (sauTraiRecord != null && sauTraiStatus != null)
                                     {
                                         @* Hình ảnh Chứng từ và DOT *@
                                         <div class="tire-images mb-2">
@@ -361,7 +391,7 @@
                                                         else
                                                         {
                                                             <div class="placeholder-img placeholder-dot" style="height: 80px;">
-                                                                <i class="fas fa-calendar-alt text-muted"></i>
+                                                                <i class="fas fa-image text-muted"></i>
                                                                 <p class="mb-0" style="font-size: 9px;">Chưa có</p>
                                                             </div>
                                                         }
@@ -373,7 +403,13 @@
                                         <div class="tire-info">
                                             <small class="d-block"><strong>@sauTraiRecord.HangLop @sauTraiRecord.ModelLop</strong></small>
                                             <small class="d-block text-muted">@sauTraiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
-                                            <small class="d-block text-muted">@sauTraiRecord.OdoThayLop.ToString("N0") km</small>
+                                            <small class="d-block text-info fw-bold">ODO thay lốp: @sauTraiRecord.OdoThayLop.ToString("N0") km</small>
+
+                                            <small class="d-block @sauTraiStatus.TextClass" title="Thay tại: @sauTraiRecord.OdoThayLop.ToString("N0") km | Dự kiến thay tiếp: @sauTraiStatus.ExpectedNextOdo.ToString("N0") km">
+                                                @if (sauTraiStatus.IsError) { <i class="fas fa-exclamation-triangle me-1"></i> <span>Lỗi: ODO thay lốp lớn hơn ODO xe</span> } 
+                                                else { <i class="fas fa-road me-1"></i> <span>Đã chạy: @sauTraiStatus.DrivenKm.ToString("N0") km</span> }
+                                                @if(sauTraiStatus.RemainingKm > 0 && !sauTraiStatus.IsError) { <span class="text-muted fw-normal">(@sauTraiStatus.RemainingKm.ToString("N0") km nữa)</span> }
+                                            </small>
                                         </div>
                                         <div class="btn-group mt-2" role="group">
                                             <a asp-action="Details" asp-route-id="@sauTraiRecord.Id"
@@ -412,10 +448,11 @@
                                 @{
                                     var sauPhai = tiresByPosition?.FirstOrDefault(t => (ViTriLop)t.ViTri == ViTriLop.SauPhai);
                                     var sauPhaiRecord = sauPhai?.LastRecord as TireRecord;
+                                    var sauPhaiStatus = Model.GetTireStatus(sauPhaiRecord);
                                 }
-                                <div class="tire-card @(sauPhaiRecord != null ? "has-data" : "")">
+                                <div class="tire-card @(sauPhaiStatus != null ? $"has-data {sauPhaiStatus.BorderClass}" : "")">
                                     <div class="tire-position">SAU PHẢI ↘️</div>
-                                    @if (sauPhaiRecord != null)
+                                    @if (sauPhaiRecord != null && sauPhaiStatus != null)
                                     {
                                         @* Hình ảnh Chứng từ và DOT *@
                                         <div class="tire-images mb-2">
@@ -475,7 +512,7 @@
                                                         else
                                                         {
                                                             <div class="placeholder-img placeholder-dot" style="height: 80px;">
-                                                                <i class="fas fa-calendar-alt text-muted"></i>
+                                                                <i class="fas fa-image text-muted"></i>
                                                                 <p class="mb-0" style="font-size: 9px;">Chưa có</p>
                                                             </div>
                                                         }
@@ -487,7 +524,13 @@
                                         <div class="tire-info">
                                             <small class="d-block"><strong>@sauPhaiRecord.HangLop @sauPhaiRecord.ModelLop</strong></small>
                                             <small class="d-block text-muted">@sauPhaiRecord.NgayThucHien.ToString("dd/MM/yyyy")</small>
-                                            <small class="d-block text-muted">@sauPhaiRecord.OdoThayLop.ToString("N0") km</small>
+                                            <small class="d-block text-info fw-bold">ODO thay lốp: @sauPhaiRecord.OdoThayLop.ToString("N0") km</small>
+
+                                            <small class="d-block @sauPhaiStatus.TextClass" title="Thay tại: @sauPhaiRecord.OdoThayLop.ToString("N0") km | Dự kiến thay tiếp: @sauPhaiStatus.ExpectedNextOdo.ToString("N0") km">
+                                                @if (sauPhaiStatus.IsError) { <i class="fas fa-exclamation-triangle me-1"></i> <span>Lỗi: ODO thay lốp lớn hơn ODO xe</span> } 
+                                                else { <i class="fas fa-road me-1"></i> <span>Đã chạy: @sauPhaiStatus.DrivenKm.ToString("N0") km</span> }
+                                                @if(sauPhaiStatus.RemainingKm > 0 && !sauPhaiStatus.IsError) { <span class="text-muted fw-normal">(@sauPhaiStatus.RemainingKm.ToString("N0") km nữa)</span> }
+                                            </small>
                                         </div>
                                         <div class="btn-group mt-2" role="group">
                                             <a asp-action="Details" asp-route-id="@sauPhaiRecord.Id"
@@ -567,8 +610,19 @@
             position: relative;
         }
         .tire-card.has-data {
+            /* Base style, overridden by status classes below */
+        }
+        .tire-card.status-success {
             border: 2px solid #198754;
             background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        }
+        .tire-card.status-warning {
+            border: 2px solid #ffca2c;
+            background: linear-gradient(135deg, #fff9e6, #fff3cd);
+        }
+        .tire-card.status-danger {
+            border: 2px solid #dc3545;
+            background: linear-gradient(135deg, #fdf4f5, #f8d7da);
         }
         .tire-card:hover {
             transform: translateY(-3px);

@@ -3,6 +3,7 @@ using System;
 using ChargePoint.CarManagement.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChargePoint.CarManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415094323_AddSystemSetting")]
+    partial class AddSystemSetting
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.25");
@@ -101,7 +104,7 @@ namespace ChargePoint.CarManagement.Migrations
                             BienSo = "30A-12345",
                             MauBienSo = 0,
                             MauXe = "Đỏ",
-                            NgayTao = new DateTime(2026, 4, 15, 17, 32, 52, 55, DateTimeKind.Local).AddTicks(5868),
+                            NgayTao = new DateTime(2026, 4, 15, 16, 43, 22, 794, DateTimeKind.Local).AddTicks(7206),
                             OdoXe = 15000,
                             SoLuong = 5,
                             SoVIN = "LVSHCAMB1NE000001",
@@ -116,7 +119,7 @@ namespace ChargePoint.CarManagement.Migrations
                             BienSo = "30B-67890",
                             MauBienSo = 0,
                             MauXe = "Trắng",
-                            NgayTao = new DateTime(2026, 4, 15, 17, 32, 52, 55, DateTimeKind.Local).AddTicks(5872),
+                            NgayTao = new DateTime(2026, 4, 15, 16, 43, 22, 794, DateTimeKind.Local).AddTicks(7210),
                             OdoXe = 8000,
                             SoLuong = 3,
                             SoVIN = "LVSHCAMB2NE000002",
@@ -254,13 +257,6 @@ namespace ChargePoint.CarManagement.Migrations
                         {
                             Key = "AutoUpdateOdo_Maintenance",
                             Description = "Tự động cập nhật ODO của xe khi thêm hồ sơ bảo dưỡng",
-                            Type = "boolean",
-                            Value = "false"
-                        },
-                        new
-                        {
-                            Key = "MaintenanceMode",
-                            Description = "Bảo trì hệ thống (Chỉ root account mới được truy cập)",
                             Type = "boolean",
                             Value = "false"
                         });

@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace ChargePoint.CarManagement.Models.ViewModels
 {
-    public class CarViewModel
+    public class CarViewModel : BaseAuditEntity
     {
         public int Id { get; set; }
         public int Stt { get; set; }
@@ -58,18 +58,6 @@ namespace ChargePoint.CarManagement.Models.ViewModels
 
         // Existing media collection for Edit view
         public ICollection<CarMedia>? Media { get; set; }
-
-        [Display(Name = "Người tạo")]
-        public string? NguoiTao { get; set; }
-
-        [Display(Name = "Người cập nhật")]
-        public string? NguoiCapNhat { get; set; }
-
-        [Display(Name = "Ngày tạo")]
-        public DateTime NgayTao { get; set; }
-
-        [Display(Name = "Ngày cập nhật")]
-        public DateTime? NgayCapNhat { get; set; }
 
         public static CarViewModel FromCar(Car car)
         {

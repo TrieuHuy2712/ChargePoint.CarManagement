@@ -15,6 +15,7 @@ namespace ChargePoint.CarManagement.Data
         public DbSet<TrafficViolationCheck> TrafficViolationChecks { get; set; }
         public DbSet<MaintenanceRecord> MaintenanceRecords { get; set; }
         public DbSet<TireRecord> TireRecords { get; set; }
+        public DbSet<SystemSetting> SystemSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -71,6 +72,13 @@ namespace ChargePoint.CarManagement.Data
                     OdoXe = 8000,
                     NgayTao = DateTime.Now
                 }
+            );
+
+            // Seed System settings
+            modelBuilder.Entity<SystemSetting>().HasData(
+                new SystemSetting { Key = SystemSettingKeys.AutoUpdateOdo_Tire, Value = "false", Description = "Tự động cập nhật ODO của xe khi thêm hồ sơ lốp", Type = "boolean" },
+                new SystemSetting { Key = SystemSettingKeys.AutoUpdateOdo_Maintenance, Value = "false", Description = "Tự động cập nhật ODO của xe khi thêm hồ sơ bảo dưỡng", Type = "boolean" },
+                new SystemSetting { Key = SystemSettingKeys.MaintenanceMode, Value = "false", Description = "Bảo trì hệ thống (Chỉ root account mới được truy cập)", Type = "boolean" }
             );
         }
     }

@@ -114,7 +114,8 @@
                                 <input asp-for="Record.OdoThayLop" class="form-control" type="number" id="odoThayLop" />
                                 <span class="input-group-text">km</span>
                             </div>
-                            <span asp-validation-for="Record.OdoThayLop" class="text-danger"></span>
+                            <small class="form-text text-info"><i class="fas fa-info-circle"></i> ODO hiện tại của lốp, hệ thống sẽ <strong>KHÔNG</strong> ghi đè lên ODO của xe.</small>
+                            <span asp-validation-for="Record.OdoThayLop" class="text-danger d-block mt-1"></span>
                         </div>
                     </div>
                 </div>

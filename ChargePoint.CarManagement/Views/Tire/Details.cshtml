@@ -251,59 +251,10 @@
             }
         </div>
         <div class="col-md-4">
-            <!-- Thông tin tạo/cập nhật -->
-            <div class="card shadow mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Thông tin hệ thống</h6>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="text-muted small">Người tạo</label>
-                        <p class="mb-0">
-                            <i class="fas fa-user me-2"></i>
-                            @(Model.NguoiTao ?? "N/A")
-                        </p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Ngày tạo</label>
-                        <p class="mb-0">
-                            <i class="fas fa-clock me-2"></i>
-                            @Model.NgayTao.ToString("dd/MM/yyyy HH:mm")
-                        </p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Người cập nhật</label>
-                        <p class="mb-0">
-                            @if (!string.IsNullOrEmpty(Model.NguoiCapNhat))
-                            {
-                                <i class="fas fa-user-edit me-2"></i>
-                                @Model.NguoiCapNhat
-                            }
-                            else
-                            {
-                                <span class="text-muted">Chưa cập nhật</span>
-                            }
-                        </p>
-                    </div>
-                    <div>
-                        <label class="text-muted small">Ngày cập nhật</label>
-                        <p class="mb-0">
-                            @if (Model.NgayCapNhat.HasValue)
-                            {
-                                <i class="fas fa-sync-alt me-2"></i>
-                                @Model.NgayCapNhat.Value.ToString("dd/MM/yyyy HH:mm")
-                            }
-                            else
-                            {
-                                <span class="text-muted">Chưa cập nhật</span>
-                            }
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <partial name="_AuditInfoSidebar" model="Model" />
 
             <!-- Actions -->
-            <div class="card shadow">
+            <div class="card shadow mt-4">
                 <div class="card-header bg-warning">
                     <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Thao tác</h6>
                 </div>

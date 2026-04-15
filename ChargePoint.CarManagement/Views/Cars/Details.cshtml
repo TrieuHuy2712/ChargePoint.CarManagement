@@ -170,60 +170,30 @@
                                 }
                             </td>
                         </tr>
-                        <tr>
-                            <th>@Html.DisplayNameFor(model => model.NguoiTao)</th>
-                            <td>
-                                @if (!string.IsNullOrEmpty(Model.NguoiTao))
-                                {
-                                    <i class="fas fa-user-plus text-success"></i>
-                                    @Model.NguoiTao
-                                }
-                                else
-                                {
-                                    <span class="text-muted">N/A</span>
-                                }
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>@Html.DisplayNameFor(model => model.NgayTao)</th>
-                            <td>
-                                <i class="fas fa-calendar-plus text-success"></i>
-                                @Model.NgayTao.ToString("dd/MM/yyyy HH:mm")
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>@Html.DisplayNameFor(model => model.NguoiCapNhat)</th>
-                            <td>
-                                @if (!string.IsNullOrEmpty(Model.NguoiCapNhat))
-                                {
-                                    <i class="fas fa-user-edit text-warning"></i>
-                                    @Model.NguoiCapNhat
-                                }
-                                else
-                                {
-                                    <span class="text-muted">N/A</span>
-                                }
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>@Html.DisplayNameFor(model => model.NgayCapNhat)</th>
-                            <td>
-                                @if (Model.NgayCapNhat.HasValue)
-                                {
-                                    <i class="fas fa-calendar-check text-warning"></i>
-                                    @Model.NgayCapNhat.Value.ToString("dd/MM/yyyy HH:mm")
-                                }
-                                else
-                                {
-                                    <span class="text-muted">Chưa cập nhật</span>
-                                }
-                            </td>
-                        </tr>
                     </table>
                 </div>
             </div>
 
+            <!-- Management Links -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary bg-opacity-10">
+                    <h6 class="mb-0 text-primary fw-bold"><i class="fas fa-cogs me-2"></i>Bảng điều khiển</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a asp-controller="Maintenance" asp-action="History" asp-route-id="@Model.Id" class="btn btn-info">
+                            <i class="fas fa-tools me-2"></i>Quản lý bảo dưỡng
+                        </a>
+                        <a asp-controller="Tire" asp-action="CarDetail" asp-route-id="@Model.Id" class="btn btn-warning">
+                            <i class="fas fa-dot-circle me-2"></i>Quản lý lốp xe
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <hr />
+
+            <partial name="_AuditInfoSidebar" model="Model" />
 
             @{
                 // Lấy tất cả hình ảnh, loại trừ 2 nhóm folder Image_GSM và Image_KH (nếu có), sắp xếp để ảnh cùng bộ phận nằm cạnh nhau

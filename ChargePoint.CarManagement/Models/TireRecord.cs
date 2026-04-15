@@ -47,6 +47,9 @@ namespace ChargePoint.CarManagement.Models
     /// </summary>
     public class TireRecord : BaseAuditEntity
     {
+        public const int DefaultExpectedLifespanKm = 50000;
+        public const int WarningThresholdKm = 1000;
+
         public int Id { get; set; }
 
         [Required]

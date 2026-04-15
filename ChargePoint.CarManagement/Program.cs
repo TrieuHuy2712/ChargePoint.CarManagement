@@ -56,6 +56,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<ChargePoint.CarManagement.Middleware.MaintenanceMiddleware>();
 
 app.MapControllerRoute(
     name: "default",

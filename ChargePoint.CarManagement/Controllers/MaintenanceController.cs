@@ -228,6 +228,19 @@ namespace ChargePoint.CarManagement.Controllers
                         newRecord.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
                     }
 
+                    // Kiểm tra setting
+                    var settingAutoOdo = await _context.SystemSettings
+                        .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Maintenance);
+
+                    if (settingAutoOdo != null && settingAutoOdo.Value == "true")
+                    {
+                        if (newRecord.SoKmBaoDuong > car.OdoXe)
+                        {
+                            car.OdoXe = newRecord.SoKmBaoDuong;
+                            car.NgayCapNhat = DateTime.Now;
+                        }
+                    }
+
                     _context.MaintenanceRecords.Add(newRecord);
                     await _context.SaveChangesAsync();
 
@@ -343,6 +356,19 @@ namespace ChargePoint.CarManagement.Controllers
                         }
 
                         existingRecord.HinhAnhChungTu = JsonSerializer.Serialize(existingImages);
+                    }
+
+                    // Kiểm tra setting
+                    var settingAutoOdo = await _context.SystemSettings
+                        .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Maintenance);
+
+                    if (settingAutoOdo != null && settingAutoOdo.Value == "true")
+                    {
+                        if (existingRecord.SoKmBaoDuong > car.OdoXe)
+                        {
+                            car.OdoXe = existingRecord.SoKmBaoDuong;
+                            car.NgayCapNhat = DateTime.Now;
+                        }
                     }
 
                     await _context.SaveChangesAsync();

@@ -1,0 +1,73 @@
+﻿@{
+    ViewData["Title"] = "Bảo trì hệ thống";
+    Layout = null; // Không dùng Layout chung để trắng tinh
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hệ thống đang bảo trì</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body {
+            background-color: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .maintenance-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        .icon-container {
+            font-size: 60px;
+            color: #ffc107;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #343a40;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        p {
+            color: #6c757d;
+            font-size: 16px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="maintenance-card">
+        <div class="icon-container">
+            <i class="fas fa-tools"></i>
+        </div>
+        <h1>Đang bảo trì</h1>
+        <p>
+            Hệ thống hiện đang được bảo trì để nâng cấp tính năng và cải thiện hiệu suất. 
+            Vui lòng quay lại sau ít phút. Xin lỗi vì sự bất tiện này!
+        </p>
+
+        <script>
+            // Tuỳ chọn cho root admin có thể hiện nút thử đăng nhập
+            // Mặc định khách vãng lai sẽ chỉ thấy dòng chữ báo trì.
+        </script>
+
+        <div class="mt-4">
+            <a href="/Account/Login" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <i class="fas fa-user-shield me-1"></i> Root Login
+            </a>
+        </div>
+    </div>
+</body>
+</html>

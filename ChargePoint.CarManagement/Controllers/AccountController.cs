@@ -9,9 +9,14 @@ namespace ChargePoint.CarManagement.Controllers
 {
     public class AccountController : Controller
     {
-        // Username và Password cố định
-        private const string ADMIN_USERNAME = "admin";
-        private const string ADMIN_PASSWORD = "123456";
+        // Danh sách tài khoản tĩnh cho demo (Thay vì database)
+        private readonly Dictionary<string, (string Password, string Role, string FullName)> _users = new()
+        {
+            { "admin", ("123456", "Admin", "Quản trị viên") },
+            { "trieuhuy", ("123456", "User", "Triệu Huy") },
+            { "root", ("123456", "Admin", "Quản trị viên") },
+            { "giaphan", ("123456", "User", "Giáp Phan") }
+        };
 
         [AllowAnonymous]
         public IActionResult Login(string? returnUrl = null)
@@ -30,14 +35,14 @@ namespace ChargePoint.CarManagement.Controllers
             if (ModelState.IsValid)
             {
                 // Kiểm tra username và password
-                if (model.Username == ADMIN_USERNAME && model.Password == ADMIN_PASSWORD)
+                if (_users.TryGetValue(model.Username, out var userInfo) && userInfo.Password == model.Password)
                 {
                     // Tạo claims cho user
                     var claims = new List<Claim>
                     {
                         new Claim(ClaimTypes.Name, model.Username),
-                        new Claim(ClaimTypes.Role, "Admin"),
-                        new Claim("FullName", "Quản trị viên")
+                        new Claim(ClaimTypes.Role, userInfo.Role),
+                        new Claim("FullName", userInfo.FullName)
                     };
 
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

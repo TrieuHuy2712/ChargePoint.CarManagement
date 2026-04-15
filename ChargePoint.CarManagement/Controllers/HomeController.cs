@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using ChargePoint.CarManagement.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ChargePoint.CarManagement.Controllers
 {
@@ -19,6 +20,12 @@ namespace ChargePoint.CarManagement.Controllers
         }
 
         public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [AllowAnonymous]
+        public IActionResult Maintenance()
         {
             return View();
         }

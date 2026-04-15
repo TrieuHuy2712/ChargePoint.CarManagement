@@ -527,6 +527,13 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Settings" ? "active" : "")" 
+                                           asp-controller="Settings" asp-action="Index">
+                                            <i class="fas fa-cogs"></i>
+                                            Thiết lập hệ thống
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item" href="#">
                                             <i class="fas fa-cog"></i>
                                             Cài đặt
