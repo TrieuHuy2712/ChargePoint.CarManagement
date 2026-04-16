@@ -38,6 +38,7 @@
             <button type="button" class="btn btn-primary" id="btnSaveAll" disabled style="display:none;">
                 <i class="fas fa-save"></i> Lưu tất cả (<span id="saveCount">0</span>)
             </button>
+
         </div>
     </div>
 
@@ -307,45 +308,106 @@
     <script>
         let checkResults = new Map(); // Store check results by carId
 
+        // Store selected cars as map { id -> bienSo } to keep plate with selection across pages
+        let selectedCars = new Map();
+
+        // Restore selections when page loads
+        function initSelections() {
+            const saved = sessionStorage.getItem('bulkCheckSelectedCars');
+            if (saved) {
+                try {
+                    const arr = JSON.parse(saved); // [[id, bienSo], ...]
+                    selectedCars = new Map(arr);
+                } catch (e) {
+                    selectedCars = new Map();
+                }
+            }
+
+            document.querySelectorAll('.car-checkbox').forEach(cb => {
+                const id = cb.value; // use string keys to be stable across json
+                if (selectedCars.has(id)) {
+                    cb.checked = true;
+                }
+            });
+            updateSelectedCountUI();
+        }
+
+        function saveSelections() {
+            sessionStorage.setItem('bulkCheckSelectedCars', JSON.stringify(Array.from(selectedCars.entries())));
+        }
+
         // Select all functionality
         document.getElementById('selectAll').addEventListener('change', function() {
-            document.querySelectorAll('.car-checkbox').forEach(cb => cb.checked = this.checked);
-            updateSelectedCount();
+            document.querySelectorAll('.car-checkbox').forEach(cb => {
+                cb.checked = this.checked;
+                const id = cb.value;
+                const bienSo = cb.closest('tr')?.dataset?.bienSo || '';
+                if (this.checked) selectedCars.set(id, bienSo);
+                else selectedCars.delete(id);
+            });
+            saveSelections();
+            updateSelectedCountUI();
         });
 
         document.getElementById('selectAllPage').addEventListener('change', function() {
-            document.querySelectorAll('.car-checkbox').forEach(cb => cb.checked = this.checked);
-            updateSelectedCount();
+            document.querySelectorAll('.car-checkbox').forEach(cb => {
+                cb.checked = this.checked;
+                const id = cb.value;
+                const bienSo = cb.closest('tr')?.dataset?.bienSo || '';
+                if (this.checked) selectedCars.set(id, bienSo);
+                else selectedCars.delete(id);
+            });
+            saveSelections();
+            updateSelectedCountUI();
         });
 
         document.querySelectorAll('.car-checkbox').forEach(cb => {
-            cb.addEventListener('change', updateSelectedCount);
+            cb.addEventListener('change', function() {
+                const id = this.value;
+                const bienSo = this.closest('tr')?.dataset?.bienSo || '';
+                if (this.checked) selectedCars.set(id, bienSo);
+                else selectedCars.delete(id);
+                saveSelections();
+                updateSelectedCountUI();
+            });
         });
 
-        function updateSelectedCount() {
-            const count = document.querySelectorAll('.car-checkbox:checked').length;
+        function updateSelectedCountUI() {
+            const count = selectedCars.size;
             document.getElementById('selectedCount').textContent = count;
             document.getElementById('btnCheckSelected').disabled = count === 0;
+            // (no visible list)
         }
+
+        // Call init on load
+        initSelections();
 
         // Check selected cars
         document.getElementById('btnCheckSelected').addEventListener('click', async function() {
-            const selectedCheckboxes = document.querySelectorAll('.car-checkbox:checked');
-            const carIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+            const entries = Array.from(selectedCars.entries()); // [[id, bienSo], ...] id is string
+            const carIds = entries.map(e => parseInt(e[0]));
 
             if (carIds.length === 0) {
                 alert('Vui lòng chọn ít nhất một xe!');
                 return;
             }
 
-            if (!confirm(`Bạn có chắc muốn tra cứu ${carIds.length} xe?`)) {
+            if (!confirm(`Bạn có chắc muốn tra cứu ${carIds.length} xe đã chọn?`)) {
                 return;
             }
 
-            await bulkCheckOnline(carIds);
+            // Send both id and bienSo for each selected car
+            const payload = entries.map(e => ({ carId: parseInt(e[0]), bienSo: e[1] }));
+            await bulkCheckOnline(payload);
+
+            // Optionally clear after check:
+            // selectedCars.clear();
+            // saveSelections();
+            // document.querySelectorAll('.car-checkbox').forEach(cb => cb.checked = false);
+            // updateSelectedCountUI();
         });
 
-        async function bulkCheckOnline(carIds) {
+        async function bulkCheckOnline(carRequests) {
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
@@ -356,16 +418,22 @@
             btnCheckSelected.disabled = true;
 
             let completed = 0;
-            const total = carIds.length;
+            const total = carRequests.length;
 
-            for (const carId of carIds) {
-                const row = document.querySelector(`tr[data-car-id="${carId}"]`);
-                const statusCell = row.querySelector('.status-cell');
-                const resultCell = row.querySelector('.result-cell');
-                const bienSo = row.dataset.bienSo;
+            // Loop per plate and send individual requests so UI can indicate which is processing
+            progressBar.style.width = '0%';
+            progressText.textContent = `0/${total}`;
 
-                // Update status: Đang tra cứu
-                statusCell.innerHTML = '<span class="badge bg-warning"><i class="fas fa-spinner fa-spin"></i> Đang tra cứu...</span>';
+            for (const req of carRequests) {
+                const id = (typeof req === 'object' && req !== null) ? req.carId : req;
+                const reqBienSo = (typeof req === 'object' && req !== null) ? req.bienSo : null;
+                const row = document.querySelector(`tr[data-car-id="${id}"]`);
+                const statusCell = row ? row.querySelector('.status-cell') : null;
+                const resultCell = row ? row.querySelector('.result-cell') : null;
+                const bienSo = row ? row.dataset.bienSo : (reqBienSo || (id || ''));
+
+                // Mark this row as processing
+                if (statusCell) statusCell.innerHTML = '<span class="badge bg-warning"><i class="fas fa-spinner fa-spin"></i> Đang tra cứu...</span>';
 
                 try {
                     const response = await fetch('@Url.Action("CheckOnline", "BulkTrafficViolation")', {
@@ -373,74 +441,77 @@
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify([carId])
+                        body: JSON.stringify([{ carId: id, bienSo: bienSo }])
                     });
 
                     const responseData = await response.json();
-
-                    if (responseData.success && responseData.results && responseData.results.length > 0) {
-                        const data = responseData.results[0];
-
-                        if (data.success) {
-                            // Store result
-                            checkResults.set(carId, {
-                                carId: carId,
-                                bienSo: bienSo,
-                                soLuongViPham: data.soLuongViPham || 0,
-                                ngayGioViPham: data.danhSachViPham && data.danhSachViPham.length > 0 
-                                    ? parseVietnameseDate(data.danhSachViPham[0].ngayViPham) 
-                                    : null,
-                                noiDungViPham: data.danhSachViPham && data.danhSachViPham.length > 0 
-                                    ? data.danhSachViPham[0].hanhVi 
-                                    : null,
-                                diaDiemViPham: data.danhSachViPham && data.danhSachViPham.length > 0 
-                                    ? data.danhSachViPham[0].diaDiem 
-                                    : null,
-                                ghiChu: `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}`
-                            });
-
-                            if (data.coViPham) {
-                                statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Có vi phạm</span>`;
-                                resultCell.innerHTML = `<strong class="text-danger">${data.soLuongViPham} vi phạm</strong>`;
-                            } else {
-                                statusCell.innerHTML = `<span class="badge bg-success"><i class="fas fa-check-circle"></i> Không vi phạm</span>`;
-                                resultCell.innerHTML = `<span class="text-success">Sạch</span>`;
-                            }
-                        } else {
-                            // Store error result
-                            checkResults.set(carId, {
-                                carId: carId,
-                                bienSo: bienSo,
-                                soLuongViPham: 0,
-                                ghiChu: 'Lỗi: ' + data.message
-                            });
-
-                            statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-times"></i> Lỗi</span>`;
-                            resultCell.innerHTML = `<small class="text-danger">${data.message}</small>`;
-                        }
-                    } else {
+                    if (!(responseData && responseData.success && Array.isArray(responseData.results) && responseData.results.length > 0)) {
                         throw new Error('Invalid response format');
                     }
+
+                    const data = responseData.results[0];
+
+                    // Build full violation details
+                    let trangThai = null;
+                    let fullViPham = null;
+                    if (data.danhSachViPham && data.danhSachViPham.length > 0) {
+                        trangThai = data.danhSachViPham[0].trangThai;
+                        fullViPham = data.danhSachViPham.map((vp, i) =>
+                            `[Lỗi ${i+1}] Thời gian: ${vp.ngayViPham} | Địa điểm: ${vp.diaDiem} | Hành vi: ${vp.hanhVi} | Trạng thái: ${vp.trangThai} | Đơn vị: ${vp.donViPhatHien}`
+                        ).join('\n');
+                    }
+
+                    // Store result
+                    checkResults.set(id, {
+                        carId: id,
+                        bienSo: data.bienSo,
+                        soLuongViPham: data.soLuongViPham || 0,
+                        ngayGioViPham: data.danhSachViPham && data.danhSachViPham.length > 0
+                            ? parseVietnameseDate(data.danhSachViPham[0].ngayViPham)
+                            : null,
+                        noiDungViPham: data.danhSachViPham && data.danhSachViPham.length > 0
+                            ? data.danhSachViPham[0].hanhVi
+                            : null,
+                        diaDiemViPham: data.danhSachViPham && data.danhSachViPham.length > 0
+                            ? data.danhSachViPham[0].diaDiem
+                            : null,
+                        trangThaiCSGT: trangThai,
+                        fullViPhamData: fullViPham,
+                        danhSachViPham: data.danhSachViPham,
+                        ghiChu: `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}`
+                    });
+
+                    if (data.success) {
+                        if (data.coViPham) {
+                            if (statusCell) statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Có vi phạm</span>`;
+                            if (resultCell) resultCell.innerHTML = `<strong class="text-danger">${data.soLuongViPham} vi phạm</strong>`;
+                        } else {
+                            if (statusCell) statusCell.innerHTML = `<span class="badge bg-success"><i class="fas fa-check-circle"></i> Không vi phạm</span>`;
+                            if (resultCell) resultCell.innerHTML = `<span class="text-success">Sạch</span>`;
+                        }
+                    } else {
+                        if (statusCell) statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-times"></i> Lỗi</span>`;
+                        if (resultCell) resultCell.innerHTML = `<small class="text-danger">${data.message}</small>`;
+                    }
                 } catch (error) {
-                    // Store error result
-                    checkResults.set(carId, {
-                        carId: carId,
+                    checkResults.set(id, {
+                        carId: id,
                         bienSo: bienSo,
                         soLuongViPham: 0,
                         ghiChu: 'Lỗi: ' + error.message
                     });
 
-                    statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-times"></i> Lỗi</span>`;
-                    resultCell.innerHTML = `<small class="text-danger">${error.message}</small>`;
+                    if (statusCell) statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-times"></i> Lỗi</span>`;
+                    if (resultCell) resultCell.innerHTML = `<small class="text-danger">${error.message}</small>`;
                 }
 
                 completed++;
-                const percent = (completed / total * 100).toFixed(0);
+                const percent = Math.min(100, Math.round(completed / total * 100));
                 progressBar.style.width = percent + '%';
                 progressText.textContent = `${completed}/${total}`;
 
-                // Delay to avoid overwhelming the API
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Small delay between calls to be nice to API
+                await new Promise(resolve => setTimeout(resolve, 400));
             }
 
             progressContainer.style.display = 'none';
@@ -537,8 +608,17 @@
                     <td>${tenXe}</td>
                     <td><span class="badge bg-danger">${result.soLuongViPham}</span></td>
                     <td>
-                        ${result.noiDungViPham ? `<small>${result.noiDungViPham}</small>` : '-'}<br/>
-                        ${result.diaDiemViPham ? `<small class="text-muted"><i class="fas fa-map-marker-alt"></i> ${result.diaDiemViPham}</small>` : ''}
+                        ${result.danhSachViPham && result.danhSachViPham.length > 0 ? 
+                            result.danhSachViPham.map(vp => `
+                                <div class="mb-1">
+                                    ${vp.hanhVi ? `<small>${vp.hanhVi}</small><br/>` : ''}
+                                    ${vp.diaDiem ? `<small class="text-muted"><i class="fas fa-map-marker-alt"></i> ${vp.diaDiem}</small>` : ''}
+                                </div>
+                            `).join('<hr class="my-1"/>')
+                          : `
+                                ${result.noiDungViPham ? `<small>${result.noiDungViPham}</small>` : '-'}<br/>
+                                ${result.diaDiemViPham ? `<small class="text-muted"><i class="fas fa-map-marker-alt"></i> ${result.diaDiemViPham}</small>` : ''}
+                            `}
                     </td>
                 `;
                 tbody.appendChild(tr);

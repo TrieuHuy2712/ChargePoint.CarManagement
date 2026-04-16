@@ -461,7 +461,7 @@
                     let firstDate = null;
 
                     lastModalResult.danhSachViPham.forEach((v, i) => {
-                        const prefix = lastModalResult.danhSachViPham.length > 1 ? `${i + 1}. ` : '';
+                        const prefix = lastModalResult.danhSachViPham.length > 1 ? `[${i + 1}] ` : '';
                         if (v.hanhVi) noiDungArr.push(prefix + v.hanhVi);
                         if (v.diaDiem) diaDiemArr.push(prefix + v.diaDiem);
                         if (!firstDate && v.ngayViPham) firstDate = v.ngayViPham;

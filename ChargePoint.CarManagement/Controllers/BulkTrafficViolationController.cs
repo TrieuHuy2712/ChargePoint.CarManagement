@@ -73,26 +73,38 @@ namespace ChargePoint.CarManagement.Controllers
             return View(viewModel);
         }
 
+        // DTO for bulk check request
+        public class CarCheckRequest
+        {
+            public int CarId { get; set; }
+            public string? BienSo { get; set; }
+        }
+
         // POST: BulkTrafficViolation/CheckOnline
         [HttpPost]
-        public async Task<IActionResult> CheckOnline([FromBody] int[] carIds)
+        public async Task<IActionResult> CheckOnline([FromBody] List<CarCheckRequest> requests)
         {
-            if (carIds == null || carIds.Length == 0)
+            if (requests == null || requests.Count == 0)
             {
                 return Json(new { success = false, message = "Không có xe nào được chọn" });
             }
 
             var results = new List<object>();
+
+            var carIds = requests.Select(r => r.CarId).ToList();
             var cars = await _context.Cars.Where(c => carIds.Contains(c.Id)).ToListAsync();
 
-            foreach (var car in cars)
+            foreach (var req in requests)
             {
-                if (string.IsNullOrEmpty(car.BienSo))
+                var car = cars.FirstOrDefault(c => c.Id == req.CarId);
+                var plate = req.BienSo ?? car?.BienSo;
+
+                if (string.IsNullOrEmpty(plate))
                 {
                     results.Add(new
                     {
-                        carId = car.Id,
-                        bienSo = car.BienSo,
+                        carId = req.CarId,
+                        bienSo = plate,
                         success = false,
                         message = "Không có biển số"
                     });
@@ -101,12 +113,12 @@ namespace ChargePoint.CarManagement.Controllers
 
                 try
                 {
-                    var result = await _violationService.CheckViolationAsync(car.BienSo);
+                    var result = await _violationService.CheckViolationAsync(plate!);
                     results.Add(new
                     {
-                        carId = car.Id,
-                        bienSo = car.BienSo,
-                        tenXe = car.TenXe,
+                        carId = req.CarId,
+                        bienSo = plate,
+                        tenXe = car?.TenXe,
                         success = result.Success,
                         coViPham = result.CoViPham,
                         soLuongViPham = result.SoLuongViPham,
@@ -118,8 +130,8 @@ namespace ChargePoint.CarManagement.Controllers
                 {
                     results.Add(new
                     {
-                        carId = car.Id,
-                        bienSo = car.BienSo,
+                        carId = req.CarId,
+                        bienSo = plate,
                         success = false,
                         message = $"Lỗi: {ex.Message}"
                     });
@@ -149,22 +161,64 @@ namespace ChargePoint.CarManagement.Controllers
             {
                 try
                 {
-                    var coViPham = item.SoLuongViPham > 0;
-
                     var newRecord = new TrafficViolationCheck
                     {
                         CarId = item.CarId,
                         NgayKiemTra = DateTime.Now,
                         NguoiTao = User.Identity?.Name,
-                        CoViPham = coViPham,
+                        CoViPham = item.SoLuongViPham > 0,
                         SoLuongViPham = item.SoLuongViPham,
-                        NgayGioViPham = item.NgayGioViPham,
-                        NoiDungViPham = item.NoiDungViPham,
-                        DiaDiemViPham = item.DiaDiemViPham,
                         TrangThaiXuLy = ViolationStatus.DaBao,
                         NgayCapNhatTrangThai = DateTime.Now,
                         GhiChu = item.GhiChu
                     };
+
+                    if (item.SoLuongViPham > 0 && item.DanhSachViPham != null && item.DanhSachViPham.Any())
+                    {
+                        var noiDungArr = new List<string>();
+                        var diaDiemArr = new List<string>();
+                        DateTime? firstNgayGio = null;
+
+                        for (int i = 0; i < item.DanhSachViPham.Count; i++)
+                        {
+                            var vp = item.DanhSachViPham[i];
+                            var prefix = item.DanhSachViPham.Count > 1 ? $"[{i + 1}] " : "";
+
+                            if (!string.IsNullOrWhiteSpace(vp.HanhVi)) noiDungArr.Add(prefix + vp.HanhVi);
+                            if (!string.IsNullOrWhiteSpace(vp.DiaDiem)) diaDiemArr.Add(prefix + vp.DiaDiem);
+
+                            if (firstNgayGio == null && !string.IsNullOrWhiteSpace(vp.NgayViPham))
+                            {
+                                var dateStr = vp.NgayViPham.Replace("  ", " ").Trim();
+                                if (DateTime.TryParseExact(dateStr, "HH:mm, dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out var d))
+                                {
+                                    firstNgayGio = d;
+                                }
+                                else if (DateTime.TryParse(dateStr, out var defD))
+                                {
+                                    firstNgayGio = defD;
+                                }
+                            }
+                        }
+
+                        newRecord.NoiDungViPham = noiDungArr.Any() ? string.Join("\n", noiDungArr) : item.NoiDungViPham;
+                        newRecord.DiaDiemViPham = diaDiemArr.Any() ? string.Join("\n", diaDiemArr) : item.DiaDiemViPham;
+                        newRecord.NgayGioViPham = firstNgayGio ?? item.NgayGioViPham;
+
+                        var detailGhiChu = $"Tra cứu tự động lúc {DateTime.Now:dd/MM/yyyy HH:mm:ss}\nPhát hiện {item.SoLuongViPham} vi phạm:\n";
+                        for (int i = 0; i < item.DanhSachViPham.Count; i++)
+                        {
+                            var vp = item.DanhSachViPham[i];
+                            detailGhiChu += $"{i + 1}. {vp.NgayViPham} - Lỗi: {vp.HanhVi} | Đơn vị: {vp.DonViPhatHien}\n";
+                        }
+                        newRecord.GhiChu = detailGhiChu;
+                    }
+                    else
+                    {
+                        newRecord.NgayGioViPham = item.NgayGioViPham;
+                        newRecord.NoiDungViPham = item.NoiDungViPham;
+                        newRecord.DiaDiemViPham = item.DiaDiemViPham;
+                    }
 
                     _context.TrafficViolationChecks.Add(newRecord);
                     savedCount++;
@@ -254,6 +308,52 @@ namespace ChargePoint.CarManagement.Controllers
             var totalClean = results.Count(r => r.SoLuongViPham == 0);
             var totalViolationCount = results.Sum(r => r.SoLuongViPham);
 
+            int carsChuaDongPhat = 0;
+            int carsDaDongPhat = 0;
+            int luotChuaDongPhat = 0;
+            int luotDaDongPhat = 0;
+
+            foreach (var r in results.Where(x => x.SoLuongViPham > 0))
+            {
+                bool hasChuaDong = false;
+                bool hasDaDong = false;
+
+                if (r.DanhSachViPham != null && r.DanhSachViPham.Any())
+                {
+                    foreach (var vp in r.DanhSachViPham)
+                    {
+                        var status = vp.TrangThai ?? r.TrangThaiCSGT ?? "";
+                        if (status.IndexOf("Đã xử phạt", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            luotDaDongPhat++;
+                            hasDaDong = true;
+                        }
+                        else
+                        {
+                            luotChuaDongPhat++;
+                            hasChuaDong = true;
+                        }
+                    }
+                }
+                else
+                {
+                    var status = r.TrangThaiCSGT ?? "";
+                    if (status.IndexOf("Đã xử phạt", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        luotDaDongPhat += r.SoLuongViPham;
+                        hasDaDong = true;
+                    }
+                    else
+                    {
+                        luotChuaDongPhat += r.SoLuongViPham;
+                        hasChuaDong = true;
+                    }
+                }
+
+                if (hasChuaDong) carsChuaDongPhat++;
+                if (hasDaDong) carsDaDongPhat++;
+            }
+
             sheet.Cells["A4"].Value = "THỐNG KÊ";
             sheet.Cells["A4"].Style.Font.Bold = true;
             sheet.Cells["A4"].Style.Font.Size = 14;
@@ -281,6 +381,30 @@ namespace ChargePoint.CarManagement.Controllers
             sheet.Cells["B10"].Value = totalChecked > 0 ? (totalViolations * 100.0 / totalChecked).ToString("0.00") + "%" : "0%";
             sheet.Cells["B10"].Style.Font.Bold = true;
 
+            sheet.Cells["A12"].Value = "THÔNG TIN ĐÓNG PHẠT";
+            sheet.Cells["A12"].Style.Font.Bold = true;
+            sheet.Cells["A12"].Style.Font.Size = 14;
+
+            sheet.Cells["A14"].Value = "Số xe chưa đóng phạt:";
+            sheet.Cells["B14"].Value = carsChuaDongPhat;
+            sheet.Cells["B14"].Style.Font.Color.SetColor(System.Drawing.Color.OrangeRed);
+            sheet.Cells["B14"].Style.Font.Bold = true;
+
+            sheet.Cells["A15"].Value = "Số lượng lỗi chưa đóng phạt:";
+            sheet.Cells["B15"].Value = luotChuaDongPhat;
+            sheet.Cells["B15"].Style.Font.Color.SetColor(System.Drawing.Color.OrangeRed);
+            sheet.Cells["B15"].Style.Font.Bold = true;
+
+            sheet.Cells["A16"].Value = "Số xe đã đóng phạt:";
+            sheet.Cells["B16"].Value = carsDaDongPhat;
+            sheet.Cells["B16"].Style.Font.Color.SetColor(System.Drawing.Color.Blue);
+            sheet.Cells["B16"].Style.Font.Bold = true;
+
+            sheet.Cells["A17"].Value = "Số lượng lỗi đã đóng phạt:";
+            sheet.Cells["B17"].Value = luotDaDongPhat;
+            sheet.Cells["B17"].Style.Font.Color.SetColor(System.Drawing.Color.Blue);
+            sheet.Cells["B17"].Style.Font.Bold = true;
+
             // Auto-fit columns
             sheet.Cells[sheet.Dimension.Address].AutoFitColumns();
         }
@@ -290,14 +414,15 @@ namespace ChargePoint.CarManagement.Controllers
             // Headers
             sheet.Cells["A1"].Value = "STT";
             sheet.Cells["B1"].Value = "Biển số";
-            sheet.Cells["C1"].Value = "Số lượng vi phạm";
+            sheet.Cells["C1"].Value = "Trạng thái phạt nguội";
             sheet.Cells["D1"].Value = "Ngày giờ vi phạm";
             sheet.Cells["E1"].Value = "Nội dung vi phạm";
             sheet.Cells["F1"].Value = "Địa điểm vi phạm";
-            sheet.Cells["G1"].Value = "Ghi chú";
+            sheet.Cells["G1"].Value = "Chi tiết đầy đủ (Tất cả lỗi)";
+            sheet.Cells["H1"].Value = "Ghi chú";
 
             // Style headers
-            using (var range = sheet.Cells["A1:G1"])
+            using (var range = sheet.Cells["A1:H1"])
             {
                 range.Style.Font.Bold = true;
                 range.Style.Fill.PatternType = ExcelFillStyle.Solid;
@@ -308,28 +433,74 @@ namespace ChargePoint.CarManagement.Controllers
 
             // Data
             int row = 2;
+            int stt = 1;
             foreach (var result in results)
             {
-                sheet.Cells[row, 1].Value = row - 1;
-                sheet.Cells[row, 2].Value = result.BienSo;
-                sheet.Cells[row, 3].Value = result.SoLuongViPham;
-                sheet.Cells[row, 4].Value = result.NgayGioViPham?.ToString("dd/MM/yyyy HH:mm");
-                sheet.Cells[row, 5].Value = result.NoiDungViPham;
-                sheet.Cells[row, 6].Value = result.DiaDiemViPham;
-                sheet.Cells[row, 7].Value = result.GhiChu;
-
-                // Highlight violations
-                if (result.SoLuongViPham > 0)
+                if (result.SoLuongViPham > 0 && result.DanhSachViPham != null && result.DanhSachViPham.Any())
                 {
-                    sheet.Cells[row, 1, row, 7].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                    sheet.Cells[row, 1, row, 7].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
-                }
+                    foreach (var vp in result.DanhSachViPham)
+                    {
+                        var trangThai = vp.TrangThai ?? result.TrangThaiCSGT;
 
-                row++;
+                        sheet.Cells[row, 1].Value = stt++;
+                        sheet.Cells[row, 2].Value = result.BienSo;
+                        sheet.Cells[row, 3].Value = trangThai;
+                        sheet.Cells[row, 4].Value = vp.NgayViPham;
+                        sheet.Cells[row, 5].Value = vp.HanhVi;
+                        sheet.Cells[row, 6].Value = vp.DiaDiem;
+
+                        sheet.Cells[row, 7].Value = $"Đơn vị phạt: {vp.DonViPhatHien}";
+                        sheet.Cells[row, 7].Style.WrapText = true;
+
+                        sheet.Cells[row, 8].Value = result.GhiChu;
+
+                        sheet.Cells[row, 1, row, 8].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        if (trangThai != null && trangThai.IndexOf("Đã xử phạt", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            sheet.Cells[row, 1, row, 8].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
+                        }
+                        else
+                        {
+                            sheet.Cells[row, 1, row, 8].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
+                        }
+
+                        row++;
+                    }
+                }
+                else
+                {
+                    sheet.Cells[row, 1].Value = stt++;
+                    sheet.Cells[row, 2].Value = result.BienSo;
+                    sheet.Cells[row, 3].Value = result.TrangThaiCSGT;
+                    sheet.Cells[row, 4].Value = result.NgayGioViPham?.ToString("dd/MM/yyyy HH:mm");
+                    sheet.Cells[row, 5].Value = result.NoiDungViPham;
+                    sheet.Cells[row, 6].Value = result.DiaDiemViPham;
+
+                    sheet.Cells[row, 7].Value = result.FullViPhamData;
+                    sheet.Cells[row, 7].Style.WrapText = true; // Cho phép text xuống dòng
+
+                    sheet.Cells[row, 8].Value = result.GhiChu;
+
+                    // Highlight violations
+                    if (result.SoLuongViPham > 0)
+                    {
+                        sheet.Cells[row, 1, row, 8].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        if (result.TrangThaiCSGT != null && result.TrangThaiCSGT.IndexOf("Đã xử phạt", StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
+                            sheet.Cells[row, 1, row, 8].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightBlue);
+                        }
+                        else
+                        {
+                            sheet.Cells[row, 1, row, 8].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightPink);
+                        }
+                    }
+
+                    row++;
+                }
             }
 
             // Borders
-            var dataRange = sheet.Cells[1, 1, row - 1, 7];
+            var dataRange = sheet.Cells[1, 1, row - 1, 8];
             dataRange.Style.Border.Top.Style = ExcelBorderStyle.Thin;
             dataRange.Style.Border.Left.Style = ExcelBorderStyle.Thin;
             dataRange.Style.Border.Right.Style = ExcelBorderStyle.Thin;
@@ -337,6 +508,7 @@ namespace ChargePoint.CarManagement.Controllers
 
             // Auto-fit columns
             sheet.Cells[sheet.Dimension.Address].AutoFitColumns();
+            sheet.Column(7).Width = 80; // Giới hạn độ rộng cột Chi tiết
         }
 
         private static void CreateViolationsSheet(ExcelWorksheet sheet, List<TrafficViolationBulkCheckVM> violations)
@@ -344,10 +516,10 @@ namespace ChargePoint.CarManagement.Controllers
             // Headers
             sheet.Cells["A1"].Value = "STT";
             sheet.Cells["B1"].Value = "Biển số";
-            sheet.Cells["C1"].Value = "Số vi phạm";
+            sheet.Cells["C1"].Value = "Trạng thái phạt nguội";
             sheet.Cells["D1"].Value = "Ngày giờ vi phạm";
-            sheet.Cells["E1"].Value = "Nội dung vi phạm";
-            sheet.Cells["F1"].Value = "Địa điểm vi phạm";
+            sheet.Cells["E1"].Value = "Địa điểm vi phạm";
+            sheet.Cells["F1"].Value = "Chi tiết đầy đủ (Tất cả lỗi)";
 
             // Style headers
             using (var range = sheet.Cells["A1:F1"])
@@ -361,23 +533,38 @@ namespace ChargePoint.CarManagement.Controllers
 
             // Data
             int row = 2;
+            int stt = 1;
             foreach (var result in violations)
             {
-                sheet.Cells[row, 1].Value = row - 1;
-                sheet.Cells[row, 2].Value = result.BienSo;
-                sheet.Cells[row, 3].Value = result.SoLuongViPham;
-                sheet.Cells[row, 4].Value = result.NgayGioViPham?.ToString("dd/MM/yyyy HH:mm");
-                sheet.Cells[row, 5].Value = result.NoiDungViPham;
-                sheet.Cells[row, 6].Value = result.DiaDiemViPham;
-
-                // Highlight high violation count
-                if (result.SoLuongViPham > 2)
+                if (result.DanhSachViPham != null && result.DanhSachViPham.Any())
                 {
-                    sheet.Cells[row, 3].Style.Font.Color.SetColor(System.Drawing.Color.DarkRed);
-                    sheet.Cells[row, 3].Style.Font.Bold = true;
-                }
+                    foreach (var vp in result.DanhSachViPham)
+                    {
+                        sheet.Cells[row, 1].Value = stt++;
+                        sheet.Cells[row, 2].Value = result.BienSo;
+                        sheet.Cells[row, 3].Value = vp.TrangThai ?? result.TrangThaiCSGT;
+                        sheet.Cells[row, 4].Value = vp.NgayViPham;
+                        sheet.Cells[row, 5].Value = vp.DiaDiem;
 
-                row++;
+                        sheet.Cells[row, 6].Value = $"Lỗi: {vp.HanhVi} - Đơn vị: {vp.DonViPhatHien}";
+                        sheet.Cells[row, 6].Style.WrapText = true;
+
+                        row++;
+                    }
+                }
+                else
+                {
+                    sheet.Cells[row, 1].Value = stt++;
+                    sheet.Cells[row, 2].Value = result.BienSo;
+                    sheet.Cells[row, 3].Value = result.TrangThaiCSGT;
+                    sheet.Cells[row, 4].Value = result.NgayGioViPham?.ToString("dd/MM/yyyy HH:mm");
+                    sheet.Cells[row, 5].Value = result.DiaDiemViPham;
+
+                    sheet.Cells[row, 6].Value = result.FullViPhamData;
+                    sheet.Cells[row, 6].Style.WrapText = true;
+
+                    row++;
+                }
             }
 
             // Borders and auto-fit
@@ -387,6 +574,7 @@ namespace ChargePoint.CarManagement.Controllers
             dataRange.Style.Border.Right.Style = ExcelBorderStyle.Thin;
             dataRange.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
             sheet.Cells[sheet.Dimension.Address].AutoFitColumns();
+            sheet.Column(6).Width = 80;
         }
 
         private static void CreateCleanSheet(ExcelWorksheet sheet, List<TrafficViolationBulkCheckVM> clean)

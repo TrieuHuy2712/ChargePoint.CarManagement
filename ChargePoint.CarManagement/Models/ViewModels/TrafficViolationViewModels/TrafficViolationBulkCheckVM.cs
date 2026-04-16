@@ -8,6 +8,9 @@ namespace ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels
         public DateTime? NgayGioViPham { get; set; }
         public string? NoiDungViPham { get; set; }
         public string? DiaDiemViPham { get; set; }
+        public string? TrangThaiCSGT { get; set; }
+        public string? FullViPhamData { get; set; }
         public string? GhiChu { get; set; }
+        public List<ChargePoint.CarManagement.Models.ViolationDetail>? DanhSachViPham { get; set; }
     }
 }

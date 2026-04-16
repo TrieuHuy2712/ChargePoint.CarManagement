@@ -93,8 +93,8 @@
                         </div>
                         <div class="mb-3">
                             <label asp-for="TrafficViolationCheck.DiaDiemViPham" class="form-label"></label>
-                            <input asp-for="TrafficViolationCheck.DiaDiemViPham" class="form-control" 
-                                   placeholder="Nhập địa điểm vi phạm (nếu có)..." />
+                            <textarea asp-for="TrafficViolationCheck.DiaDiemViPham" class="form-control" rows="2"
+                                      placeholder="Nhập địa điểm vi phạm (nếu có)..."></textarea>
                             <span asp-validation-for="TrafficViolationCheck.DiaDiemViPham" class="text-danger"></span>
                         </div>
 
@@ -256,28 +256,22 @@
                     const firstViolation = lastCheckResult.danhSachViPham[0];
                     console.log('First violation:', firstViolation);
 
-                    // Set ngày giờ vi phạm
+                    // Set ngày giờ vi phạm (Lấy cái đầu tiên)
                     const ngayViPhamInput = document.querySelector('[name="TrafficViolationCheck.NgayGioViPham"]');
                     if (ngayViPhamInput && firstViolation.ngayViPham) {
                         try {
                             const dateStr = firstViolation.ngayViPham.trim();
                             let date;
 
-                            console.log('Parsing date string:', dateStr);
-
-                            // Try to parse HH:mm, DD/MM/YYYY format (e.g., "10:19, 10/01/2026")
+                            // Try to parse HH:mm, DD/MM/YYYY format
                             let parts = dateStr.match(/(\d{2}):(\d{2}),?\s*(\d{2})\/(\d{2})\/(\d{4})/);
                             if (parts) {
-                                console.log('Matched HH:mm, DD/MM/YYYY format:', parts);
                                 date = new Date(parts[5], parts[4] - 1, parts[3], parts[1], parts[2]);
                             } else {
-                                // Try to parse DD/MM/YYYY HH:mm format
                                 parts = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s*(\d{2}):(\d{2})/);
                                 if (parts) {
-                                    console.log('Matched DD/MM/YYYY HH:mm format:', parts);
                                     date = new Date(parts[3], parts[2] - 1, parts[1], parts[4], parts[5]);
                                 } else {
-                                    console.log('Using default Date parsing');
                                     date = new Date(dateStr);
                                 }
                             }
@@ -290,27 +284,22 @@
                                 const minutes = String(date.getMinutes()).padStart(2, '0');
 
                                 ngayViPhamInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-                                console.log('Set NgayGioViPham:', ngayViPhamInput.value, 'from date:', date);
-                            } else {
-                                console.error('Invalid date object:', date);
                             }
                         } catch (e) {
-                            console.error('Error parsing date:', e, 'Input:', firstViolation.ngayViPham);
+                            console.error('Error parsing date:', e);
                         }
                     }
 
-                    // Set nội dung vi phạm
+                    // Set nội dung vi phạm (Liệt kê tất cả)
                     const noiDungInput = document.querySelector('[name="TrafficViolationCheck.NoiDungViPham"]');
-                    if (noiDungInput && firstViolation.hanhVi) {
-                        noiDungInput.value = firstViolation.hanhVi;
-                        console.log('Set NoiDungViPham:', noiDungInput.value);
+                    if (noiDungInput) {
+                        noiDungInput.value = lastCheckResult.danhSachViPham.map((v, i) => `Lỗi ${i+1}: ${v.hanhVi || ''}`).join('\n');
                     }
 
-                    // Set địa điểm vi phạm
+                    // Set địa điểm vi phạm (Liệt kê tất cả)
                     const diaDiemInput = document.querySelector('[name="TrafficViolationCheck.DiaDiemViPham"]');
-                    if (diaDiemInput && firstViolation.diaDiem) {
-                        diaDiemInput.value = firstViolation.diaDiem;
-                        console.log('Set DiaDiemViPham:', diaDiemInput.value);
+                    if (diaDiemInput) {
+                        diaDiemInput.value = lastCheckResult.danhSachViPham.map((v, i) => `[${i+1}] ${v.diaDiem || ''}`).join('\n');
                     }
                 }
 
