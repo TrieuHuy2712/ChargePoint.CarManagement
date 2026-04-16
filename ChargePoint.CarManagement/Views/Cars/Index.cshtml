@@ -226,7 +226,12 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="file" class="form-label text-muted">Chọn file (.xlsx)</label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="file" class="form-label text-muted mb-0">Chọn file (.xlsx)</label>
+                            <a asp-action="DownloadTemplate" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-download"></i> Tải file mẫu
+                            </a>
+                        </div>
                         <input class="form-control" type="file" id="file" name="file" accept=".xlsx" required />
                     </div>
                     <div class="alert alert-warning" role="alert" style="font-size: 13px;">
@@ -234,14 +239,58 @@
                         <ul class="mb-0 mt-1 ps-3">
                             <li>Dữ liệu sẽ được đọc từ <strong>Tab đầu tiên (Sheet 1)</strong>.</li>
                             <li>Dữ liệu thực tính từ <strong>dòng số 2</strong>.</li>
-                            <li><strong>Cột C</strong> (Là cột thứ 3): <code>Số Khung</code> (Vào hệ thống là Số VIN)</li>
-                            <li><strong>Cột D</strong> (Là cột thứ 4): <code>Biển Số</code></li>
+                            <li><strong>Cột B</strong> (Index 2): <code>Số Khung</code> (Bắt buộc 17 ký tự - Số VIN)</li>
+                            <li><strong>Cột C</strong> (Index 3): <code>Biển Số</code></li>
+                            <li><strong>Cột D</strong> (Index 4): <code>Biển số cũ</code></li>
+                            <li><strong>Cột E</strong> (Index 5): <code>Màu xe</code></li>
+                            <li><strong>Cột F</strong> (Index 6): <code>Loại biển</code> (Biển trắng / Biển vàng)</li>
+                            <li><strong>Cột G</strong> (Index 7): <code>Khách hàng</code></li>
+                            <li><strong>Cột H</strong> (Index 8): <code>Số ODO</code></li>
+                            <li><strong>Cột I</strong> (Index 9): <code>Ngày thuê</code> (DD/MM/YYYY)</li>
+                            <li><strong>Cột J</strong> (Index 10): <code>Ngày hết hạn hợp đồng</code> (DD/MM/YYYY)</li>
                         </ul>
+                    </div>
+
+                    <!-- Khu vực Hiển thị Tiến trình / Kết quả Import -->
+                    <div id="importResultArea" style="display: none;">
+                        <div id="importLoading" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Đang xử lý dữ liệu, vui lòng chờ...</p>
+                        </div>
+
+                        <div id="importSuccess" style="display: none;">
+                            <div class="alert alert-success mt-2">
+                                <i class="fas fa-check-circle me-1"></i> <span id="importSuccessMessage"></span>
+                            </div>
+
+                            <h6 class="mt-3 text-danger fw-bold" id="skippedTitle" style="display:none;">
+                                <i class="fas fa-exclamation-triangle"></i> Các dòng bị lỗi và bỏ qua:
+                            </h6>
+                            <div id="skippedTableContainer" class="table-responsive" style="max-height: 250px; display: none;">
+                                <table class="table table-sm table-bordered table-striped" style="font-size: 13px;">
+                                    <thead class="table-danger">
+                                        <tr>
+                                            <th>Lỗi chi tiết</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="skippedTableBody">
+                                        <!-- Render rows per JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="importError" class="alert alert-danger mt-2" style="display: none;">
+                            <i class="fas fa-times-circle me-1"></i> <span id="importErrorMessage"></span>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="button" class="btn btn-secondary" onclick="window.location.reload();" id="btnCloseModal" style="display:none;" data-bs-dismiss="modal">Đóng & Tải lại</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnCancelModal">Hủy</button>
+                    <button type="submit" class="btn btn-primary" id="btnSubmitImport">
                         <i class="fas fa-upload me-1"></i> Bắt đầu Import
                     </button>
                 </div>
@@ -252,4 +301,65 @@
 
 @section Scripts {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        document.querySelector('#importModal form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            var form = this;
+            var formData = new FormData(form);
+
+            // Giao diện loading
+            document.querySelector('.alert-warning').style.display = 'none';
+            document.getElementById('importResultArea').style.display = 'block';
+            document.getElementById('importLoading').style.display = 'block';
+            document.getElementById('importSuccess').style.display = 'none';
+            document.getElementById('importError').style.display = 'none';
+            document.getElementById('btnSubmitImport').style.display = 'none';
+            document.getElementById('btnCancelModal').style.display = 'none';
+
+            try {
+                let response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                let result = await response.json();
+                document.getElementById('importLoading').style.display = 'none';
+                document.getElementById('btnCloseModal').style.display = 'inline-block';
+
+                if (result.success) {
+                    document.getElementById('importSuccess').style.display = 'block';
+                    document.getElementById('importSuccessMessage').innerText = `Đã xử lý file thành công: Thêm mới ${result.addedCount} xe, Cập nhật ${result.updatedCount} xe.`;
+
+                    if (result.skippedRows && result.skippedRows.length > 0) {
+                        document.getElementById('skippedTitle').style.display = 'block';
+                        document.getElementById('skippedTableContainer').style.display = 'block';
+
+                        let tbody = document.getElementById('skippedTableBody');
+                        tbody.innerHTML = '';
+                        result.skippedRows.forEach(err => {
+                            let tr = document.createElement('tr');
+                            let td = document.createElement('td');
+                            td.innerText = err;
+                            tr.appendChild(td);
+                            tbody.appendChild(tr);
+                        });
+                    }
+                } else {
+                    document.getElementById('importError').style.display = 'block';
+                    document.getElementById('importErrorMessage').innerText = result.message || "Có lỗi xảy ra khi upload file.";
+                }
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('importLoading').style.display = 'none';
+                document.getElementById('importError').style.display = 'block';
+                document.getElementById('importErrorMessage').innerText = "Lỗi kết nối hoặc máy chủ không phản hồi.";
+                document.getElementById('btnCloseModal').style.display = 'inline-block';
+            }
+        });
+    </script>
 }

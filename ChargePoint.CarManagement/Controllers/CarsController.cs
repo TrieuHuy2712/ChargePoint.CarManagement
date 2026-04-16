@@ -32,15 +32,16 @@ namespace ChargePoint.CarManagement.Controllers
             {
                 var key = q.Trim();
                 var keyLower = key.ToLower();
+                var keyUpper = key.ToUpper();
                 var keyNormalized = keyLower.Replace("-", "").Replace(".", "");
 
                 query = query.Where(c =>
-                    (c.BienSo != null && (c.BienSo.ToLower().Contains(keyLower) || 
+                    (c.BienSo != null && (c.BienSo.ToLower().Contains(keyLower) || c.BienSo.ToUpper().Contains(keyUpper) || c.BienSo.Contains(key) ||
                                           c.BienSo.Replace("-", "").Replace(".", "").ToLower().Contains(keyNormalized))) ||
-                    (c.TenXe != null && c.TenXe.ToLower().Contains(keyLower)) ||
-                    (c.TenKhachHang != null && c.TenKhachHang.ToLower().Contains(keyLower)) ||
-                    (c.SoVIN != null && c.SoVIN.ToLower().Contains(keyLower)) ||
-                    (c.MauXe != null && c.MauXe.ToLower().Contains(keyLower))
+                    (c.TenXe != null && (c.TenXe.ToLower().Contains(keyLower) || c.TenXe.ToUpper().Contains(keyUpper) || c.TenXe.Contains(key))) ||
+                    (c.TenKhachHang != null && (c.TenKhachHang.ToLower().Contains(keyLower) || c.TenKhachHang.ToUpper().Contains(keyUpper) || c.TenKhachHang.Contains(key))) ||
+                    (c.SoVIN != null && (c.SoVIN.ToLower().Contains(keyLower) || c.SoVIN.ToUpper().Contains(keyUpper) || c.SoVIN.Contains(key))) ||
+                    (c.MauXe != null && (c.MauXe.ToLower().Contains(keyLower) || c.MauXe.ToUpper().Contains(keyUpper) || c.MauXe.Contains(key)))
                 );
             }
 
@@ -562,14 +563,12 @@ namespace ChargePoint.CarManagement.Controllers
         {
             if (file == null || file.Length == 0)
             {
-                TempData["ErrorMessage"] = "Vui lòng chọn file Excel cần import.";
-                return RedirectToAction(nameof(Index));
+                return Json(new { success = false, message = "Vui lòng chọn file Excel cần import." });
             }
 
             if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
             {
-                TempData["ErrorMessage"] = "Hệ thống chỉ hỗ trợ upload định dạng .xlsx";
-                return RedirectToAction(nameof(Index));
+                return Json(new { success = false, message = "Hệ thống chỉ hỗ trợ upload định dạng .xlsx" });
             }
 
             try
@@ -583,20 +582,18 @@ namespace ChargePoint.CarManagement.Controllers
                 var worksheet = package.Workbook.Worksheets.FirstOrDefault();
                 if (worksheet == null)
                 {
-                    TempData["ErrorMessage"] = "File Excel không chứa Sheet dữ liệu nào.";
-                    return RedirectToAction(nameof(Index));
+                    return Json(new { success = false, message = "File Excel không chứa Sheet dữ liệu nào." });
                 }
 
                 int rowCount = worksheet.Dimension?.Rows ?? 0;
                 if (rowCount < 2)
                 {
-                    TempData["ErrorMessage"] = "File Excel trống, không có dữ liệu để thêm mới.";
-                    return RedirectToAction(nameof(Index));
+                    return Json(new { success = false, message = "File Excel trống, không có dữ liệu để thêm mới." });
                 }
 
                 int addedCount = 0;
                 int updatedCount = 0;
-                int skippedCount = 0;
+                var skippedRows = new List<string>();
 
                 // Lấy danh sách xe đã tồn tại theo VIN để cập nhật
                 var existingCarsDict = await _context.Cars
@@ -611,12 +608,19 @@ namespace ChargePoint.CarManagement.Controllers
 
                 for (int row = 2; row <= rowCount; row++)
                 {
-                    var rawVin = worksheet.Cells[row, 3].Value?.ToString()?.Trim(); // Cột C -> index 3
-                    var rawBienSo = worksheet.Cells[row, 4].Value?.ToString()?.Trim(); // Cột D -> index 4
+                    var rawVin = worksheet.Cells[row, 2].Value?.ToString()?.Trim(); // Cột B -> index 2
+                    var rawBienSo = worksheet.Cells[row, 3].Value?.ToString()?.Trim(); // Cột C -> index 3
+                    var rawBienSoCu = worksheet.Cells[row, 4].Value?.ToString()?.Trim(); // Cột D -> index 4
+                    var rawMauXe = worksheet.Cells[row, 5].Value?.ToString()?.Trim(); // Cột E -> index 5
+                    var rawLoaiBien = worksheet.Cells[row, 6].Value?.ToString()?.Trim(); // Cột F -> index 6
+                    var rawKhachHang = worksheet.Cells[row, 7].Value?.ToString()?.Trim(); // Cột G -> index 7
+                    var rawOdo = worksheet.Cells[row, 8].Value?.ToString()?.Trim(); // Cột H -> index 8
+                    var rawNgayThue = worksheet.Cells[row, 9].Value?.ToString()?.Trim(); // Cột I -> index 9
+                    var rawNgayHetHan = worksheet.Cells[row, 10].Value?.ToString()?.Trim(); // Cột J -> index 10
 
                     if (string.IsNullOrWhiteSpace(rawVin) || rawVin.Length != 17)
                     {
-                        skippedCount++;
+                        skippedRows.Add($"Dòng {row} (Sai định dạng 17 ký tự VIN)");
                         continue;
                     }
 
@@ -625,20 +629,58 @@ namespace ChargePoint.CarManagement.Controllers
                     // Tránh trùng lặp VIN trong cùng 1 file Excel (lấy dòng đầu)
                     if (processedVins.Contains(vinLower))
                     {
-                        skippedCount++;
+                        skippedRows.Add($"Dòng {row} (Trùng lặp số VIN trong file)");
                         continue;
                     }
                     processedVins.Add(vinLower);
+
+                    // Parse options
+                    var loaiBienLower = rawLoaiBien?.ToLower() ?? "";
+                    bool isTrang = loaiBienLower.Contains("trắng") || loaiBienLower.Contains("trang");
+                    bool isVang = loaiBienLower.Contains("vàng") || loaiBienLower.Contains("vang");
+
+                    if (!string.IsNullOrWhiteSpace(loaiBienLower) && !isTrang && !isVang)
+                    {
+                        skippedRows.Add($"Dòng {row} (Loại biển chỉ nhận chứa từ 'Trắng' hoặc 'Vàng')");
+                        continue;
+                    }
+
+                    MauBienSo mauBien = MauBienSo.Trang;
+                    if (isVang)
+                    {
+                        mauBien = MauBienSo.Vang;
+                    }
+
+                    int odo = 0;
+                    if (!string.IsNullOrWhiteSpace(rawOdo))
+                    {
+                        int.TryParse(rawOdo, out odo);
+                    }
+
+                    DateTime? ngayThue = null;
+                    if (!string.IsNullOrWhiteSpace(rawNgayThue) && DateTime.TryParseExact(rawNgayThue, "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var nt))
+                    {
+                        ngayThue = nt;
+                    }
+
+                    DateTime? ngayHetHan = null;
+                    if (!string.IsNullOrWhiteSpace(rawNgayHetHan) && DateTime.TryParseExact(rawNgayHetHan, "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var nh))
+                    {
+                        ngayHetHan = nh;
+                    }
 
                     if (existingCarsDict.TryGetValue(vinLower, out var existingCar))
                     {
                         // Update xe đã tồn tại
                         bool isModified = false;
-                        if (existingCar.BienSo != rawBienSo)
-                        {
-                            existingCar.BienSo = string.IsNullOrWhiteSpace(rawBienSo) ? null : rawBienSo;
-                            isModified = true;
-                        }
+                        if (existingCar.BienSo != rawBienSo) { existingCar.BienSo = string.IsNullOrWhiteSpace(rawBienSo) ? null : rawBienSo; isModified = true; }
+                        if (existingCar.BienSoCu != rawBienSoCu) { existingCar.BienSoCu = string.IsNullOrWhiteSpace(rawBienSoCu) ? null : rawBienSoCu; isModified = true; }
+                        if (existingCar.MauXe != rawMauXe) { existingCar.MauXe = rawMauXe; isModified = true; }
+                        if (existingCar.MauBienSo != mauBien) { existingCar.MauBienSo = mauBien; isModified = true; }
+                        if (existingCar.TenKhachHang != rawKhachHang) { existingCar.TenKhachHang = string.IsNullOrWhiteSpace(rawKhachHang) ? null : rawKhachHang; isModified = true; }
+                        if (existingCar.OdoXe != odo && !string.IsNullOrWhiteSpace(rawOdo)) { existingCar.OdoXe = odo; isModified = true; }
+                        if (existingCar.NgayThue != ngayThue && !string.IsNullOrWhiteSpace(rawNgayThue)) { existingCar.NgayThue = ngayThue; isModified = true; }
+                        if (existingCar.NgayHetHan != ngayHetHan && !string.IsNullOrWhiteSpace(rawNgayHetHan)) { existingCar.NgayHetHan = ngayHetHan; isModified = true; }
 
                         if (isModified)
                         {
@@ -657,8 +699,14 @@ namespace ChargePoint.CarManagement.Controllers
                             Stt = maxStt,
                             SoVIN = rawVin,
                             BienSo = string.IsNullOrWhiteSpace(rawBienSo) ? null : rawBienSo,
+                            BienSoCu = string.IsNullOrWhiteSpace(rawBienSoCu) ? null : rawBienSoCu,
+                            MauXe = rawMauXe,
+                            MauBienSo = mauBien,
+                            TenKhachHang = string.IsNullOrWhiteSpace(rawKhachHang) ? null : rawKhachHang,
+                            OdoXe = odo,
+                            NgayThue = ngayThue,
+                            NgayHetHan = ngayHetHan,
                             SoLuong = 1,
-                            MauBienSo = MauBienSo.Trang,
                             NgayTao = DateTime.Now,
                             NguoiTao = User.Identity?.Name,
                         };
@@ -683,23 +731,46 @@ namespace ChargePoint.CarManagement.Controllers
                     await _context.SaveChangesAsync();
                 }
 
-                if (skippedCount > 0)
-                {
-                    TempData["SuccessMessage"] = $"Đã xử lý file: Thêm mới {addedCount} xe, Cập nhật {updatedCount} xe. Có {skippedCount} dòng bị bỏ qua.";
-                }
-                else
-                {
-                    TempData["SuccessMessage"] = $"Đã xử lý file thành công: Thêm mới {addedCount} xe, Cập nhật {updatedCount} xe.";
-                }
+                return Json(new 
+                { 
+                    success = true, 
+                    addedCount = addedCount,
+                    updatedCount = updatedCount,
+                    skippedRows = skippedRows
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi xảy ra khi import hàng loạt");
                 var innerMsg = ex.InnerException != null ? ex.InnerException.Message : "";
-                TempData["ErrorMessage"] = $"Có lỗi xảy ra: {ex.Message} {innerMsg}";
+                return Json(new { success = false, message = $"Có lỗi xảy ra: {ex.Message} {innerMsg}" });
             }
+        }
 
-            return RedirectToAction(nameof(Index));
+        // GET: Cars/DownloadTemplate
+        [AllowAnonymous]
+        public IActionResult DownloadTemplate([FromServices] IWebHostEnvironment env)
+        {
+            try
+            {
+                var filePath = Path.Combine(env.WebRootPath, "template", "DATA XE-TEMPLATE.xlsx");
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    TempData["ErrorMessage"] = "Không tìm thấy file mẫu trên máy chủ (wwwroot/template/DATA XE-TEMPLATE.xlsx).";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var fileBytes = System.IO.File.ReadAllBytes(filePath);
+                string excelName = "Template_Import_Xe.xlsx";
+                return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi xảy ra khi tải file Template mẫu");
+                TempData["ErrorMessage"] = "Có lỗi xảy ra trong quá trình tải file mẫu.";
+                return RedirectToAction(nameof(Index));
+            }
         }
     }
 
