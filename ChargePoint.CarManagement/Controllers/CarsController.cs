@@ -609,14 +609,15 @@ namespace ChargePoint.CarManagement.Controllers
                 for (int row = 2; row <= rowCount; row++)
                 {
                     var rawVin = worksheet.Cells[row, 2].Value?.ToString()?.Trim(); // Cột B -> index 2
-                    var rawBienSo = worksheet.Cells[row, 3].Value?.ToString()?.Trim(); // Cột C -> index 3
-                    var rawBienSoCu = worksheet.Cells[row, 4].Value?.ToString()?.Trim(); // Cột D -> index 4
-                    var rawMauXe = worksheet.Cells[row, 5].Value?.ToString()?.Trim(); // Cột E -> index 5
-                    var rawLoaiBien = worksheet.Cells[row, 6].Value?.ToString()?.Trim(); // Cột F -> index 6
-                    var rawKhachHang = worksheet.Cells[row, 7].Value?.ToString()?.Trim(); // Cột G -> index 7
-                    var rawOdo = worksheet.Cells[row, 8].Value?.ToString()?.Trim(); // Cột H -> index 8
-                    var rawNgayThue = worksheet.Cells[row, 9].Value?.ToString()?.Trim(); // Cột I -> index 9
-                    var rawNgayHetHan = worksheet.Cells[row, 10].Value?.ToString()?.Trim(); // Cột J -> index 10
+                    var rawTenXe = worksheet.Cells[row, 3].Value?.ToString()?.Trim(); // Cột C -> index 3
+                    var rawBienSo = worksheet.Cells[row, 4].Value?.ToString()?.Trim(); // Cột D -> index 4
+                    var rawBienSoCu = worksheet.Cells[row, 5].Value?.ToString()?.Trim(); // Cột E -> index 5
+                    var rawMauXe = worksheet.Cells[row, 6].Value?.ToString()?.Trim(); // Cột F -> index 6
+                    var rawLoaiBien = worksheet.Cells[row, 7].Value?.ToString()?.Trim(); // Cột G -> index 7
+                    var rawKhachHang = worksheet.Cells[row, 8].Value?.ToString()?.Trim(); // Cột H -> index 8
+                    var rawOdo = worksheet.Cells[row, 9].Value?.ToString()?.Trim(); // Cột I -> index 9
+                    var rawNgayThue = worksheet.Cells[row, 10].Value?.ToString()?.Trim(); // Cột J -> index 10
+                    var rawNgayHetHan = worksheet.Cells[row, 11].Value?.ToString()?.Trim(); // Cột K -> index 11
 
                     if (string.IsNullOrWhiteSpace(rawVin) || rawVin.Length != 17)
                     {
@@ -673,6 +674,7 @@ namespace ChargePoint.CarManagement.Controllers
                     {
                         // Update xe đã tồn tại
                         bool isModified = false;
+                        if (existingCar.TenXe != rawTenXe) { existingCar.TenXe = rawTenXe; isModified = true; }
                         if (existingCar.BienSo != rawBienSo) { existingCar.BienSo = string.IsNullOrWhiteSpace(rawBienSo) ? null : rawBienSo; isModified = true; }
                         if (existingCar.BienSoCu != rawBienSoCu) { existingCar.BienSoCu = string.IsNullOrWhiteSpace(rawBienSoCu) ? null : rawBienSoCu; isModified = true; }
                         if (existingCar.MauXe != rawMauXe) { existingCar.MauXe = rawMauXe; isModified = true; }
@@ -698,6 +700,7 @@ namespace ChargePoint.CarManagement.Controllers
                         {
                             Stt = maxStt,
                             SoVIN = rawVin,
+                            TenXe = rawTenXe,
                             BienSo = string.IsNullOrWhiteSpace(rawBienSo) ? null : rawBienSo,
                             BienSoCu = string.IsNullOrWhiteSpace(rawBienSoCu) ? null : rawBienSoCu,
                             MauXe = rawMauXe,
