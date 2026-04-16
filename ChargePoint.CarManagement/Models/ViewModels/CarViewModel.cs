@@ -12,12 +12,12 @@ namespace ChargePoint.CarManagement.Models.ViewModels
         public int Stt { get; set; }
 
         [Display(Name = "Tên xe")]
-        public string TenXe { get; set; } = string.Empty;
+        public string? TenXe { get; set; }
 
         [Display(Name = "Số lượng")]
         public int SoLuong { get; set; }
         [Display(Name = "Màu xe")]
-        public string MauXe { get; set; } = string.Empty;
+        public string? MauXe { get; set; }
         [Display(Name = "Số VIN")]
         public string SoVIN { get; set; } = string.Empty;
 

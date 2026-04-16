@@ -22,20 +22,18 @@ namespace ChargePoint.CarManagement.Models
         [Display(Name = "STT")]
         public int Stt { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng nhập tên xe")]
         [Display(Name = "Tên xe")]
         [StringLength(100)]
-        public string TenXe { get; set; } = string.Empty;
+        public string? TenXe { get; set; }
 
         [Required(ErrorMessage = "Vui lòng nhập số lượng")]
         [Display(Name = "Số lượng")]
         [Range(1, 1000, ErrorMessage = "Số lượng phải từ 1 đến 1000")]
         public int SoLuong { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng nhập màu xe")]
         [Display(Name = "Màu xe")]
         [StringLength(50)]
-        public string MauXe { get; set; } = string.Empty;
+        public string? MauXe { get; set; }
 
         [Required(ErrorMessage = "Vui lòng nhập số VIN")]
         [Display(Name = "Số VIN")]

@@ -30,7 +30,12 @@
             </form>
         </div>
         <div class="col-md-4 text-end">
-            <a asp-action="Create" class="btn btn-success">
+            <!-- Nút Import File -->
+            <button type="button" class="btn btn-outline-info shadow-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="fas fa-file-excel me-1"></i> Import Excel
+            </button>
+
+            <a asp-action="Create" class="btn btn-success shadow-sm ms-2">
                 <i class="fas fa-plus"></i> Thêm xe mới
             </a>
         </div>
@@ -205,6 +210,43 @@
                 </nav>
             }
         </div>
+    </div>
+</div>
+
+<!-- Modal Import Bulk -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form asp-action="BulkImport" method="post" enctype="multipart/form-data">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">
+                        <i class="fas fa-file-import text-info me-2"></i> Import File Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="file" class="form-label text-muted">Chọn file (.xlsx)</label>
+                        <input class="form-control" type="file" id="file" name="file" accept=".xlsx" required />
+                    </div>
+                    <div class="alert alert-warning" role="alert" style="font-size: 13px;">
+                        <i class="fas fa-lightbulb me-1"></i> <strong>Lưu ý cấu trúc file:</strong>
+                        <ul class="mb-0 mt-1 ps-3">
+                            <li>Dữ liệu sẽ được đọc từ <strong>Tab đầu tiên (Sheet 1)</strong>.</li>
+                            <li>Dữ liệu thực tính từ <strong>dòng số 2</strong>.</li>
+                            <li><strong>Cột C</strong> (Là cột thứ 3): <code>Số Khung</code> (Vào hệ thống là Số VIN)</li>
+                            <li><strong>Cột D</strong> (Là cột thứ 4): <code>Biển Số</code></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i> Bắt đầu Import
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 

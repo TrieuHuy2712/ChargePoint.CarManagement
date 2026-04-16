@@ -1,10 +1,12 @@
 using ChargePoint.CarManagement.Data;
+using ChargePoint.CarManagement.Data;
 using ChargePoint.CarManagement.Models;
 using ChargePoint.CarManagement.Models.ViewModels;
 using ChargePoint.CarManagement.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 
 namespace ChargePoint.CarManagement.Controllers
 {
@@ -551,6 +553,153 @@ namespace ChargePoint.CarManagement.Controllers
         private bool CarExists(int id)
         {
             return _context.Cars.Any(e => e.Id == id);
+        }
+
+        // POST: Cars/BulkImport
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkImport(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                TempData["ErrorMessage"] = "Vui lòng chọn file Excel cần import.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["ErrorMessage"] = "Hệ thống chỉ hỗ trợ upload định dạng .xlsx";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                ExcelPackage.License.SetNonCommercialPersonal("Your Name or Organization's Name");
+
+                using var stream = new MemoryStream();
+                await file.CopyToAsync(stream);
+                using var package = new ExcelPackage(stream);
+
+                var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+                if (worksheet == null)
+                {
+                    TempData["ErrorMessage"] = "File Excel không chứa Sheet dữ liệu nào.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                int rowCount = worksheet.Dimension?.Rows ?? 0;
+                if (rowCount < 2)
+                {
+                    TempData["ErrorMessage"] = "File Excel trống, không có dữ liệu để thêm mới.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                int addedCount = 0;
+                int updatedCount = 0;
+                int skippedCount = 0;
+
+                // Lấy danh sách xe đã tồn tại theo VIN để cập nhật
+                var existingCarsDict = await _context.Cars
+                    .Where(c => !string.IsNullOrEmpty(c.SoVIN))
+                    .ToDictionaryAsync(c => c.SoVIN.ToLower());
+
+                var newCars = new List<Car>();
+                var carsToUpdate = new List<Car>();
+                var processedVins = new HashSet<string>();
+
+                int maxStt = await _context.Cars.AnyAsync() ? await _context.Cars.MaxAsync(c => c.Stt) : 0;
+
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    var rawVin = worksheet.Cells[row, 3].Value?.ToString()?.Trim(); // Cột C -> index 3
+                    var rawBienSo = worksheet.Cells[row, 4].Value?.ToString()?.Trim(); // Cột D -> index 4
+
+                    if (string.IsNullOrWhiteSpace(rawVin) || rawVin.Length != 17)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    var vinLower = rawVin.ToLower();
+
+                    // Tránh trùng lặp VIN trong cùng 1 file Excel (lấy dòng đầu)
+                    if (processedVins.Contains(vinLower))
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+                    processedVins.Add(vinLower);
+
+                    if (existingCarsDict.TryGetValue(vinLower, out var existingCar))
+                    {
+                        // Update xe đã tồn tại
+                        bool isModified = false;
+                        if (existingCar.BienSo != rawBienSo)
+                        {
+                            existingCar.BienSo = string.IsNullOrWhiteSpace(rawBienSo) ? null : rawBienSo;
+                            isModified = true;
+                        }
+
+                        if (isModified)
+                        {
+                            existingCar.NgayCapNhat = DateTime.Now;
+                            existingCar.NguoiCapNhat = User.Identity?.Name;
+                            carsToUpdate.Add(existingCar);
+                        }
+                        updatedCount++;
+                    }
+                    else
+                    {
+                        // Thêm xe mới
+                        maxStt++;
+                        var car = new Car
+                        {
+                            Stt = maxStt,
+                            SoVIN = rawVin,
+                            BienSo = string.IsNullOrWhiteSpace(rawBienSo) ? null : rawBienSo,
+                            SoLuong = 1,
+                            MauBienSo = MauBienSo.Trang,
+                            NgayTao = DateTime.Now,
+                            NguoiTao = User.Identity?.Name,
+                        };
+
+                        newCars.Add(car);
+                        addedCount++;
+                    }
+                }
+
+                if (newCars.Any())
+                {
+                    _context.Cars.AddRange(newCars);
+                }
+
+                if (carsToUpdate.Any())
+                {
+                    _context.Cars.UpdateRange(carsToUpdate);
+                }
+
+                if (newCars.Any() || carsToUpdate.Any())
+                {
+                    await _context.SaveChangesAsync();
+                }
+
+                if (skippedCount > 0)
+                {
+                    TempData["SuccessMessage"] = $"Đã xử lý file: Thêm mới {addedCount} xe, Cập nhật {updatedCount} xe. Có {skippedCount} dòng bị bỏ qua.";
+                }
+                else
+                {
+                    TempData["SuccessMessage"] = $"Đã xử lý file thành công: Thêm mới {addedCount} xe, Cập nhật {updatedCount} xe.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi xảy ra khi import hàng loạt");
+                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : "";
+                TempData["ErrorMessage"] = $"Có lỗi xảy ra: {ex.Message} {innerMsg}";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
     }
 
