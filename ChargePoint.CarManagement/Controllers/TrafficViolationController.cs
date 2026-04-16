@@ -37,15 +37,16 @@ namespace ChargePoint.CarManagement.Controllers
             {
                 var key = q.Trim();
                 var keyLower = key.ToLower();
+                var keyUpper = key.ToUpper();
                 var keyNormalized = keyLower.Replace("-", "").Replace(".", "");
 
                 carQuery = carQuery.Where(c =>
-                    (c.BienSo != null && (c.BienSo.ToLower().Contains(keyLower) || 
+                    (c.BienSo != null && (c.BienSo.ToLower().Contains(keyLower) || c.BienSo.ToUpper().Contains(keyUpper) || c.BienSo.Contains(key) ||
                                           c.BienSo.Replace("-", "").Replace(".", "").ToLower().Contains(keyNormalized))) ||
-                    (c.TenXe != null && c.TenXe.ToLower().Contains(keyLower)) ||
-                    (c.TenKhachHang != null && c.TenKhachHang.ToLower().Contains(keyLower)) ||
-                    (c.SoVIN != null && c.SoVIN.ToLower().Contains(keyLower)) ||
-                    (c.MauXe != null && c.MauXe.ToLower().Contains(keyLower))
+                    (c.TenXe != null && (c.TenXe.ToLower().Contains(keyLower) || c.TenXe.ToUpper().Contains(keyUpper) || c.TenXe.Contains(key))) ||
+                    (c.TenKhachHang != null && (c.TenKhachHang.ToLower().Contains(keyLower) || c.TenKhachHang.ToUpper().Contains(keyUpper) || c.TenKhachHang.Contains(key))) ||
+                    (c.SoVIN != null && (c.SoVIN.ToLower().Contains(keyLower) || c.SoVIN.ToUpper().Contains(keyUpper) || c.SoVIN.Contains(key))) ||
+                    (c.MauXe != null && (c.MauXe.ToLower().Contains(keyLower) || c.MauXe.ToUpper().Contains(keyUpper) || c.MauXe.Contains(key)))
                 );
             }
 
