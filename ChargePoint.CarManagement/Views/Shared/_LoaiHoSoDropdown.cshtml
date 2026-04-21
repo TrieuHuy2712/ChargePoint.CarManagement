@@ -1,0 +1,136 @@
+﻿@model ChargePoint.CarManagement.Models.LoaiHoSo
+@{
+    var dropdownId = ViewData["DropdownId"] as string ?? "LoaiHoSo";
+    var dropdownName = ViewData["DropdownName"] as string ?? "LoaiHoSo";
+    var iconId = ViewData["IconId"] as string ?? "LoaiHoSoIcon";
+}
+<style>
+    .custom-dropdown-label {
+        font-weight: bold;
+        font-size: 1.1rem;
+        color: #333;
+        min-width: 120px;
+        margin-bottom: 0;
+        background: linear-gradient(90deg,#e0eafc,#cfdef3);
+        padding: 8px 16px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .custom-dropdown-icon {
+        font-size: 1.5em;
+        margin-right: 10px;
+        transition: color 0.2s;
+    }
+
+    .custom-dropdown-select {
+        border-radius: 1.5rem !important;
+        border-width: 2px;
+        font-weight: bold;
+        font-size: 1.1rem;
+        min-height: 48px;
+        box-shadow: 0 2px 8px #e0eafc;
+        transition: border-color 0.2s, background 0.2s, color 0.2s;
+        padding-left: 1.5em;
+        padding-right: 1.5em;
+    }
+
+    .custom-dropdown-select:focus {
+        border-color: #0d6efd;
+        background: #f0f8ff;
+        outline: none;
+    }
+
+    .custom-dropdown-select option {
+        font-weight: 600;
+        font-size: 1.08em;
+        padding: 8px 16px;
+        background: #fff;
+        color: #222;
+    }
+
+    .custom-dropdown-select option[value="BaoDuong"] {
+        background: #e8f5e9;
+        color: #198754;
+    }
+
+    .custom-dropdown-select option[value="SuaChua"] {
+        background: #fff3f2;
+        color: #dc3545;
+    }
+
+    .custom-dropdown-select option[value="SuaChuaBaoDuong"] {
+        background: #fff8e1;
+        color: #fd7e14;
+    }
+</style>
+<div class="custom-dropdown-wrapper d-flex align-items-center gap-3" style="max-width:400px;">
+    <label for="@dropdownId" class="custom-dropdown-label mb-0">Loại hồ sơ</label>
+    <span id="@iconId" class="custom-dropdown-icon"></span>
+    <select class="form-select form-select-lg fw-bold custom-dropdown-select"
+            id="@dropdownId" name="@dropdownName">
+        <option value="BaoDuong" selected="@(Model == ChargePoint.CarManagement.Models.LoaiHoSo.BaoDuong ? "selected" : null)">🛠️ Bảo dưỡng</option>
+        <option value="SuaChua" selected="@(Model == ChargePoint.CarManagement.Models.LoaiHoSo.SuaChua ? "selected" : null)">🔧 Sửa chữa</option>
+        <option value="SuaChuaBaoDuong" selected="@(Model == ChargePoint.CarManagement.Models.LoaiHoSo.SuaChuaBaoDuong ? "selected" : null)">🧰 Sửa chữa - Bảo dưỡng</option>
+    </select>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var select = document.getElementById('@dropdownId');
+    var iconSpan = document.getElementById('@iconId');
+    function updateDropdownStyleAndForm() {
+        var value = select.value;
+        // Log để kiểm tra giá trị thực tế
+        console.log('LoaiHoSo value:', value);
+        var color = '#198754', icon = 'fa-screwdriver-wrench';
+        // Hỗ trợ cả kiểu số và chuỗi enum
+        if (value === 'BaoDuong' || value === '0') {
+            color = '#198754'; icon = 'fa-screwdriver-wrench';
+        } else if (value === 'SuaChua' || value === '1') {
+            color = '#dc3545'; icon = 'fa-wrench';
+        } else {
+            color = '#fd7e14'; icon = 'fa-toolbox';
+        }
+        if (iconSpan) {
+            iconSpan.className = 'fa-solid ' + icon + ' custom-dropdown-icon';
+            iconSpan.style.color = color;
+        }
+        if (select) {
+            select.style.backgroundColor = color;
+            select.style.color = '#fff';
+            select.style.fontWeight = 'bold';
+        }
+        var capRow = document.getElementById('capBaoDuongRow');
+        var labelNoiDung = document.getElementById('labelNoiDungEdit') || document.getElementById('labelNoiDung');
+        var labelNgay = document.getElementById('labelNgayBaoDuongEdit') || document.getElementById('labelNgayBaoDuong');
+        var labelSoKm = document.getElementById('labelSoKmBaoDuongEdit') || document.getElementById('labelSoKmBaoDuong');
+        var labelCap = document.getElementById('labelCapBaoDuong');
+        if (capRow) {
+            if (value === 'BaoDuong' || value === '0') {
+                capRow.style.display = '';
+                if(labelNoiDung) labelNoiDung.innerText = 'Nội dung bảo dưỡng';
+                if(labelNgay) labelNgay.innerText = 'Ngày bảo dưỡng';
+                if(labelSoKm) labelSoKm.innerText = 'Số KM lúc bảo dưỡng';
+                if(labelCap) labelCap.innerText = 'Cấp bảo dưỡng';
+            } else if (value === 'SuaChua' || value === '1') {
+                capRow.style.display = 'none';
+                if(labelNoiDung) labelNoiDung.innerText = 'Nội dung sửa chữa';
+                if(labelNgay) labelNgay.innerText = 'Ngày vào xưởng';
+                if(labelSoKm) labelSoKm.innerText = 'Số KM lúc sửa chữa';
+            } else {
+                capRow.style.display = '';
+                if(labelNoiDung) labelNoiDung.innerText = 'Nội dung sửa chữa - bảo dưỡng';
+                if(labelNgay) labelNgay.innerText = 'Ngày vào xưởng';
+                if(labelSoKm) labelSoKm.innerText = 'Số KM lúc sửa chữa';
+                if(labelCap) labelCap.innerText = 'Cấp bảo dưỡng';
+            }
+        }
+    }
+    if (select && iconSpan) {
+        select.addEventListener('change', updateDropdownStyleAndForm);
+        updateDropdownStyleAndForm();
+    }
+});
+</script>

@@ -3,6 +3,7 @@ using System;
 using ChargePoint.CarManagement.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ChargePoint.CarManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260421094859_LoaiHoSo")]
+    partial class LoaiHoSo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.25");
@@ -99,7 +102,7 @@ namespace ChargePoint.CarManagement.Migrations
                             BienSo = "30A-12345",
                             MauBienSo = 0,
                             MauXe = "Đỏ",
-                            NgayTao = new DateTime(2026, 4, 21, 17, 20, 1, 403, DateTimeKind.Local).AddTicks(398),
+                            NgayTao = new DateTime(2026, 4, 21, 16, 48, 59, 291, DateTimeKind.Local).AddTicks(2153),
                             OdoXe = 15000,
                             SoLuong = 5,
                             SoVIN = "LVSHCAMB1NE000001",
@@ -114,7 +117,7 @@ namespace ChargePoint.CarManagement.Migrations
                             BienSo = "30B-67890",
                             MauBienSo = 0,
                             MauXe = "Trắng",
-                            NgayTao = new DateTime(2026, 4, 21, 17, 20, 1, 403, DateTimeKind.Local).AddTicks(402),
+                            NgayTao = new DateTime(2026, 4, 21, 16, 48, 59, 291, DateTimeKind.Local).AddTicks(2157),
                             OdoXe = 8000,
                             SoLuong = 3,
                             SoVIN = "LVSHCAMB2NE000002",
@@ -165,7 +168,7 @@ namespace ChargePoint.CarManagement.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("CapBaoDuong")
+                    b.Property<int>("CapBaoDuong")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("CarId")

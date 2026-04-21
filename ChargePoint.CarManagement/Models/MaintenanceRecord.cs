@@ -18,6 +18,13 @@ namespace ChargePoint.CarManagement.Models
         Cap3 = 3
     }
 
+    public enum LoaiHoSo
+    {
+        [Display(Name = "Bảo dưỡng")] BaoDuong = 0,
+        [Display(Name = "Sửa chữa")] SuaChua = 1,
+        [Display(Name = "Sửa chữa - Bảo dưỡng")] SuaChuaBaoDuong = 2
+    }
+
     /// <summary>
     /// Hồ sơ bảo dưỡng xe
     /// </summary>
@@ -41,9 +48,8 @@ namespace ChargePoint.CarManagement.Models
         [Range(0, 9999999, ErrorMessage = "Số KM phải từ 0 đến 9,999,999")]
         public int SoKmBaoDuong { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng chọn cấp bảo dưỡng")]
         [Display(Name = "Cấp bảo dưỡng")]
-        public CapBaoDuong CapBaoDuong { get; set; } = CapBaoDuong.Cap1;
+        public CapBaoDuong? CapBaoDuong { get; set; }
 
         [Display(Name = "Số KM bảo dưỡng tiếp theo")]
         [Range(0, 9999999, ErrorMessage = "Số KM phải từ 0 đến 9,999,999")]
@@ -69,6 +75,10 @@ namespace ChargePoint.CarManagement.Models
         [Display(Name = "Ghi chú")]
         [StringLength(1000)]
         public string? GhiChu { get; set; }
+
+        [Required]
+        [Display(Name = "Loại hồ sơ")]
+        public LoaiHoSo LoaiHoSo { get; set; } = LoaiHoSo.BaoDuong;
 
         // Helper để lấy danh sách ảnh
         [NotMapped]

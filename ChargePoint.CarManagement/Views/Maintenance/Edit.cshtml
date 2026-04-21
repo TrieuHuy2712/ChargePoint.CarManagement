@@ -7,6 +7,7 @@
     var maintenance = Model.Record!;
 }
 
+
 <div class="container">
     <h1 class="mb-4">
         <i class="fas fa-edit text-warning"></i> Chỉnh sửa hồ sơ bảo dưỡng
@@ -41,27 +42,34 @@
                 <input type="hidden" asp-for="@maintenance.NguoiTao" />
                 <input type="hidden" asp-for="@maintenance.HinhAnhChungTu" />
 
+                 <!-- Dropdown chọn loại hồ sơ: label, icon, select ngang hàng đẹp -->
+                @await Html.PartialAsync("_LoaiHoSoDropdown", Model.Record.LoaiHoSo
+                , new ViewDataDictionary(ViewData) {
+                    { "DropdownId", "LoaiHoSoEdit" },
+                                { "DropdownName", "maintenance.LoaiHoSo" },
+                    { "IconId", "LoaiHoSoIconEdit" }
+                })
+
+                <!-- Thêm lại hai trường Ngày bảo dưỡng và Số KM lúc bảo dưỡng -->
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label asp-for="@maintenance.NgayBaoDuong" class="form-label"></label>
+                        <label asp-for="@maintenance.NgayBaoDuong" class="form-label" id="labelNgayBaoDuongEdit"></label>
                         <input asp-for="@maintenance.NgayBaoDuong" class="form-control" type="date" />
                         <span asp-validation-for="@maintenance.NgayBaoDuong" class="text-danger"></span>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label asp-for="@maintenance.SoKmBaoDuong" class="form-label"></label>
+                        <label asp-for="@maintenance.SoKmBaoDuong" class="form-label" id="labelSoKmBaoDuongEdit"></label>
                         <div class="input-group">
-                            <input asp-for="@maintenance.SoKmBaoDuong" class="form-control" type="number" id="soKmBaoDuong" readonly />
+                            <input asp-for="@maintenance.SoKmBaoDuong" class="form-control" type="number" id="soKmBaoDuongEdit" />
                             <span class="input-group-text">km</span>
                         </div>
-                        <small class="form-text text-muted">
-                            <i class="fas fa-lock"></i> Không thể chỉnh sửa số KM đã ghi nhận
-                        </small>
+                        <span asp-validation-for="@maintenance.SoKmBaoDuong" class="text-danger"></span>
                     </div>
                 </div>
 
-                <div class="row">
+                <div class="row" id="capBaoDuongRow">
                     <div class="col-md-6 mb-3">
-                        <label asp-for="@maintenance.CapBaoDuong" class="form-label"></label>
+                        <label asp-for="@maintenance.CapBaoDuong" class="form-label" id="labelCapBaoDuong"></label>
                         <div class="d-flex gap-3 mt-2">
                             @foreach (CapBaoDuong cap in Enum.GetValues(typeof(CapBaoDuong)))
                             {
@@ -74,7 +82,7 @@
                                 };
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio"
-                                           name="Record.CapBaoDuong" id="cap@((int)cap)"
+                                           name="maintenance.CapBaoDuong" id="cap@((int)cap)"
                                            value="@((int)cap)"
                                            @(maintenance.CapBaoDuong == cap ? "checked" : "") />
                                     <label class="form-check-label" for="cap@((int)cap)">
@@ -119,7 +127,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="@maintenance.NoiDungBaoDuong" class="form-label"></label>
+                    <label asp-for="@maintenance.NoiDungBaoDuong" class="form-label" id="labelNoiDungEdit"></label>
                     <textarea asp-for="@maintenance.NoiDungBaoDuong" class="form-control" rows="3"></textarea>
                 </div>
 

@@ -3,6 +3,16 @@
 @{
     ViewData["Title"] = "Lịch sử bảo dưỡng";
     var car = Model.Car as Car;
+    string GetLoaiHoSoBadge(ChargePoint.CarManagement.Models.LoaiHoSo loai)
+    {
+        return loai switch
+        {
+            ChargePoint.CarManagement.Models.LoaiHoSo.BaoDuong => "<span class='badge bg-success ms-1'>Bảo dưỡng</span>",
+            ChargePoint.CarManagement.Models.LoaiHoSo.SuaChua => "<span class='badge bg-danger ms-1'>Sửa chữa</span>",
+            ChargePoint.CarManagement.Models.LoaiHoSo.SuaChuaBaoDuong => "<span class='badge bg-warning text-dark ms-1'>Sửa chữa - Bảo dưỡng</span>",
+            _ => ""
+        };
+    }
 }
 
 <div class="container-fluid">
@@ -66,8 +76,12 @@
                             <span>
                                 <i class="fas fa-calendar me-1"></i>
                                 @record.NgayBaoDuong.ToString("dd/MM/yyyy")
+                                @Html.Raw(GetLoaiHoSoBadge(record.LoaiHoSo))
                             </span>
-                            <span class="badge @badgeClass">Cấp @((int)record.CapBaoDuong)</span>
+                            @if (record.CapBaoDuong.HasValue)
+                            {
+                                <span class="badge @badgeClass">Cấp @((int)record.CapBaoDuong.Value)</span>
+                            }
                         </div>
                         <div class="card-body">
                             <p class="mb-2">

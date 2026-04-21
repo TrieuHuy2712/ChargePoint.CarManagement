@@ -2,15 +2,17 @@
 @inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
 
 @{
-    ViewData["Title"] = "Thêm hồ sơ bảo dưỡng";
+    ViewData["Title"] = "Thêm hồ sơ";
     var settings = FileUploadSettings.Value;
-    var car = Model.Cars.First() as Car;
+    var car = Model.Cars.FirstOrDefault() as Car;
     var maintenanceRecord = Model.MaintenanceRecord;
+    var selectedLoaiHoSo = Model.LoaiHoSo;
+    var selectedLoaiHoSoRecord = Model.MaintenanceRecord.LoaiHoSo;
 }
 
 <div class="container">
     <h1 class="mb-4">
-        <i class="fas fa-plus-circle text-success"></i> Thêm hồ sơ bảo dưỡng
+        <i class="fas fa-plus-circle text-success"></i> Thêm hồ sơ
     </h1>
 
     @if (car != null)
@@ -38,17 +40,25 @@
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                 <input type="hidden" asp-for="@maintenanceRecord.CarId" />
 
+                <!-- Dropdown chọn loại hồ sơ -->
+                @await Html.PartialAsync("_LoaiHoSoDropdown", Model.MaintenanceRecord.LoaiHoSo
+                                , new ViewDataDictionary(ViewData) {
+                                { "DropdownId", "LoaiHoSo" },
+                                { "DropdownName", "LoaiHoSo" },
+                                { "IconId", "LoaiHoSoIconEdit" }
+                                })
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="@maintenanceRecord.NgayBaoDuong" class="form-label"></label>
+                            <label asp-for="@maintenanceRecord.NgayBaoDuong" class="form-label" id="labelNgayBaoDuong"></label>
                             <input asp-for="@maintenanceRecord.NgayBaoDuong" class="form-control" type="date" />
                             <span asp-validation-for="@maintenanceRecord.NgayBaoDuong" class="text-danger"></span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group mb-3">
-                            <label asp-for="@maintenanceRecord.SoKmBaoDuong" class="form-label"></label>
+                            <label asp-for="@maintenanceRecord.SoKmBaoDuong" class="form-label" id="labelSoKmBaoDuong"></label>
                             <div class="input-group">
                                 <input asp-for="@maintenanceRecord.SoKmBaoDuong" class="form-control" type="number" id="soKmBaoDuong" />
                                 <span class="input-group-text">km</span>
@@ -58,7 +68,8 @@
                     </div>
                 </div>
 
-                <div class="row">
+                <!-- Cấp bảo dưỡng: chỉ hiện khi chọn Bảo dưỡng hoặc Sửa chữa - Bảo dưỡng -->
+                <div class="row" id="capBaoDuongRow">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
                             <label asp-for="@maintenanceRecord.CapBaoDuong" class="form-label"></label>
@@ -105,7 +116,8 @@
                     </div>
                 </div>
 
-                <div class="row">
+                <!-- Số KM bảo dưỡng tiếp theo: chỉ hiện khi không phải Sửa chữa -->
+                <div class="row" id="rowSoKmBaoDuongTiepTheo">
                     <div class="col-md-6">
                         <div class="form-group mb-3">
                             <label asp-for="@maintenanceRecord.SoKmBaoDuongTiepTheo" class="form-label"></label>
@@ -126,10 +138,11 @@
                     </div>
                 </div>
 
+                <!-- Nội dung bảo dưỡng/sửa chữa: label sẽ thay đổi theo loại hồ sơ -->
                 <div class="form-group mb-3">
-                    <label asp-for="@maintenanceRecord.NoiDungBaoDuong" class="form-label"></label>
+                    <label id="labelNoiDung" asp-for="@maintenanceRecord.NoiDungBaoDuong" class="form-label"></label>
                     <textarea asp-for="@maintenanceRecord.NoiDungBaoDuong" class="form-control" rows="3"
-                              placeholder="Mô tả chi tiết các hạng mục đã bảo dưỡng..."></textarea>
+                              placeholder="Mô tả chi tiết các hạng mục..."></textarea>
                     <span asp-validation-for="@maintenanceRecord.NoiDungBaoDuong" class="text-danger"></span>
                 </div>
 
@@ -157,8 +170,6 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
     <script>
         // Tự động gợi ý Số KM bảo dưỡng tiếp theo = Số KM bảo dưỡng + 15,000 km
         // (Người dùng vẫn có thể chỉnh sửa thủ công)
@@ -166,16 +177,10 @@
         const soKmBaoDuongTiepTheoInput = document.getElementById('soKmBaoDuongTiepTheo');
 
         if (soKmBaoDuongInput && soKmBaoDuongTiepTheoInput) {
-            // Tính toán giá trị gợi ý ban đầu nếu có
             function suggestNextMaintenanceKm() {
                 const soKm = parseInt(soKmBaoDuongInput.value) || 0;
-                // Chỉ gợi ý nếu trường "Số KM BD tiếp theo" đang trống hoặc là giá trị cũ được tính tự động
                 const currentNextKm = parseInt(soKmBaoDuongTiepTheoInput.value) || 0;
                 const expectedNextKm = (parseInt(soKmBaoDuongInput.getAttribute('data-last-value')) || 0) + 15000;
-
-                // Chỉ auto-fill nếu:
-                // 1. Trường đang trống HOẶC
-                // 2. Giá trị hiện tại khớp với giá trị tự động tính trước đó
                 if (!soKmBaoDuongTiepTheoInput.value || currentNextKm === expectedNextKm) {
                     if (soKm > 0) {
                         soKmBaoDuongTiepTheoInput.value = soKm + 15000;
@@ -183,20 +188,10 @@
                     }
                 }
             }
-
-            // Gợi ý khi người dùng nhập "Số KM bảo dưỡng"
             soKmBaoDuongInput.addEventListener('input', suggestNextMaintenanceKm);
-
-            // Gợi ý giá trị ban đầu khi trang load
             if (soKmBaoDuongInput.value) {
                 suggestNextMaintenanceKm();
             }
         }
-
-        document.getElementById('maintenanceForm').addEventListener('submit', function() {
-            const btn = document.getElementById('btnSubmit');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
-        });
     </script>
 }

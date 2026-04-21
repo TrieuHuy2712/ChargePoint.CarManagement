@@ -155,7 +155,10 @@ namespace ChargePoint.CarManagement.Controllers
                 CarId = car.Id,
                 NgayBaoDuong = DateTime.Now,
                 SoKmBaoDuong = car.OdoXe,
-                NguoiTao = User.Identity?.Name
+                NguoiTao = User.Identity?.Name,
+                CapBaoDuong = CapBaoDuong.Cap1,
+                LoaiHoSo = LoaiHoSo.BaoDuong
+
             };
 
             return View(new MaintenanceCreateVM
@@ -170,17 +173,17 @@ namespace ChargePoint.CarManagement.Controllers
         [ValidateAntiForgeryToken]
         [RequestSizeLimit(50 * 1024 * 1024)] // 50MB
         public async Task<IActionResult> Create(
-            MaintenanceCreateVM viewModel, // ✅ Đúng: khớp với cấu trúc form
+            MaintenanceCreateVM viewModel,
             List<IFormFile>? HinhAnhChungTuFiles)
         {
-            var model = viewModel.MaintenanceRecord; // Lấy model từ ViewModel
-            // Ensure EF will generate Id - remove any incoming Id validation
+            var model = viewModel.MaintenanceRecord;
             ModelState.Remove(nameof(MaintenanceRecord.Id));
 
             if (ModelState.IsValid)
             {
                 try
                 {
+                    var loaiHoSo = viewModel.LoaiHoSo;
                     var car = await _context.Cars.FindAsync(model.CarId);
                     if (car == null)
                     {
@@ -189,7 +192,8 @@ namespace ChargePoint.CarManagement.Controllers
                         {
                             MaintenanceRecord = model,
                             Cars = [],
-                            SelectListCars = new SelectList(await _context.Cars.OrderBy(c => c.BienSo).ToListAsync(), "Id", "BienSo")
+                            SelectListCars = new SelectList(await _context.Cars.OrderBy(c => c.BienSo).ToListAsync(), "Id", "BienSo"),
+                            LoaiHoSo = model.LoaiHoSo
                         };
                         return View(errorVM);
                     }
@@ -200,14 +204,15 @@ namespace ChargePoint.CarManagement.Controllers
                         CarId = model.CarId,
                         NgayBaoDuong = model.NgayBaoDuong,
                         SoKmBaoDuong = model.SoKmBaoDuong,
-                        CapBaoDuong = model.CapBaoDuong,
+                        CapBaoDuong = loaiHoSo == LoaiHoSo.SuaChua ? null : model.CapBaoDuong,
                         SoKmBaoDuongTiepTheo = model.SoKmBaoDuongTiepTheo,
                         NoiDungBaoDuong = model.NoiDungBaoDuong,
                         ChiPhi = model.ChiPhi,
                         NoiBaoDuong = model.NoiBaoDuong,
                         GhiChu = model.GhiChu,
                         NgayTao = DateTime.Now,
-                        NguoiTao = User.Identity?.Name
+                        NguoiTao = User.Identity?.Name,
+                        LoaiHoSo = viewModel.LoaiHoSo
                     };
 
                     // Upload hình ảnh chứng từ (if any)
@@ -339,6 +344,7 @@ namespace ChargePoint.CarManagement.Controllers
                     existingRecord.GhiChu = model.GhiChu;
                     existingRecord.NgayCapNhat = DateTime.Now;
                     existingRecord.NguoiCapNhat = User.Identity?.Name;
+                    existingRecord.LoaiHoSo = model.LoaiHoSo;
 
                     // Upload new images (append)
                     if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)

@@ -128,7 +128,7 @@
                                     }
                                 </td>
                                 <td>
-                                    @if (lastMaintenance != null)
+                                    @if (lastMaintenance != null && lastMaintenance.CapBaoDuong.HasValue)
                                     {
                                         var cap = (CapBaoDuong)lastMaintenance.CapBaoDuong;
                                         var badgeClass = cap switch
