@@ -219,13 +219,13 @@ namespace ChargePoint.CarManagement.Controllers
             var maintenanceDraftKey = GetMaintenanceDraftCacheKey(model.CarId);
             var tireDraftKey = GetTireDraftCacheKey(model.CarId);
 
-            if (action == ButtonAction.SaveDraft)
+            if (action == ButtonAction.SaveMaintenance)
             {
                 _memoryCache.Set(tireDraftKey, model, TimeSpan.FromMinutes(30));
                 return RedirectToAction("Create", "Maintenance", new { id = model.CarId });
             }
 
-            if (action == ButtonAction.Complete)
+            if (fromDraft || action == ButtonAction.Complete)
             {
                 if (!_memoryCache.TryGetValue(maintenanceDraftKey, out MaintenanceRecord? maintenanceDraft) || maintenanceDraft == null)
                 {
@@ -630,4 +630,3 @@ namespace ChargePoint.CarManagement.Controllers
         }
     }
 }
-
