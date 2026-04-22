@@ -1,4 +1,5 @@
 ﻿@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
+@using ChargePoint.CarManagement.Models.Enums
 @model TireCreateVM
 @inject Microsoft.Extensions.Options.IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
 
@@ -7,6 +8,7 @@
     var settings = FileUploadSettings.Value;
     var car = Model.Car;
     var tireRecord = Model.TireRecord!;
+    bool fromDraft = ViewBag.FromDraft == true;
 }
 
 <div class="container">
@@ -35,9 +37,10 @@
 
     <div class="card shadow">
         <div class="card-body">
-            <form asp-action="Create" enctype="multipart/form-data" id="tireForm">
+            <form asp-action="Create" method="post" enctype="multipart/form-data" id="tireForm">
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                 <input type="hidden" asp-for="TireRecord.CarId" />
+                <input type="hidden" name="fromDraft" value="@(fromDraft.ToString().ToLower())" />
 
                 <div class="row">
                     <!-- Vị trí lốp -->
@@ -181,8 +184,14 @@
                 @await Html.PartialAsync("_TireSharedImage")
 
                 <div class="form-group mt-4">
-                    <button type="submit" class="btn btn-success" id="btnSubmit">
+                    <button type="submit" name="action" value="Save" class="btn btn-success">
                         <i class="fas fa-save"></i> Lưu hồ sơ
+                    </button>
+                    <button type="submit" name="action" value="SaveDraft" class="btn btn-warning">
+                        <i class="fas fa-save"></i> Lưu tạm
+                    </button>
+                    <button type="submit" name="action" value="Complete" class="btn btn-primary">
+                        <i class="fas fa-check"></i> Hoàn tất
                     </button>
                     <a asp-action="CarDetail" asp-route-id="@tireRecord.CarId" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Quay lại
@@ -219,3 +228,4 @@
         });
     </script>
 }
+

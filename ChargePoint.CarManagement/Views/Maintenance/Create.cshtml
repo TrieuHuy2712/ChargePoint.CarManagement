@@ -36,17 +36,16 @@
 
     <div class="card shadow">
         <div class="card-body">
-            <form asp-action="Create" enctype="multipart/form-data" id="maintenanceForm">
+            <form asp-action="Create" enctype="multipart/form-data" id="maintenanceForm" method="post">
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                 <input type="hidden" asp-for="@maintenanceRecord.CarId" />
 
                 <!-- Dropdown chọn loại hồ sơ -->
-                @await Html.PartialAsync("_LoaiHoSoDropdown", Model.MaintenanceRecord.LoaiHoSo
-                                , new ViewDataDictionary(ViewData) {
-                                { "DropdownId", "LoaiHoSo" },
-                                { "DropdownName", "LoaiHoSo" },
-                                { "IconId", "LoaiHoSoIconEdit" }
-                                })
+                @await Html.PartialAsync("_LoaiHoSoDropdown", Model.MaintenanceRecord.LoaiHoSo, new ViewDataDictionary(ViewData) {
+                    { "DropdownId", "LoaiHoSo" },
+                    { "DropdownName", "MaintenanceRecord.LoaiHoSo" },
+                    { "IconId", "LoaiHoSoIcon" }
+                })
 
                 <div class="row">
                     <div class="col-md-6">
@@ -85,7 +84,8 @@
                                     };
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio"
-                                               name="CapBaoDuong" id="cap@((int)cap)"
+                                               name="MaintenanceRecord.CapBaoDuong"
+                                               id="cap@((int)cap)"
                                                value="@((int)cap)"
                                                @(maintenanceRecord.CapBaoDuong == cap ? "checked" : "") />
                                         <label class="form-check-label" for="cap@((int)cap)">
@@ -152,12 +152,23 @@
                               placeholder="Ghi chú thêm..."></textarea>
                 </div>
 
+                <!-- Checkbox thêm thông tin lốp -->
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" value="true" id="AddTireInfo" name="AddTireInfo" />
+                    <label class="form-check-label" for="AddTireInfo">
+                        Sau khi lưu, chuyển sang thêm thông tin lốp
+                    </label>
+                </div>
+
                 <!-- Shared Image Upload Partial -->
                 <partial name="_MaintenanceImagePartial" model='new { Record = Model.MaintenanceRecord }' />
 
-                <div class="form-group mt-4">
-                    <button type="submit" class="btn btn-success" id="btnSubmit">
+                <div class="form-group mt-4 d-flex gap-2">
+                    <button type="submit" name="action" value="save" class="btn btn-success" id="btnSubmit">
                         <i class="fas fa-save"></i> Lưu hồ sơ
+                    </button>
+                    <button type="submit" name="action" value="next" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Tiếp theo (thông tin lốp)
                     </button>
                     <a asp-action="Index" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Quay lại
@@ -193,5 +204,11 @@
                 suggestNextMaintenanceKm();
             }
         }
+
+        document.getElementById('maintenanceForm').addEventListener('submit', function() {
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+        });
     </script>
 }

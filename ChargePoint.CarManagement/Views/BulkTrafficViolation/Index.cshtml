@@ -382,6 +382,12 @@
         // Call init on load
         initSelections();
 
+        function isOverwriteMessage(message) {
+            if (!message) return false;
+            const text = String(message).toLowerCase();
+            return text.includes('ghi đè') || text.includes('ghi de') || text.includes('overwrite');
+        }
+
         // Check selected cars
         document.getElementById('btnCheckSelected').addEventListener('click', async function() {
             const entries = Array.from(selectedCars.entries()); // [[id, bienSo], ...] id is string
@@ -461,6 +467,9 @@
                         ).join('\n');
                     }
 
+                    const overwriteMessage = isOverwriteMessage(data.message);
+                    const isError = !data.success && !overwriteMessage;
+
                     // Store result
                     checkResults.set(id, {
                         carId: id,
@@ -478,7 +487,11 @@
                         trangThaiCSGT: trangThai,
                         fullViPhamData: fullViPham,
                         danhSachViPham: data.danhSachViPham,
-                        ghiChu: `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}`
+                        ghiChu: data.success
+                            ? `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}`
+                            : (data.message || `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}`),
+                        isError: isError,
+                        errorMessage: isError ? data.message : null
                     });
 
                     if (data.success) {
@@ -490,15 +503,22 @@
                             if (resultCell) resultCell.innerHTML = `<span class="text-success">Sạch</span>`;
                         }
                     } else {
-                        if (statusCell) statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-times"></i> Lỗi</span>`;
-                        if (resultCell) resultCell.innerHTML = `<small class="text-danger">${data.message}</small>`;
+                        if (overwriteMessage) {
+                            if (statusCell) statusCell.innerHTML = `<span class="badge bg-info text-dark"><i class="fas fa-info-circle"></i> Đã ghi đè</span>`;
+                            if (resultCell) resultCell.innerHTML = `<small class="text-info">${data.message || 'Thông tin đã được ghi đè'}</small>`;
+                        } else {
+                            if (statusCell) statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-times"></i> Lỗi</span>`;
+                            if (resultCell) resultCell.innerHTML = `<small class="text-danger">${data.message}</small>`;
+                        }
                     }
                 } catch (error) {
                     checkResults.set(id, {
                         carId: id,
                         bienSo: bienSo,
                         soLuongViPham: 0,
-                        ghiChu: 'Lỗi: ' + error.message
+                        ghiChu: 'Lỗi: ' + error.message,
+                        isError: true,
+                        errorMessage: error.message
                     });
 
                     if (statusCell) statusCell.innerHTML = `<span class="badge bg-danger"><i class="fas fa-times"></i> Lỗi</span>`;
@@ -535,8 +555,8 @@
             // Calculate stats
             const totalChecked = results.length;
             const totalViolations = results.filter(r => r.soLuongViPham > 0).length;
-            const totalClean = results.filter(r => r.soLuongViPham === 0 && !r.ghiChu?.includes('Lỗi')).length;
-            const totalErrors = results.filter(r => r.ghiChu?.includes('Lỗi')).length;
+            const totalClean = results.filter(r => r.soLuongViPham === 0 && !r.isError).length;
+            const totalErrors = results.filter(r => r.isError).length;
 
             // Update stats
             document.getElementById('totalChecked').textContent = totalChecked;
@@ -553,8 +573,8 @@
             // Populate tables
             populateAllResultsTable(results);
             populateViolationsTable(results.filter(r => r.soLuongViPham > 0));
-            populateCleanTable(results.filter(r => r.soLuongViPham === 0 && !r.ghiChu?.includes('Lỗi')));
-            populateErrorsTable(results.filter(r => r.ghiChu?.includes('Lỗi')));
+            populateCleanTable(results.filter(r => r.soLuongViPham === 0 && !r.isError));
+            populateErrorsTable(results.filter(r => r.isError));
 
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('resultsSummaryModal'));
@@ -575,15 +595,15 @@
                     <td><strong>${result.bienSo}</strong></td>
                     <td>${tenXe}</td>
                     <td>
-                        ${result.ghiChu?.includes('Lỗi')
+                        ${result.isError
                             ? '<span class="badge bg-warning">Lỗi</span>' 
                             : result.soLuongViPham > 0 
                                 ? `<span class="badge bg-danger">${result.soLuongViPham} vi phạm</span>`
                                 : '<span class="badge bg-success">Sạch</span>'}
                     </td>
                     <td>
-                        ${result.ghiChu?.includes('Lỗi')
-                            ? `<small class="text-muted">${result.ghiChu}</small>`
+                        ${result.isError
+                            ? `<small class="text-muted">${result.errorMessage || result.ghiChu || ''}</small>`
                             : result.soLuongViPham > 0 && result.noiDungViPham
                                 ? `<small>${result.noiDungViPham.substring(0, 50)}...</small>`
                                 : '-'}
@@ -696,7 +716,7 @@
             }
 
             // Filter out error results
-            const validResults = Array.from(checkResults.values()).filter(r => !r.ghiChu?.includes('Lỗi'));
+            const validResults = Array.from(checkResults.values()).filter(r => !r.isError);
 
             if (validResults.length === 0) {
                 alert('Không có kết quả hợp lệ nào để lưu!');

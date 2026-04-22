@@ -1,5 +1,4 @@
 using ChargePoint.CarManagement.Data;
-using ChargePoint.CarManagement.Data;
 using ChargePoint.CarManagement.Models;
 using ChargePoint.CarManagement.Models.ViewModels;
 using ChargePoint.CarManagement.Services;
@@ -421,7 +420,7 @@ namespace ChargePoint.CarManagement.Controllers
                     _context.Cars.Remove(car);
                     await _context.SaveChangesAsync();
 
-                    TempData["SuccessMessage"] = "Xóa xe thành công!";
+                    TempData["SuccessMessage"] = "XÃ³a xe thÃ nh cÃ´ng!";
                 }
                 catch (Exception ex)
                 {
@@ -590,161 +589,163 @@ namespace ChargePoint.CarManagement.Controllers
                 {
                     return Json(new { success = false, message = "File Excel trống, không có dữ liệu để thêm mới." });
                 }
-
                 int addedCount = 0;
                 int updatedCount = 0;
                 var skippedRows = new List<string>();
+                var duplicateInFile = new Dictionary<string, List<int>>();
 
-                // Lấy danh sách xe đã tồn tại theo VIN để cập nhật
-                var existingCarsDict = await _context.Cars
+                var existingVinSet = await _context.Cars
                     .Where(c => !string.IsNullOrEmpty(c.SoVIN))
-                    .ToDictionaryAsync(c => c.SoVIN.ToLower());
+                    .Select(c => c.SoVIN.ToLower())
+                    .ToListAsync();
+                var existingVinLookup = new HashSet<string>(existingVinSet);
 
-                var newCars = new List<Car>();
-                var carsToUpdate = new List<Car>();
-                var processedVins = new HashSet<string>();
-
-                int maxStt = await _context.Cars.AnyAsync() ? await _context.Cars.MaxAsync(c => c.Stt) : 0;
+                var rowData = new List<(int Row, string? RawVin, string? RawTenXe, string? RawBienSo, string? RawBienSoCu, string? RawMauXe, string? RawLoaiBien, string? RawKhachHang, string? RawOdo, string? RawNgayThue, string? RawNgayHetHan)>();
+                var vinRowsMap = new Dictionary<string, List<int>>();
 
                 for (int row = 2; row <= rowCount; row++)
                 {
-                    var rawVin = worksheet.Cells[row, 2].Value?.ToString()?.Trim(); // Cột B -> index 2
-                    var rawTenXe = worksheet.Cells[row, 3].Value?.ToString()?.Trim(); // Cột C -> index 3
-                    var rawBienSo = worksheet.Cells[row, 4].Value?.ToString()?.Trim(); // Cột D -> index 4
-                    var rawBienSoCu = worksheet.Cells[row, 5].Value?.ToString()?.Trim(); // Cột E -> index 5
-                    var rawMauXe = worksheet.Cells[row, 6].Value?.ToString()?.Trim(); // Cột F -> index 6
-                    var rawLoaiBien = worksheet.Cells[row, 7].Value?.ToString()?.Trim(); // Cột G -> index 7
-                    var rawKhachHang = worksheet.Cells[row, 8].Value?.ToString()?.Trim(); // Cột H -> index 8
-                    var rawOdo = worksheet.Cells[row, 9].Value?.ToString()?.Trim(); // Cột I -> index 9
-                    var rawNgayThue = worksheet.Cells[row, 10].Value?.ToString()?.Trim(); // Cột J -> index 10
-                    var rawNgayHetHan = worksheet.Cells[row, 11].Value?.ToString()?.Trim(); // Cột K -> index 11
+                    var rawVin = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
+                    var rawTenXe = worksheet.Cells[row, 3].Value?.ToString()?.Trim();
+                    var rawBienSo = worksheet.Cells[row, 4].Value?.ToString()?.Trim();
+                    var rawBienSoCu = worksheet.Cells[row, 5].Value?.ToString()?.Trim();
+                    var rawMauXe = worksheet.Cells[row, 6].Value?.ToString()?.Trim();
+                    var rawLoaiBien = worksheet.Cells[row, 7].Value?.ToString()?.Trim();
+                    var rawKhachHang = worksheet.Cells[row, 8].Value?.ToString()?.Trim();
+                    var rawOdo = worksheet.Cells[row, 9].Value?.ToString()?.Trim();
+                    var rawNgayThue = worksheet.Cells[row, 10].Value?.ToString()?.Trim();
+                    var rawNgayHetHan = worksheet.Cells[row, 11].Value?.ToString()?.Trim();
 
-                    if (string.IsNullOrWhiteSpace(rawVin) || rawVin.Length != 17)
+                    rowData.Add((row, rawVin, rawTenXe, rawBienSo, rawBienSoCu, rawMauXe, rawLoaiBien, rawKhachHang, rawOdo, rawNgayThue, rawNgayHetHan));
+
+                    if (!string.IsNullOrWhiteSpace(rawVin) && rawVin.Length == 17)
                     {
-                        skippedRows.Add($"Dòng {row} (Sai định dạng 17 ký tự VIN)");
+                        var vinLower = rawVin.ToLower();
+                        if (!vinRowsMap.ContainsKey(vinLower))
+                        {
+                            vinRowsMap[vinLower] = new List<int>();
+                        }
+                        vinRowsMap[vinLower].Add(row);
+                    }
+                }
+
+                foreach (var item in vinRowsMap.Where(x => x.Value.Count > 1))
+                {
+                    duplicateInFile[item.Key] = item.Value;
+                }
+
+                var newCars = new List<Car>();
+                int maxStt = await _context.Cars.AnyAsync() ? await _context.Cars.MaxAsync(c => c.Stt) : 0;
+
+                foreach (var item in rowData)
+                {
+                    if (string.IsNullOrWhiteSpace(item.RawVin) || item.RawVin.Length != 17)
+                    {
+                        skippedRows.Add($"Dòng {item.Row} (Sai định dạng 17 ký tự VIN)");
                         continue;
                     }
 
-                    var vinLower = rawVin.ToLower();
+                    var vinLower = item.RawVin.ToLower();
 
-                    // Tránh trùng lặp VIN trong cùng 1 file Excel (lấy dòng đầu)
-                    if (processedVins.Contains(vinLower))
+                    if (duplicateInFile.ContainsKey(vinLower))
                     {
-                        skippedRows.Add($"Dòng {row} (Trùng lặp số VIN trong file)");
                         continue;
                     }
-                    processedVins.Add(vinLower);
 
-                    // Parse options
-                    var loaiBienLower = rawLoaiBien?.ToLower() ?? "";
-                    bool isTrang = loaiBienLower.Contains("trắng") || loaiBienLower.Contains("trang");
-                    bool isVang = loaiBienLower.Contains("vàng") || loaiBienLower.Contains("vang");
+                    if (existingVinLookup.Contains(vinLower))
+                    {
+                        // VIN already exists in system: skip saving silently (do not show in duplicate list/UI).
+                        continue;
+                    }
+
+                    var loaiBienLower = item.RawLoaiBien?.ToLower() ?? "";
+                    bool isTrang = loaiBienLower.Contains("trang");
+                    bool isVang = loaiBienLower.Contains("vang");
 
                     if (!string.IsNullOrWhiteSpace(loaiBienLower) && !isTrang && !isVang)
                     {
-                        skippedRows.Add($"Dòng {row} (Loại biển chỉ nhận chứa từ 'Trắng' hoặc 'Vàng')");
+                        skippedRows.Add($"Dòng {item.Row} (Loại biển chỉ nhận chứa từ 'Trắng' hoặc 'Vàng')");
                         continue;
                     }
 
-                    MauBienSo mauBien = MauBienSo.Trang;
-                    if (isVang)
-                    {
-                        mauBien = MauBienSo.Vang;
-                    }
+                    MauBienSo mauBien = isVang ? MauBienSo.Vang : MauBienSo.Trang;
 
                     int odo = 0;
-                    if (!string.IsNullOrWhiteSpace(rawOdo))
+                    if (!string.IsNullOrWhiteSpace(item.RawOdo))
                     {
-                        int.TryParse(rawOdo, out odo);
+                        int.TryParse(item.RawOdo, out odo);
                     }
 
                     DateTime? ngayThue = null;
-                    if (!string.IsNullOrWhiteSpace(rawNgayThue) && DateTime.TryParseExact(rawNgayThue, "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var nt))
+                    if (!string.IsNullOrWhiteSpace(item.RawNgayThue) && DateTime.TryParseExact(item.RawNgayThue, "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var nt))
                     {
                         ngayThue = nt;
                     }
 
                     DateTime? ngayHetHan = null;
-                    if (!string.IsNullOrWhiteSpace(rawNgayHetHan) && DateTime.TryParseExact(rawNgayHetHan, "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var nh))
+                    if (!string.IsNullOrWhiteSpace(item.RawNgayHetHan) && DateTime.TryParseExact(item.RawNgayHetHan, "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var nh))
                     {
                         ngayHetHan = nh;
                     }
 
-                    if (existingCarsDict.TryGetValue(vinLower, out var existingCar))
+                    maxStt++;
+                    var car = new Car
                     {
-                        // Update xe đã tồn tại
-                        bool isModified = false;
-                        if (existingCar.TenXe != rawTenXe) { existingCar.TenXe = rawTenXe; isModified = true; }
-                        if (existingCar.BienSo != rawBienSo) { existingCar.BienSo = string.IsNullOrWhiteSpace(rawBienSo) ? null : rawBienSo; isModified = true; }
-                        if (existingCar.BienSoCu != rawBienSoCu) { existingCar.BienSoCu = string.IsNullOrWhiteSpace(rawBienSoCu) ? null : rawBienSoCu; isModified = true; }
-                        if (existingCar.MauXe != rawMauXe) { existingCar.MauXe = rawMauXe; isModified = true; }
-                        if (existingCar.MauBienSo != mauBien) { existingCar.MauBienSo = mauBien; isModified = true; }
-                        if (existingCar.TenKhachHang != rawKhachHang) { existingCar.TenKhachHang = string.IsNullOrWhiteSpace(rawKhachHang) ? null : rawKhachHang; isModified = true; }
-                        if (existingCar.OdoXe != odo && !string.IsNullOrWhiteSpace(rawOdo)) { existingCar.OdoXe = odo; isModified = true; }
-                        if (existingCar.NgayThue != ngayThue && !string.IsNullOrWhiteSpace(rawNgayThue)) { existingCar.NgayThue = ngayThue; isModified = true; }
-                        if (existingCar.NgayHetHan != ngayHetHan && !string.IsNullOrWhiteSpace(rawNgayHetHan)) { existingCar.NgayHetHan = ngayHetHan; isModified = true; }
+                        Stt = maxStt,
+                        SoVIN = item.RawVin,
+                        TenXe = item.RawTenXe,
+                        BienSo = string.IsNullOrWhiteSpace(item.RawBienSo) ? null : item.RawBienSo,
+                        BienSoCu = string.IsNullOrWhiteSpace(item.RawBienSoCu) ? null : item.RawBienSoCu,
+                        MauXe = item.RawMauXe,
+                        MauBienSo = mauBien,
+                        TenKhachHang = string.IsNullOrWhiteSpace(item.RawKhachHang) ? null : item.RawKhachHang,
+                        OdoXe = odo,
+                        NgayThue = ngayThue,
+                        NgayHetHan = ngayHetHan,
+                        SoLuong = 1,
+                        NgayTao = DateTime.Now,
+                        NguoiTao = User.Identity?.Name,
+                    };
 
-                        if (isModified)
-                        {
-                            existingCar.NgayCapNhat = DateTime.Now;
-                            existingCar.NguoiCapNhat = User.Identity?.Name;
-                            carsToUpdate.Add(existingCar);
-                        }
-                        updatedCount++;
-                    }
-                    else
-                    {
-                        // Thêm xe mới
-                        maxStt++;
-                        var car = new Car
-                        {
-                            Stt = maxStt,
-                            SoVIN = rawVin,
-                            TenXe = rawTenXe,
-                            BienSo = string.IsNullOrWhiteSpace(rawBienSo) ? null : rawBienSo,
-                            BienSoCu = string.IsNullOrWhiteSpace(rawBienSoCu) ? null : rawBienSoCu,
-                            MauXe = rawMauXe,
-                            MauBienSo = mauBien,
-                            TenKhachHang = string.IsNullOrWhiteSpace(rawKhachHang) ? null : rawKhachHang,
-                            OdoXe = odo,
-                            NgayThue = ngayThue,
-                            NgayHetHan = ngayHetHan,
-                            SoLuong = 1,
-                            NgayTao = DateTime.Now,
-                            NguoiTao = User.Identity?.Name,
-                        };
-
-                        newCars.Add(car);
-                        addedCount++;
-                    }
+                    newCars.Add(car);
+                    addedCount++;
                 }
 
                 if (newCars.Any())
                 {
                     _context.Cars.AddRange(newCars);
-                }
-
-                if (carsToUpdate.Any())
-                {
-                    _context.Cars.UpdateRange(carsToUpdate);
-                }
-
-                if (newCars.Any() || carsToUpdate.Any())
-                {
                     await _context.SaveChangesAsync();
                 }
 
-                return Json(new 
-                { 
-                    success = true, 
+                var duplicateVinRows = duplicateInFile
+                    .Select(x => new { vin = x.Key.ToUpper(), rows = x.Value.OrderBy(r => r).ToList(), source = "File" })
+                    .OrderBy(x => x.vin)
+                    .ToList();
+
+                foreach (var dup in duplicateVinRows)
+                {
+                    skippedRows.Add($"Dòng {string.Join(",", dup.rows)} (Trùng số VIN trong file: {dup.vin})");
+                }
+
+                var duplicateVins = duplicateVinRows
+                    .Select(x => x.vin)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToList();
+
+                return Json(new
+                {
+                    success = true,
                     addedCount = addedCount,
                     updatedCount = updatedCount,
-                    skippedRows = skippedRows
+                    skippedRows = skippedRows,
+                    duplicateVins = duplicateVins,
+                    duplicateVinRows = duplicateVinRows
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi xảy ra khi import hàng loạt");
+                _logger.LogError(ex, "Lỗi xảy ra trong khi import hàng loạt");
                 var innerMsg = ex.InnerException != null ? ex.InnerException.Message : "";
                 return Json(new { success = false, message = $"Có lỗi xảy ra: {ex.Message} {innerMsg}" });
             }
@@ -782,3 +783,4 @@ namespace ChargePoint.CarManagement.Controllers
         public int Id { get; set; }
     }
 }
+

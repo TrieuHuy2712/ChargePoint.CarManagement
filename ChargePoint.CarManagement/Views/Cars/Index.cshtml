@@ -333,7 +333,8 @@
 
                 if (result.success) {
                     document.getElementById('importSuccess').style.display = 'block';
-                    document.getElementById('importSuccessMessage').innerText = `Đã xử lý file thành công: Thêm mới ${result.addedCount} xe, Cập nhật ${result.updatedCount} xe.`;
+                    const duplicateCount = (result.duplicateVins && result.duplicateVins.length) ? result.duplicateVins.length : 0;
+                    document.getElementById('importSuccessMessage').innerText = `Đã xử lý file thành công: Thêm mới ${result.addedCount} xe, Cập nhật ${result.updatedCount} xe, VIN trùng ${duplicateCount}.`;
 
                     if (result.skippedRows && result.skippedRows.length > 0) {
                         document.getElementById('skippedTitle').style.display = 'block';

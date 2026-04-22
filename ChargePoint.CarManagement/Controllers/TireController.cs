@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
+using ChargePoint.CarManagement.Models.Enums;
 
 namespace ChargePoint.CarManagement.Controllers
 {
@@ -14,11 +16,13 @@ namespace ChargePoint.CarManagement.Controllers
     public class TireController(
         ApplicationDbContext context,
         IImageUploadService imageUploadService,
-        ILogger<TireController> logger) : Controller
+        ILogger<TireController> logger,
+        IMemoryCache memoryCache) : Controller
     {
         private readonly ApplicationDbContext _context = context;
         private readonly IImageUploadService _imageUploadService = imageUploadService;
         private readonly ILogger<TireController> _logger = logger;
+        private readonly IMemoryCache _memoryCache= memoryCache;
 
         // GET: Tire
         public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
@@ -147,24 +151,40 @@ namespace ChargePoint.CarManagement.Controllers
             });
         }
 
+        private string GetMaintenanceDraftCacheKey(int carId)
+            => $"MaintenanceCreate_{carId}_{User.Identity?.Name}";
+
+        private string GetTireDraftCacheKey(int carId)
+            => $"TireCreate_{carId}_{User.Identity?.Name}";
+
         // GET: Tire/Create/5 (CarId)
-        public async Task<IActionResult> Create(int? id, ViTriLop? viTri = null)
+        public async Task<IActionResult> Create(int? id, ViTriLop? viTri = null, bool fromDraft = false)
         {
             if (id == null) return NotFound();
-
 
             var car = await _context.Cars.FindAsync(id);
             if (car == null) return NotFound();
 
-            var model = new TireRecord
+            TireRecord model;
+            var tireDraftKey = GetTireDraftCacheKey(car.Id);
+            if (_memoryCache.TryGetValue(tireDraftKey, out TireRecord? tireDraft) && tireDraft != null)
             {
-                CarId = car.Id,
-                NgayThucHien = DateTime.Now,
-                OdoThayLop = car.OdoXe,
-                NguoiTao = User.Identity?.Name,
-                ViTriLop = viTri ?? ViTriLop.TruocTrai
-            };
+                tireDraft.CarId = car.Id;
+                model = tireDraft;
+            }
+            else
+            {
+                model = new TireRecord
+                {
+                    CarId = car.Id,
+                    NgayThucHien = DateTime.Now,
+                    OdoThayLop = car.OdoXe,
+                    NguoiTao = User.Identity?.Name,
+                    ViTriLop = viTri ?? ViTriLop.TruocTrai
+                };
+            }
 
+            ViewBag.FromDraft = fromDraft;
             return View(new TireCreateVM
             {
                 Car = car,
@@ -179,85 +199,175 @@ namespace ChargePoint.CarManagement.Controllers
         public async Task<IActionResult> Create(
             [Bind(Prefix = "TireRecord")] TireRecord model,
             List<IFormFile>? HinhAnhChungTuFiles,
-            List<IFormFile>? HinhAnhDOTFiles)
+            List<IFormFile>? HinhAnhDOTFiles,
+            ButtonAction action = ButtonAction.Save,
+            bool fromDraft = false)
         {
-            // Load car information first
             var car = await _context.Cars.FindAsync(model.CarId);
-            if (car == null)
-            {
-                return NotFound();
-            }
+            if (car == null) return NotFound();
 
-            // Create view model for potential return
             var vm = new TireCreateVM
             {
                 Car = car,
                 TireRecord = model
             };
 
-            if (!ModelState.IsValid)
+            ViewBag.FromDraft = fromDraft;
+
+            if (!ModelState.IsValid) return View(vm);
+
+            var maintenanceDraftKey = GetMaintenanceDraftCacheKey(model.CarId);
+            var tireDraftKey = GetTireDraftCacheKey(model.CarId);
+
+            if (action == ButtonAction.SaveDraft)
             {
-                return View(vm);
+                _memoryCache.Set(tireDraftKey, model, TimeSpan.FromMinutes(30));
+                return RedirectToAction("Create", "Maintenance", new { id = model.CarId });
+            }
+
+            if (action == ButtonAction.Complete)
+            {
+                if (!_memoryCache.TryGetValue(maintenanceDraftKey, out MaintenanceRecord? maintenanceDraft) || maintenanceDraft == null)
+                {
+                    ModelState.AddModelError("", "Khong tim thay du lieu bao duong tam. Vui long quay lai Maintenance de tao lai.");
+                    return View(vm);
+                }
+
+                var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+                var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(maintenanceDraft);
+                if (!System.ComponentModel.DataAnnotations.Validator.TryValidateObject(maintenanceDraft, validationContext, validationResults, true))
+                {
+                    ModelState.AddModelError("", "Du lieu bao duong tam khong hop le. Vui long quay lai Maintenance de kiem tra.");
+                    return View(vm);
+                }
+
+                try
+                {
+                    var bienSo = car.BienSo ?? "NoPlate";
+
+                    if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
+                    {
+                        var imageUrls = new List<string>();
+                        foreach (var file in HinhAnhChungTuFiles.Where(f => f != null && f.Length > 0))
+                        {
+                            var url = await _imageUploadService.UploadFileAsync(
+                                file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
+                            imageUrls.Add(url);
+                        }
+                        model.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
+                    }
+
+                    if (HinhAnhDOTFiles != null && HinhAnhDOTFiles.Count > 0)
+                    {
+                        var dotImageUrls = new List<string>();
+                        foreach (var file in HinhAnhDOTFiles.Where(f => f != null && f.Length > 0))
+                        {
+                            var url = await _imageUploadService.UploadFileAsync(
+                                file, bienSo, $"DOT_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
+                            dotImageUrls.Add(url);
+                        }
+                        model.HinhAnhDOT = JsonSerializer.Serialize(dotImageUrls);
+                    }
+
+                    var newMaintenance = new MaintenanceRecord
+                    {
+                        CarId = maintenanceDraft.CarId,
+                        NgayBaoDuong = maintenanceDraft.NgayBaoDuong,
+                        SoKmBaoDuong = maintenanceDraft.SoKmBaoDuong,
+                        CapBaoDuong = maintenanceDraft.LoaiHoSo == LoaiHoSo.SuaChua ? null : maintenanceDraft.CapBaoDuong,
+                        SoKmBaoDuongTiepTheo = maintenanceDraft.SoKmBaoDuongTiepTheo,
+                        NoiDungBaoDuong = maintenanceDraft.NoiDungBaoDuong,
+                        ChiPhi = maintenanceDraft.ChiPhi,
+                        NoiBaoDuong = maintenanceDraft.NoiBaoDuong,
+                        GhiChu = maintenanceDraft.GhiChu,
+                        LoaiHoSo = maintenanceDraft.LoaiHoSo,
+                        NgayTao = DateTime.Now,
+                        NguoiTao = User.Identity?.Name
+                    };
+
+                    model.NgayTao = DateTime.Now;
+                    model.NguoiTao = User.Identity?.Name;
+
+                    await using var tx = await _context.Database.BeginTransactionAsync();
+
+                    _context.MaintenanceRecords.Add(newMaintenance);
+                    _context.TireRecords.Add(model);
+
+                    var settingAutoOdoMaintenance = await _context.SystemSettings
+                        .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Maintenance);
+                    if (settingAutoOdoMaintenance != null && settingAutoOdoMaintenance.Value == "true" && newMaintenance.SoKmBaoDuong > car.OdoXe)
+                    {
+                        car.OdoXe = newMaintenance.SoKmBaoDuong;
+                        car.NgayCapNhat = DateTime.Now;
+                    }
+
+                    var settingAutoOdoTire = await _context.SystemSettings
+                        .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Tire);
+                    if (settingAutoOdoTire != null && settingAutoOdoTire.Value == "true" && model.OdoThayLop > car.OdoXe)
+                    {
+                        car.OdoXe = model.OdoThayLop;
+                        car.NgayCapNhat = DateTime.Now;
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await tx.CommitAsync();
+
+                    _memoryCache.Remove(maintenanceDraftKey);
+                    _memoryCache.Remove(tireDraftKey);
+
+                    TempData["SuccessMessage"] = "Hoan tat: da luu ho so bao duong va ho so lop thanh cong!";
+                    return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Loi khi hoan tat draft Bao duong + Lop");
+                    ModelState.AddModelError("", $"Co loi xay ra khi hoan tat: {ex.Message}");
+                    return View(vm);
+                }
             }
 
             try
             {
                 var bienSo = car.BienSo ?? "NoPlate";
 
-                // Upload hình ảnh chứng từ nếu có
                 if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
                 {
                     var imageUrls = new List<string>();
-
-                    foreach (var file in HinhAnhChungTuFiles)
+                    foreach (var file in HinhAnhChungTuFiles.Where(f => f != null && f.Length > 0))
                     {
-                        if (file != null && file.Length > 0)
-                        {
-                            var url = await _imageUploadService.UploadFileAsync(
-                                file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                            imageUrls.Add(url);
-                        }
+                        var url = await _imageUploadService.UploadFileAsync(
+                            file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
+                        imageUrls.Add(url);
                     }
-
                     model.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
                 }
 
-                // Upload hình ảnh DOT nếu có
                 if (HinhAnhDOTFiles != null && HinhAnhDOTFiles.Count > 0)
                 {
                     var dotImageUrls = new List<string>();
-
-                    foreach (var file in HinhAnhDOTFiles)
+                    foreach (var file in HinhAnhDOTFiles.Where(f => f != null && f.Length > 0))
                     {
-                        if (file != null && file.Length > 0)
-                        {
-                            var url = await _imageUploadService.UploadFileAsync(
-                                file, bienSo, $"DOT_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                            dotImageUrls.Add(url);
-                        }
+                        var url = await _imageUploadService.UploadFileAsync(
+                            file, bienSo, $"DOT_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
+                        dotImageUrls.Add(url);
                     }
-
                     model.HinhAnhDOT = JsonSerializer.Serialize(dotImageUrls);
                 }
 
                 model.NgayTao = DateTime.Now;
                 model.NguoiTao = User.Identity?.Name;
 
-                // Kiểm tra setting trước khi ghi đè ODO
                 var settingAutoOdo = await _context.SystemSettings
                     .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Tire);
-
-                if (settingAutoOdo != null && settingAutoOdo.Value == "true")
+                if (settingAutoOdo != null && settingAutoOdo.Value == "true" && model.OdoThayLop > car.OdoXe)
                 {
-                    if (model.OdoThayLop > car.OdoXe)
-                    {
-                        car.OdoXe = model.OdoThayLop;
-                        car.NgayCapNhat = DateTime.Now;
-                    }
+                    car.OdoXe = model.OdoThayLop;
+                    car.NgayCapNhat = DateTime.Now;
                 }
 
                 _context.TireRecords.Add(model);
                 await _context.SaveChangesAsync();
+                _memoryCache.Remove(tireDraftKey);
 
                 TempData["SuccessMessage"] = $"Thêm hồ sơ lốp ({model.TenViTriLop}) thành công!";
                 return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
@@ -265,13 +375,11 @@ namespace ChargePoint.CarManagement.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi tạo hồ sơ lốp");
-                ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
+                ModelState.AddModelError("", $"Co loi xay ra: {ex.Message}");
             }
 
-            // Return view with populated data on error
             return View(vm);
         }
-
         // GET: Tire/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -522,3 +630,4 @@ namespace ChargePoint.CarManagement.Controllers
         }
     }
 }
+

@@ -11,6 +11,7 @@ ExcelPackage.License.SetNonCommercialPersonal("Your Name or Organization's Name"
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
 
 // Add DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

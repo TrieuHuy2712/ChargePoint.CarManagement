@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json;
 
 namespace ChargePoint.CarManagement.Controllers
@@ -17,16 +18,22 @@ namespace ChargePoint.CarManagement.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IImageUploadService _imageUploadService;
         private readonly ILogger<MaintenanceController> _logger;
-
+        private readonly IMemoryCache _memoryCache;
+            
         public MaintenanceController(
             ApplicationDbContext context,
             IImageUploadService imageUploadService,
-            ILogger<MaintenanceController> logger)
+            ILogger<MaintenanceController> logger,
+            IMemoryCache memoryCache)
         {
             _context = context;
             _imageUploadService = imageUploadService;
             _logger = logger;
+            _memoryCache = memoryCache;
         }
+
+        private string GetMaintenanceDraftCacheKey(int carId)
+            => $"MaintenanceCreate_{carId}_{User.Identity?.Name}";
 
         // GET: Maintenance
         public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
@@ -150,16 +157,25 @@ namespace ChargePoint.CarManagement.Controllers
             var car = await _context.Cars.FindAsync(id);
             if (car == null) return NotFound();
 
-            var model = new MaintenanceRecord
+            MaintenanceRecord model;
+            var draftKey = GetMaintenanceDraftCacheKey(car.Id);
+            if (_memoryCache.TryGetValue(draftKey, out MaintenanceRecord? draftModel) && draftModel != null)
             {
-                CarId = car.Id,
-                NgayBaoDuong = DateTime.Now,
-                SoKmBaoDuong = car.OdoXe,
-                NguoiTao = User.Identity?.Name,
-                CapBaoDuong = CapBaoDuong.Cap1,
-                LoaiHoSo = LoaiHoSo.BaoDuong
-
-            };
+                draftModel.CarId = car.Id;
+                model = draftModel;
+            }
+            else
+            {
+                model = new MaintenanceRecord
+                {
+                    CarId = car.Id,
+                    NgayBaoDuong = DateTime.Now,
+                    SoKmBaoDuong = car.OdoXe,
+                    NguoiTao = User.Identity?.Name,
+                    CapBaoDuong = CapBaoDuong.Cap1,
+                    LoaiHoSo = LoaiHoSo.BaoDuong
+                };
+            }
 
             return View(new MaintenanceCreateVM
             {
@@ -174,10 +190,21 @@ namespace ChargePoint.CarManagement.Controllers
         [RequestSizeLimit(50 * 1024 * 1024)] // 50MB
         public async Task<IActionResult> Create(
             MaintenanceCreateVM viewModel,
-            List<IFormFile>? HinhAnhChungTuFiles)
+            List<IFormFile>? HinhAnhChungTuFiles,
+            string action,
+            bool AddTireInfo = false)
         {
             var model = viewModel.MaintenanceRecord;
             ModelState.Remove(nameof(MaintenanceRecord.Id));
+
+            // Nếu nhấn Next hoặc tick checkbox thì chuyển sang trang thêm thông tin lốp
+            if (action == "next")
+            {
+                // Chuyển sang bước tiếp theo, truyền carId là route value
+                var cacheKey = GetMaintenanceDraftCacheKey(model.CarId);
+                _memoryCache.Set(cacheKey, model, TimeSpan.FromMinutes(30)); // Lưu model vào cache trong 30 phút
+                return RedirectToAction("Create", "Tire", new { id = model.CarId, fromDraft = true });
+            }
 
             if (ModelState.IsValid)
             {
@@ -251,6 +278,11 @@ namespace ChargePoint.CarManagement.Controllers
                     await _context.SaveChangesAsync();
 
                     TempData["SuccessMessage"] = "Thêm hồ sơ bảo dưỡng thành công!";
+                    _memoryCache.Remove(GetMaintenanceDraftCacheKey(newRecord.CarId));
+                    if (AddTireInfo)
+                    {
+                        return RedirectToAction("Create", "Tire", new { id = newRecord.CarId });
+                    }
                     return RedirectToAction(nameof(History), new { id = newRecord.CarId });
                 }
                 catch (Exception ex)

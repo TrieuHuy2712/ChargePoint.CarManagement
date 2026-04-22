@@ -154,10 +154,16 @@ namespace ChargePoint.CarManagement.Controllers
                 return Json(new { success = false, message = "Không có dữ liệu để lưu" });
             }
 
+            var validResults = results.Where(r => !r.IsError).ToList();
+            if (validResults.Count == 0)
+            {
+                return Json(new { success = false, message = "Không có kết quả hợp lệ để lưu" });
+            }
+
             var savedCount = 0;
             var errors = new List<string>();
 
-            foreach (var item in results)
+            foreach (var item in validResults)
             {
                 try
                 {
@@ -238,9 +244,9 @@ namespace ChargePoint.CarManagement.Controllers
             {
                 success = true,
                 savedCount,
-                totalCount = results.Count,
+                totalCount = validResults.Count,
                 errors,
-                message = $"Đã lưu {savedCount}/{results.Count} kết quả kiểm tra"
+                message = $"Đã lưu {savedCount}/{validResults.Count} kết quả kiểm tra"
             });
         }
 
@@ -264,7 +270,7 @@ namespace ChargePoint.CarManagement.Controllers
                 CreateAllResultsSheet(allSheet, results);
 
                 // Create Violations worksheet
-                var violations = results.Where(r => r.SoLuongViPham > 0 && string.IsNullOrEmpty(r.GhiChu?.Contains("Lỗi") == true ? r.GhiChu : null)).ToList();
+                var violations = results.Where(r => r.SoLuongViPham > 0 && !r.IsError).ToList();
                 if (violations.Any())
                 {
                     var violationsSheet = package.Workbook.Worksheets.Add("Có vi phạm");
@@ -272,7 +278,7 @@ namespace ChargePoint.CarManagement.Controllers
                 }
 
                 // Create Clean worksheet
-                var clean = results.Where(r => r.SoLuongViPham == 0 && string.IsNullOrEmpty(r.GhiChu?.Contains("Lỗi") == true ? r.GhiChu : null)).ToList();
+                var clean = results.Where(r => r.SoLuongViPham == 0 && !r.IsError).ToList();
                 if (clean.Any())
                 {
                     var cleanSheet = package.Workbook.Worksheets.Add("Không vi phạm");
