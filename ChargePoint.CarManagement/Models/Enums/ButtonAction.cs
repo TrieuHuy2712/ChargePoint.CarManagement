@@ -7,7 +7,7 @@ namespace ChargePoint.CarManagement.Models.Enums
         Back = 2,
         Cancel = 3,
         TireMaintenance = 4,
-        SaveDraft = 5,
+        SaveMaintenance = 5,
         Complete = 6
     }
 }
