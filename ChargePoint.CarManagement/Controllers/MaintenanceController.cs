@@ -290,6 +290,10 @@ namespace ChargePoint.CarManagement.Controllers
                     _memoryCache.Remove(GetMaintenanceDraftCacheKey(newRecord.CarId));
 
                     TempData["SuccessMessage"] = "Thêm hồ sơ bảo dưỡng thành công!";
+                    if (AddTireInfo || action == "next")
+                    {
+                        return RedirectToAction("Create", "Tire", new { id = newRecord.CarId });
+                    }
                     return RedirectToAction(nameof(History), new { id = newRecord.CarId });
                 }
                 catch (Exception ex)

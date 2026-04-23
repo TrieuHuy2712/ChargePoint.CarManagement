@@ -209,7 +209,7 @@ namespace ChargePoint.CarManagement.Controllers
                 action = ButtonAction.Complete;
             }
 
-            if (action == ButtonAction.Complete)
+            if (fromDraft || action == ButtonAction.Complete)
             {
                 if (!_memoryCache.TryGetValue(maintenanceDraftKey, out MaintenanceRecord? maintenanceDraft) || maintenanceDraft == null)
                 {
