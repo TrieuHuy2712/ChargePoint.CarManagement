@@ -250,30 +250,10 @@ namespace ChargePoint.CarManagement.Controllers
                 try
                 {
                     var bienSo = car.BienSo ?? "NoPlate";
-
-                    if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
-                    {
-                        var imageUrls = new List<string>();
-                        foreach (var file in HinhAnhChungTuFiles.Where(f => f != null && f.Length > 0))
-                        {
-                            var url = await _imageUploadService.UploadFileAsync(
-                                file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                            imageUrls.Add(url);
-                        }
-                        model.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
-                    }
-
-                    if (HinhAnhDOTFiles != null && HinhAnhDOTFiles.Count > 0)
-                    {
-                        var dotImageUrls = new List<string>();
-                        foreach (var file in HinhAnhDOTFiles.Where(f => f != null && f.Length > 0))
-                        {
-                            var url = await _imageUploadService.UploadFileAsync(
-                                file, bienSo, $"DOT_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                            dotImageUrls.Add(url);
-                        }
-                        model.HinhAnhDOT = JsonSerializer.Serialize(dotImageUrls);
-                    }
+                    var chungTuImagesByPosition = await UploadImagesByPositionAsync(
+                        HinhAnhChungTuFiles, targetPositions, bienSo, "Lop", model.NgayThucHien);
+                    var dotImagesByPosition = await UploadImagesByPositionAsync(
+                        HinhAnhDOTFiles, targetPositions, bienSo, "DOT", model.NgayThucHien);
 
                     // Upload hình ảnh chứng từ bảo dưỡng từ draft nếu có
                     if (maintenanceDraftFiles.Count > 0)
@@ -296,7 +276,19 @@ namespace ChargePoint.CarManagement.Controllers
                     _context.MaintenanceRecords.Add(maintenanceDraft);
 
                     var tireRecords = targetPositions
-                        .Select(position => CloneTireRecordForPosition(model, position))
+                        .Select(position =>
+                        {
+                            var record = CloneTireRecordForPosition(model, position);
+                            if (chungTuImagesByPosition.TryGetValue(position, out var chungTuJson))
+                            {
+                                record.HinhAnhChungTu = chungTuJson;
+                            }
+                            if (dotImagesByPosition.TryGetValue(position, out var dotJson))
+                            {
+                                record.HinhAnhDOT = dotJson;
+                            }
+                            return record;
+                        })
                         .ToList();
                     _context.TireRecords.AddRange(tireRecords);
 
@@ -337,30 +329,10 @@ namespace ChargePoint.CarManagement.Controllers
             try
             {
                 var bienSo = car.BienSo ?? "NoPlate";
-
-                if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
-                {
-                    var imageUrls = new List<string>();
-                    foreach (var file in HinhAnhChungTuFiles.Where(f => f != null && f.Length > 0))
-                    {
-                        var url = await _imageUploadService.UploadFileAsync(
-                            file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                        imageUrls.Add(url);
-                    }
-                    model.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
-                }
-
-                if (HinhAnhDOTFiles != null && HinhAnhDOTFiles.Count > 0)
-                {
-                    var dotImageUrls = new List<string>();
-                    foreach (var file in HinhAnhDOTFiles.Where(f => f != null && f.Length > 0))
-                    {
-                        var url = await _imageUploadService.UploadFileAsync(
-                            file, bienSo, $"DOT_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                        dotImageUrls.Add(url);
-                    }
-                    model.HinhAnhDOT = JsonSerializer.Serialize(dotImageUrls);
-                }
+                var chungTuImagesByPosition = await UploadImagesByPositionAsync(
+                    HinhAnhChungTuFiles, targetPositions, bienSo, "Lop", model.NgayThucHien);
+                var dotImagesByPosition = await UploadImagesByPositionAsync(
+                    HinhAnhDOTFiles, targetPositions, bienSo, "DOT", model.NgayThucHien);
 
                 model.NgayTao = DateTime.Now;
                 model.NguoiTao = User.Identity?.Name;
@@ -374,7 +346,19 @@ namespace ChargePoint.CarManagement.Controllers
                 }
 
                 var tireRecords = targetPositions
-                    .Select(position => CloneTireRecordForPosition(model, position))
+                    .Select(position =>
+                    {
+                        var record = CloneTireRecordForPosition(model, position);
+                        if (chungTuImagesByPosition.TryGetValue(position, out var chungTuJson))
+                        {
+                            record.HinhAnhChungTu = chungTuJson;
+                        }
+                        if (dotImagesByPosition.TryGetValue(position, out var dotJson))
+                        {
+                            record.HinhAnhDOT = dotJson;
+                        }
+                        return record;
+                    })
                     .ToList();
                 _context.TireRecords.AddRange(tireRecords);
                 await _context.SaveChangesAsync();
@@ -414,6 +398,40 @@ namespace ChargePoint.CarManagement.Controllers
                 NgayTao = source.NgayTao,
                 NguoiTao = source.NguoiTao
             };
+        }
+
+        private async Task<Dictionary<ViTriLop, string>> UploadImagesByPositionAsync(
+            List<IFormFile>? files,
+            IEnumerable<ViTriLop> positions,
+            string bienSo,
+            string prefix,
+            DateTime ngayThucHien)
+        {
+            var result = new Dictionary<ViTriLop, string>();
+            if (files == null || files.Count == 0)
+            {
+                return result;
+            }
+
+            var validFiles = files.Where(f => f != null && f.Length > 0).ToList();
+            if (validFiles.Count == 0)
+            {
+                return result;
+            }
+
+            foreach (var position in positions)
+            {
+                var urls = new List<string>();
+                foreach (var file in validFiles)
+                {
+                    var url = await _imageUploadService.UploadFileAsync(
+                        file, bienSo, $"{prefix}_{position}_{ngayThucHien:yyyyMMdd}");
+                    urls.Add(url);
+                }
+                result[position] = JsonSerializer.Serialize(urls);
+            }
+
+            return result;
         }
         // GET: Tire/Edit/5
         public async Task<IActionResult> Edit(int? id)
