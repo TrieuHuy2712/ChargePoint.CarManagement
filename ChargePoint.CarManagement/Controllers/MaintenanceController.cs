@@ -191,18 +191,29 @@ namespace ChargePoint.CarManagement.Controllers
         public async Task<IActionResult> Create(
             MaintenanceCreateVM viewModel,
             List<IFormFile>? HinhAnhChungTuFiles,
-            string action,
-            bool AddTireInfo = false)
+            string action)
         {
             var model = viewModel.MaintenanceRecord;
             ModelState.Remove(nameof(MaintenanceRecord.Id));
 
-            // Nếu nhấn Next hoặc tick checkbox thì chuyển sang trang thêm thông tin lốp
+            // Có 2 loại lưu từ Maintenance:
+            // 1) Lưu trực tiếp vào DB.
+            // 2) Chuyển qua Tire để hoàn tất lưu chung Maintenance + Tire trong 1 transaction.
             if (action == "next")
             {
-                // Chuyển sang bước tiếp theo, truyền carId là route value
+                if (!ModelState.IsValid)
+                {
+                    var invalidVm = new MaintenanceCreateVM
+                    {
+                        MaintenanceRecord = model,
+                        Cars = [await _context.Cars.FindAsync(model.CarId)],
+                        SelectListCars = new SelectList(await _context.Cars.OrderBy(c => c.BienSo).ToListAsync(), "Id", "BienSo")
+                    };
+                    return View(invalidVm);
+                }
+
                 var cacheKey = GetMaintenanceDraftCacheKey(model.CarId);
-                _memoryCache.Set(cacheKey, model, TimeSpan.FromMinutes(30)); // Lưu model vào cache trong 30 phút
+                _memoryCache.Set(cacheKey, model, TimeSpan.FromMinutes(30));
                 return RedirectToAction("Create", "Tire", new { id = model.CarId, fromDraft = true });
             }
 
@@ -276,13 +287,9 @@ namespace ChargePoint.CarManagement.Controllers
 
                     _context.MaintenanceRecords.Add(newRecord);
                     await _context.SaveChangesAsync();
+                    _memoryCache.Remove(GetMaintenanceDraftCacheKey(newRecord.CarId));
 
                     TempData["SuccessMessage"] = "Thêm hồ sơ bảo dưỡng thành công!";
-                    _memoryCache.Remove(GetMaintenanceDraftCacheKey(newRecord.CarId));
-                    if (AddTireInfo)
-                    {
-                        return RedirectToAction("Create", "Tire", new { id = newRecord.CarId });
-                    }
                     return RedirectToAction(nameof(History), new { id = newRecord.CarId });
                 }
                 catch (Exception ex)

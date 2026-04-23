@@ -184,15 +184,18 @@
                 @await Html.PartialAsync("_TireSharedImage")
 
                 <div class="form-group mt-4">
-                    <button type="submit" name="action" value="Save" class="btn btn-success">
-                        <i class="fas fa-save"></i> Lưu hồ sơ
-                    </button>
-                    <button type="submit" name="action" value="SaveDraft" class="btn btn-warning">
-                        <i class="fas fa-save"></i> Lưu tạm
-                    </button>
-                    <button type="submit" name="action" value="Complete" class="btn btn-primary">
-                        <i class="fas fa-check"></i> Hoàn tất
-                    </button>
+                    @if (fromDraft)
+                    {
+                        <button type="submit" name="action" value="Complete" class="btn btn-success" id="btnSubmit">
+                            <i class="fas fa-save"></i> Lưu hồ sơ lốp + bảo dưỡng
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" name="action" value="Save" class="btn btn-success" id="btnSubmit">
+                            <i class="fas fa-save"></i> Lưu hồ sơ lốp
+                        </button>
+                    }
                     <a asp-action="CarDetail" asp-route-id="@tireRecord.CarId" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Quay lại
                     </a>
@@ -228,4 +231,3 @@
         });
     </script>
 }
-
