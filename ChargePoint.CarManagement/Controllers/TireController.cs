@@ -187,6 +187,7 @@ namespace ChargePoint.CarManagement.Controllers
             [Bind(Prefix = "TireRecord")] TireRecord model,
             List<IFormFile>? HinhAnhChungTuFiles,
             List<IFormFile>? HinhAnhDOTFiles,
+            List<ViTriLop>? selectedViTriLops,
             ButtonAction action = ButtonAction.Save,
             bool fromDraft = false)
         {
@@ -202,6 +203,11 @@ namespace ChargePoint.CarManagement.Controllers
             ViewBag.FromDraft = fromDraft;
 
             if (!ModelState.IsValid) return View(vm);
+
+            var targetPositions = (selectedViTriLops ?? [])
+                .Append(model.ViTriLop)
+                .Distinct()
+                .ToList();
 
             var maintenanceDraftKey = GetMaintenanceDraftCacheKey(model.CarId);
             if (fromDraft && action == ButtonAction.Save)
@@ -244,30 +250,10 @@ namespace ChargePoint.CarManagement.Controllers
                 try
                 {
                     var bienSo = car.BienSo ?? "NoPlate";
-
-                    if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
-                    {
-                        var imageUrls = new List<string>();
-                        foreach (var file in HinhAnhChungTuFiles.Where(f => f != null && f.Length > 0))
-                        {
-                            var url = await _imageUploadService.UploadFileAsync(
-                                file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                            imageUrls.Add(url);
-                        }
-                        model.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
-                    }
-
-                    if (HinhAnhDOTFiles != null && HinhAnhDOTFiles.Count > 0)
-                    {
-                        var dotImageUrls = new List<string>();
-                        foreach (var file in HinhAnhDOTFiles.Where(f => f != null && f.Length > 0))
-                        {
-                            var url = await _imageUploadService.UploadFileAsync(
-                                file, bienSo, $"DOT_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                            dotImageUrls.Add(url);
-                        }
-                        model.HinhAnhDOT = JsonSerializer.Serialize(dotImageUrls);
-                    }
+                    var chungTuImagesByPosition = await UploadImagesByPositionAsync(
+                        HinhAnhChungTuFiles, targetPositions, bienSo, "Lop", model.NgayThucHien);
+                    var dotImagesByPosition = await UploadImagesByPositionAsync(
+                        HinhAnhDOTFiles, targetPositions, bienSo, "DOT", model.NgayThucHien);
 
                     // Upload hình ảnh chứng từ bảo dưỡng từ draft nếu có
                     if (maintenanceDraftFiles.Count > 0)
@@ -288,7 +274,23 @@ namespace ChargePoint.CarManagement.Controllers
                     await using var tx = await _context.Database.BeginTransactionAsync();
 
                     _context.MaintenanceRecords.Add(maintenanceDraft);
-                    _context.TireRecords.Add(model);
+
+                    var tireRecords = targetPositions
+                        .Select(position =>
+                        {
+                            var record = CloneTireRecordForPosition(model, position);
+                            if (chungTuImagesByPosition.TryGetValue(position, out var chungTuJson))
+                            {
+                                record.HinhAnhChungTu = chungTuJson;
+                            }
+                            if (dotImagesByPosition.TryGetValue(position, out var dotJson))
+                            {
+                                record.HinhAnhDOT = dotJson;
+                            }
+                            return record;
+                        })
+                        .ToList();
+                    _context.TireRecords.AddRange(tireRecords);
 
                     var settingAutoOdoMaintenance = await _context.SystemSettings
                         .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Maintenance);
@@ -311,7 +313,9 @@ namespace ChargePoint.CarManagement.Controllers
 
                     _memoryCache.Remove(maintenanceDraftKey);
 
-                    TempData["SuccessMessage"] = "Hoàn tất: đã lưu hồ sơ bảo dưỡng và hồ sơ lốp thành công!";
+                    TempData["SuccessMessage"] = targetPositions.Count > 1
+                        ? $"Hoàn tất: đã lưu hồ sơ bảo dưỡng và {targetPositions.Count} vị trí lốp thành công!"
+                        : "Hoàn tất: đã lưu hồ sơ bảo dưỡng và hồ sơ lốp thành công!";
                     return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
                 }
                 catch (Exception ex)
@@ -325,30 +329,10 @@ namespace ChargePoint.CarManagement.Controllers
             try
             {
                 var bienSo = car.BienSo ?? "NoPlate";
-
-                if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
-                {
-                    var imageUrls = new List<string>();
-                    foreach (var file in HinhAnhChungTuFiles.Where(f => f != null && f.Length > 0))
-                    {
-                        var url = await _imageUploadService.UploadFileAsync(
-                            file, bienSo, $"Lop_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                        imageUrls.Add(url);
-                    }
-                    model.HinhAnhChungTu = JsonSerializer.Serialize(imageUrls);
-                }
-
-                if (HinhAnhDOTFiles != null && HinhAnhDOTFiles.Count > 0)
-                {
-                    var dotImageUrls = new List<string>();
-                    foreach (var file in HinhAnhDOTFiles.Where(f => f != null && f.Length > 0))
-                    {
-                        var url = await _imageUploadService.UploadFileAsync(
-                            file, bienSo, $"DOT_{model.ViTriLop}_{model.NgayThucHien:yyyyMMdd}");
-                        dotImageUrls.Add(url);
-                    }
-                    model.HinhAnhDOT = JsonSerializer.Serialize(dotImageUrls);
-                }
+                var chungTuImagesByPosition = await UploadImagesByPositionAsync(
+                    HinhAnhChungTuFiles, targetPositions, bienSo, "Lop", model.NgayThucHien);
+                var dotImagesByPosition = await UploadImagesByPositionAsync(
+                    HinhAnhDOTFiles, targetPositions, bienSo, "DOT", model.NgayThucHien);
 
                 model.NgayTao = DateTime.Now;
                 model.NguoiTao = User.Identity?.Name;
@@ -361,10 +345,27 @@ namespace ChargePoint.CarManagement.Controllers
                     car.NgayCapNhat = DateTime.Now;
                 }
 
-                _context.TireRecords.Add(model);
+                var tireRecords = targetPositions
+                    .Select(position =>
+                    {
+                        var record = CloneTireRecordForPosition(model, position);
+                        if (chungTuImagesByPosition.TryGetValue(position, out var chungTuJson))
+                        {
+                            record.HinhAnhChungTu = chungTuJson;
+                        }
+                        if (dotImagesByPosition.TryGetValue(position, out var dotJson))
+                        {
+                            record.HinhAnhDOT = dotJson;
+                        }
+                        return record;
+                    })
+                    .ToList();
+                _context.TireRecords.AddRange(tireRecords);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Thêm hồ sơ lốp ({model.TenViTriLop}) thành công!";
+                TempData["SuccessMessage"] = targetPositions.Count > 1
+                    ? $"Thêm hồ sơ lốp đồng thời cho {targetPositions.Count} vị trí thành công!"
+                    : $"Thêm hồ sơ lốp ({model.TenViTriLop}) thành công!";
                 return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
             }
             catch (Exception ex)
@@ -374,6 +375,63 @@ namespace ChargePoint.CarManagement.Controllers
             }
 
             return View(vm);
+        }
+
+        private static TireRecord CloneTireRecordForPosition(TireRecord source, ViTriLop position)
+        {
+            return new TireRecord
+            {
+                CarId = source.CarId,
+                ViTriLop = position,
+                LoaiThaoTac = source.LoaiThaoTac,
+                NgayThucHien = source.NgayThucHien,
+                OdoThayLop = source.OdoThayLop,
+                HangLop = source.HangLop,
+                ModelLop = source.ModelLop,
+                KichThuocLop = source.KichThuocLop,
+                OdoThayTiepTheo = source.OdoThayTiepTheo,
+                ChiPhi = source.ChiPhi,
+                NoiThucHien = source.NoiThucHien,
+                GhiChu = source.GhiChu,
+                HinhAnhChungTu = source.HinhAnhChungTu,
+                HinhAnhDOT = source.HinhAnhDOT,
+                NgayTao = source.NgayTao,
+                NguoiTao = source.NguoiTao
+            };
+        }
+
+        private async Task<Dictionary<ViTriLop, string>> UploadImagesByPositionAsync(
+            List<IFormFile>? files,
+            IEnumerable<ViTriLop> positions,
+            string bienSo,
+            string prefix,
+            DateTime ngayThucHien)
+        {
+            var result = new Dictionary<ViTriLop, string>();
+            if (files == null || files.Count == 0)
+            {
+                return result;
+            }
+
+            var validFiles = files.Where(f => f != null && f.Length > 0).ToList();
+            if (validFiles.Count == 0)
+            {
+                return result;
+            }
+
+            foreach (var position in positions)
+            {
+                var urls = new List<string>();
+                foreach (var file in validFiles)
+                {
+                    var url = await _imageUploadService.UploadFileAsync(
+                        file, bienSo, $"{prefix}_{position}_{ngayThucHien:yyyyMMdd}");
+                    urls.Add(url);
+                }
+                result[position] = JsonSerializer.Serialize(urls);
+            }
+
+            return result;
         }
         // GET: Tire/Edit/5
         public async Task<IActionResult> Edit(int? id)
