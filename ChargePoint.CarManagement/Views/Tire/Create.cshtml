@@ -183,6 +183,16 @@
                 @* Sử dụng shared partial view cho hình ảnh *@
                 @await Html.PartialAsync("_TireSharedImage")
 
+                @if (!fromDraft)
+                {
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" value="true" id="AddMaintenanceInfo" />
+                        <label class="form-check-label" for="AddMaintenanceInfo">
+                            Sau khi lưu, chuyển sang thêm thông tin bảo dưỡng
+                        </label>
+                    </div>
+                }
+
                 <div class="form-group mt-4">
                     @if (fromDraft)
                     {
@@ -221,6 +231,19 @@
                     odoThayTiepTheoInput.value = odoThayLop + 60000;
                 }
             });
+        }
+
+        const actionInput = document.getElementById('actionValue');
+        const addMaintenanceCheckbox = document.getElementById('AddMaintenanceInfo');
+
+        if (actionInput) {
+            if (@(fromDraft.ToString().ToLower())) {
+                actionInput.value = 'Save';
+            } else if (addMaintenanceCheckbox) {
+                addMaintenanceCheckbox.addEventListener('change', function() {
+                    actionInput.value = this.checked ? 'SaveMaintenance' : 'Save';
+                });
+            }
         }
 
         // Submit button loading state
