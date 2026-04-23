@@ -187,6 +187,7 @@ namespace ChargePoint.CarManagement.Controllers
             [Bind(Prefix = "TireRecord")] TireRecord model,
             List<IFormFile>? HinhAnhChungTuFiles,
             List<IFormFile>? HinhAnhDOTFiles,
+            List<ViTriLop>? selectedViTriLops,
             ButtonAction action = ButtonAction.Save,
             bool fromDraft = false)
         {
@@ -202,6 +203,11 @@ namespace ChargePoint.CarManagement.Controllers
             ViewBag.FromDraft = fromDraft;
 
             if (!ModelState.IsValid) return View(vm);
+
+            var targetPositions = (selectedViTriLops ?? [])
+                .Append(model.ViTriLop)
+                .Distinct()
+                .ToList();
 
             var maintenanceDraftKey = GetMaintenanceDraftCacheKey(model.CarId);
             if (fromDraft && action == ButtonAction.Save)
@@ -288,7 +294,11 @@ namespace ChargePoint.CarManagement.Controllers
                     await using var tx = await _context.Database.BeginTransactionAsync();
 
                     _context.MaintenanceRecords.Add(maintenanceDraft);
-                    _context.TireRecords.Add(model);
+
+                    var tireRecords = targetPositions
+                        .Select(position => CloneTireRecordForPosition(model, position))
+                        .ToList();
+                    _context.TireRecords.AddRange(tireRecords);
 
                     var settingAutoOdoMaintenance = await _context.SystemSettings
                         .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Maintenance);
@@ -311,7 +321,9 @@ namespace ChargePoint.CarManagement.Controllers
 
                     _memoryCache.Remove(maintenanceDraftKey);
 
-                    TempData["SuccessMessage"] = "Hoàn tất: đã lưu hồ sơ bảo dưỡng và hồ sơ lốp thành công!";
+                    TempData["SuccessMessage"] = targetPositions.Count > 1
+                        ? $"Hoàn tất: đã lưu hồ sơ bảo dưỡng và {targetPositions.Count} vị trí lốp thành công!"
+                        : "Hoàn tất: đã lưu hồ sơ bảo dưỡng và hồ sơ lốp thành công!";
                     return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
                 }
                 catch (Exception ex)
@@ -361,10 +373,15 @@ namespace ChargePoint.CarManagement.Controllers
                     car.NgayCapNhat = DateTime.Now;
                 }
 
-                _context.TireRecords.Add(model);
+                var tireRecords = targetPositions
+                    .Select(position => CloneTireRecordForPosition(model, position))
+                    .ToList();
+                _context.TireRecords.AddRange(tireRecords);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Thêm hồ sơ lốp ({model.TenViTriLop}) thành công!";
+                TempData["SuccessMessage"] = targetPositions.Count > 1
+                    ? $"Thêm hồ sơ lốp đồng thời cho {targetPositions.Count} vị trí thành công!"
+                    : $"Thêm hồ sơ lốp ({model.TenViTriLop}) thành công!";
                 return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
             }
             catch (Exception ex)
@@ -374,6 +391,29 @@ namespace ChargePoint.CarManagement.Controllers
             }
 
             return View(vm);
+        }
+
+        private static TireRecord CloneTireRecordForPosition(TireRecord source, ViTriLop position)
+        {
+            return new TireRecord
+            {
+                CarId = source.CarId,
+                ViTriLop = position,
+                LoaiThaoTac = source.LoaiThaoTac,
+                NgayThucHien = source.NgayThucHien,
+                OdoThayLop = source.OdoThayLop,
+                HangLop = source.HangLop,
+                ModelLop = source.ModelLop,
+                KichThuocLop = source.KichThuocLop,
+                OdoThayTiepTheo = source.OdoThayTiepTheo,
+                ChiPhi = source.ChiPhi,
+                NoiThucHien = source.NoiThucHien,
+                GhiChu = source.GhiChu,
+                HinhAnhChungTu = source.HinhAnhChungTu,
+                HinhAnhDOT = source.HinhAnhDOT,
+                NgayTao = source.NgayTao,
+                NguoiTao = source.NguoiTao
+            };
         }
         // GET: Tire/Edit/5
         public async Task<IActionResult> Edit(int? id)
