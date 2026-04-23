@@ -191,11 +191,31 @@ namespace ChargePoint.CarManagement.Controllers
         public async Task<IActionResult> Create(
             MaintenanceCreateVM viewModel,
             List<IFormFile>? HinhAnhChungTuFiles,
-            string action,
-            bool AddTireInfo = false)
+            string action)
         {
             var model = viewModel.MaintenanceRecord;
             ModelState.Remove(nameof(MaintenanceRecord.Id));
+
+            // Có 2 loại lưu từ Maintenance:
+            // 1) Lưu trực tiếp vào DB.
+            // 2) Chuyển qua Tire để hoàn tất lưu chung Maintenance + Tire trong 1 transaction.
+            if (action == "next")
+            {
+                if (!ModelState.IsValid)
+                {
+                    var invalidVm = new MaintenanceCreateVM
+                    {
+                        MaintenanceRecord = model,
+                        Cars = [await _context.Cars.FindAsync(model.CarId)],
+                        SelectListCars = new SelectList(await _context.Cars.OrderBy(c => c.BienSo).ToListAsync(), "Id", "BienSo")
+                    };
+                    return View(invalidVm);
+                }
+
+                var cacheKey = GetMaintenanceDraftCacheKey(model.CarId);
+                _memoryCache.Set(cacheKey, model, TimeSpan.FromMinutes(30));
+                return RedirectToAction("Create", "Tire", new { id = model.CarId, fromDraft = true });
+            }
 
             if (ModelState.IsValid)
             {
