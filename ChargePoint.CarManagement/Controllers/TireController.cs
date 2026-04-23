@@ -188,7 +188,7 @@ namespace ChargePoint.CarManagement.Controllers
             List<IFormFile>? HinhAnhChungTuFiles,
             List<IFormFile>? HinhAnhDOTFiles,
             List<ViTriLop>? selectedViTriLops,
-            ButtonAction action = ButtonAction.Save,
+            string action,
             bool fromDraft = false)
         {
             var car = await _context.Cars.FindAsync(model.CarId);
@@ -210,12 +210,12 @@ namespace ChargePoint.CarManagement.Controllers
                 .ToList();
 
             var maintenanceDraftKey = GetMaintenanceDraftCacheKey(model.CarId);
-            if (fromDraft && action == ButtonAction.Save)
+            if (fromDraft && action == ButtonAction.Save.ToString())
             {
-                action = ButtonAction.Complete;
+                action = ButtonAction.Complete.ToString();
             }
 
-            if (fromDraft || action == ButtonAction.Complete)
+            if (fromDraft || action == ButtonAction.Complete.ToString())
             {
                 MaintenanceRecord? maintenanceDraft = null;
                 List<CachedFileData> maintenanceDraftFiles = [];
