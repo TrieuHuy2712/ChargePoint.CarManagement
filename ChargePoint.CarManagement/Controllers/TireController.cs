@@ -154,9 +154,6 @@ namespace ChargePoint.CarManagement.Controllers
         private string GetMaintenanceDraftCacheKey(int carId)
             => $"MaintenanceCreate_{carId}_{User.Identity?.Name}";
 
-        private string GetTireDraftCacheKey(int carId)
-            => $"TireCreate_{carId}_{User.Identity?.Name}";
-
         // GET: Tire/Create/5 (CarId)
         public async Task<IActionResult> Create(int? id, ViTriLop? viTri = null, bool fromDraft = false)
         {
@@ -165,24 +162,14 @@ namespace ChargePoint.CarManagement.Controllers
             var car = await _context.Cars.FindAsync(id);
             if (car == null) return NotFound();
 
-            TireRecord model;
-            var tireDraftKey = GetTireDraftCacheKey(car.Id);
-            if (_memoryCache.TryGetValue(tireDraftKey, out TireRecord? tireDraft) && tireDraft != null)
+            var model = new TireRecord
             {
-                tireDraft.CarId = car.Id;
-                model = tireDraft;
-            }
-            else
-            {
-                model = new TireRecord
-                {
-                    CarId = car.Id,
-                    NgayThucHien = DateTime.Now,
-                    OdoThayLop = car.OdoXe,
-                    NguoiTao = User.Identity?.Name,
-                    ViTriLop = viTri ?? ViTriLop.TruocTrai
-                };
-            }
+                CarId = car.Id,
+                NgayThucHien = DateTime.Now,
+                OdoThayLop = car.OdoXe,
+                NguoiTao = User.Identity?.Name,
+                ViTriLop = viTri ?? ViTriLop.TruocTrai
+            };
 
             ViewBag.FromDraft = fromDraft;
             return View(new TireCreateVM
@@ -217,28 +204,27 @@ namespace ChargePoint.CarManagement.Controllers
             if (!ModelState.IsValid) return View(vm);
 
             var maintenanceDraftKey = GetMaintenanceDraftCacheKey(model.CarId);
-            var tireDraftKey = GetTireDraftCacheKey(model.CarId);
-
-            if (action == ButtonAction.SaveDraft)
+            if (fromDraft && action == ButtonAction.Save)
             {
-                _memoryCache.Set(tireDraftKey, model, TimeSpan.FromMinutes(30));
-                return RedirectToAction("Create", "Maintenance", new { id = model.CarId });
+                action = ButtonAction.Complete;
             }
 
             if (action == ButtonAction.Complete)
             {
                 if (!_memoryCache.TryGetValue(maintenanceDraftKey, out MaintenanceRecord? maintenanceDraft) || maintenanceDraft == null)
                 {
-                    ModelState.AddModelError("", "Khong tim thay du lieu bao duong tam. Vui long quay lai Maintenance de tao lai.");
-                    return View(vm);
+                    _memoryCache.Remove(maintenanceDraftKey);
+                    TempData["ErrorMessage"] = "Khong tim thay du lieu bao duong tam. Vui long tao lai thong tin bao duong.";
+                    return RedirectToAction("Create", "Maintenance", new { id = model.CarId });
                 }
 
                 var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
                 var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(maintenanceDraft);
                 if (!System.ComponentModel.DataAnnotations.Validator.TryValidateObject(maintenanceDraft, validationContext, validationResults, true))
                 {
-                    ModelState.AddModelError("", "Du lieu bao duong tam khong hop le. Vui long quay lai Maintenance de kiem tra.");
-                    return View(vm);
+                    _memoryCache.Remove(maintenanceDraftKey);
+                    TempData["ErrorMessage"] = "Du lieu bao duong tam khong hop le. Vui long quay lai Maintenance de luu lai.";
+                    return RedirectToAction("Create", "Maintenance", new { id = model.CarId });
                 }
 
                 try
@@ -313,7 +299,6 @@ namespace ChargePoint.CarManagement.Controllers
                     await tx.CommitAsync();
 
                     _memoryCache.Remove(maintenanceDraftKey);
-                    _memoryCache.Remove(tireDraftKey);
 
                     TempData["SuccessMessage"] = "Hoan tat: da luu ho so bao duong va ho so lop thanh cong!";
                     return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
@@ -367,7 +352,6 @@ namespace ChargePoint.CarManagement.Controllers
 
                 _context.TireRecords.Add(model);
                 await _context.SaveChangesAsync();
-                _memoryCache.Remove(tireDraftKey);
 
                 TempData["SuccessMessage"] = $"Thêm hồ sơ lốp ({model.TenViTriLop}) thành công!";
                 return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
@@ -630,4 +614,3 @@ namespace ChargePoint.CarManagement.Controllers
         }
     }
 }
-

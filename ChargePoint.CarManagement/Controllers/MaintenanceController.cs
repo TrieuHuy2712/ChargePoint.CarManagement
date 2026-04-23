@@ -197,15 +197,6 @@ namespace ChargePoint.CarManagement.Controllers
             var model = viewModel.MaintenanceRecord;
             ModelState.Remove(nameof(MaintenanceRecord.Id));
 
-            // Nếu nhấn Next hoặc tick checkbox thì chuyển sang trang thêm thông tin lốp
-            if (action == "next")
-            {
-                // Chuyển sang bước tiếp theo, truyền carId là route value
-                var cacheKey = GetMaintenanceDraftCacheKey(model.CarId);
-                _memoryCache.Set(cacheKey, model, TimeSpan.FromMinutes(30)); // Lưu model vào cache trong 30 phút
-                return RedirectToAction("Create", "Tire", new { id = model.CarId, fromDraft = true });
-            }
-
             if (ModelState.IsValid)
             {
                 try
@@ -276,10 +267,10 @@ namespace ChargePoint.CarManagement.Controllers
 
                     _context.MaintenanceRecords.Add(newRecord);
                     await _context.SaveChangesAsync();
+                    _memoryCache.Remove(GetMaintenanceDraftCacheKey(newRecord.CarId));
 
                     TempData["SuccessMessage"] = "Thêm hồ sơ bảo dưỡng thành công!";
-                    _memoryCache.Remove(GetMaintenanceDraftCacheKey(newRecord.CarId));
-                    if (AddTireInfo)
+                    if (AddTireInfo || action == "next")
                     {
                         return RedirectToAction("Create", "Tire", new { id = newRecord.CarId });
                     }
