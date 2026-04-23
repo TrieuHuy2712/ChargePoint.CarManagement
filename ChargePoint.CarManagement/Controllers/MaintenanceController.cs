@@ -198,24 +198,7 @@ namespace ChargePoint.CarManagement.Controllers
 
             // Có 2 loại lưu từ Maintenance:
             // 1) Lưu trực tiếp vào DB.
-            // 2) Chuyển qua Tire để hoàn tất lưu chung Maintenance + Tire trong 1 transaction.
-            if (action == "next")
-            {
-                if (!ModelState.IsValid)
-                {
-                    var invalidVm = new MaintenanceCreateVM
-                    {
-                        MaintenanceRecord = model,
-                        Cars = [await _context.Cars.FindAsync(model.CarId)],
-                        SelectListCars = new SelectList(await _context.Cars.OrderBy(c => c.BienSo).ToListAsync(), "Id", "BienSo")
-                    };
-                    return View(invalidVm);
-                }
-
-                var cacheKey = GetMaintenanceDraftCacheKey(model.CarId);
-                _memoryCache.Set(cacheKey, model, TimeSpan.FromMinutes(30));
-                return RedirectToAction("Create", "Tire", new { id = model.CarId, fromDraft = true });
-            }
+            // 2) Chuyển qua Tire để hoàn tất lưu chung Maintenance + Tire trong 1 transaction
 
             if (ModelState.IsValid)
             {
@@ -253,6 +236,33 @@ namespace ChargePoint.CarManagement.Controllers
                         LoaiHoSo = viewModel.LoaiHoSo
                     };
 
+                    // Nếu chọn "Lưu & Tiếp tục", lưu tạm vào cache và chuyển qua trang tạo Tire
+                    if (action == "next")
+                    {
+                        var draftCache = new MaintenanceDraftCache
+                        {
+                            MaintenanceRecord = newRecord,
+                            HinhAnhChungTuFiles = HinhAnhChungTuFiles?
+                                                .Where(f => f != null && f.Length > 0)
+                                                .Select(file =>
+                                                {
+                                                    using var stream = new MemoryStream();
+                                                    file.CopyTo(stream);
+                                                    return new CachedFileData
+                                                    {
+                                                        FileName = file.FileName,
+                                                        ContentType = file.ContentType,
+                                                        Data = stream.ToArray()
+                                                    };
+                                                })
+                                                .ToList() ?? new List<CachedFileData>()
+                        };
+
+                        var cacheKey = GetMaintenanceDraftCacheKey(model.CarId);
+                        _memoryCache.Set(cacheKey, newRecord, TimeSpan.FromMinutes(30));
+                        return RedirectToAction("Create", "Tire", new { id = model.CarId, fromDraft = true });
+                    }
+
                     // Upload hình ảnh chứng từ (if any)
                     if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
                     {
@@ -287,13 +297,10 @@ namespace ChargePoint.CarManagement.Controllers
 
                     _context.MaintenanceRecords.Add(newRecord);
                     await _context.SaveChangesAsync();
-                    _memoryCache.Remove(GetMaintenanceDraftCacheKey(newRecord.CarId));
 
+                    // Xóa cache sau khi lưu thành công
+                    _memoryCache.Remove(GetMaintenanceDraftCacheKey(newRecord.CarId));
                     TempData["SuccessMessage"] = "Thêm hồ sơ bảo dưỡng thành công!";
-                    if (AddTireInfo || action == "next")
-                    {
-                        return RedirectToAction("Create", "Tire", new { id = newRecord.CarId });
-                    }
                     return RedirectToAction(nameof(History), new { id = newRecord.CarId });
                 }
                 catch (Exception ex)

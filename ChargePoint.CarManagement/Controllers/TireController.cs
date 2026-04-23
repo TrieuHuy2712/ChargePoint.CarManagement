@@ -211,7 +211,21 @@ namespace ChargePoint.CarManagement.Controllers
 
             if (fromDraft || action == ButtonAction.Complete)
             {
-                if (!_memoryCache.TryGetValue(maintenanceDraftKey, out MaintenanceRecord? maintenanceDraft) || maintenanceDraft == null)
+                MaintenanceRecord? maintenanceDraft = null;
+                List<CachedFileData> maintenanceDraftFiles = [];
+
+                if (_memoryCache.TryGetValue(maintenanceDraftKey, out MaintenanceDraftCache? maintenanceDraftCache) &&
+                    maintenanceDraftCache?.MaintenanceRecord != null)
+                {
+                    maintenanceDraft = maintenanceDraftCache.MaintenanceRecord;
+                    maintenanceDraftFiles = maintenanceDraftCache.HinhAnhChungTuFiles ?? [];
+                }
+                else if (_memoryCache.TryGetValue(maintenanceDraftKey, out MaintenanceRecord? legacyMaintenanceDraft))
+                {
+                    maintenanceDraft = legacyMaintenanceDraft;
+                }
+
+                if (maintenanceDraft == null)
                 {
                     _memoryCache.Remove(maintenanceDraftKey);
                     TempData["ErrorMessage"] = "Khong tim thay du lieu bao duong tam. Vui long tao lai thong tin bao duong.";
@@ -223,7 +237,7 @@ namespace ChargePoint.CarManagement.Controllers
                 if (!System.ComponentModel.DataAnnotations.Validator.TryValidateObject(maintenanceDraft, validationContext, validationResults, true))
                 {
                     _memoryCache.Remove(maintenanceDraftKey);
-                    TempData["ErrorMessage"] = "Du lieu bao duong tam khong hop le. Vui long quay lai Maintenance de luu lai.";
+                    TempData["ErrorMessage"] = "Dữ liệu bảo dưỡng tạm không hợp lệ. Vui lòng quay lại Maintenance để lưu lại.";
                     return RedirectToAction("Create", "Maintenance", new { id = model.CarId });
                 }
 
@@ -255,35 +269,32 @@ namespace ChargePoint.CarManagement.Controllers
                         model.HinhAnhDOT = JsonSerializer.Serialize(dotImageUrls);
                     }
 
-                    var newMaintenance = new MaintenanceRecord
+                    // Upload hình ảnh chứng từ bảo dưỡng từ draft nếu có
+                    if (maintenanceDraftFiles.Count > 0)
                     {
-                        CarId = maintenanceDraft.CarId,
-                        NgayBaoDuong = maintenanceDraft.NgayBaoDuong,
-                        SoKmBaoDuong = maintenanceDraft.SoKmBaoDuong,
-                        CapBaoDuong = maintenanceDraft.LoaiHoSo == LoaiHoSo.SuaChua ? null : maintenanceDraft.CapBaoDuong,
-                        SoKmBaoDuongTiepTheo = maintenanceDraft.SoKmBaoDuongTiepTheo,
-                        NoiDungBaoDuong = maintenanceDraft.NoiDungBaoDuong,
-                        ChiPhi = maintenanceDraft.ChiPhi,
-                        NoiBaoDuong = maintenanceDraft.NoiBaoDuong,
-                        GhiChu = maintenanceDraft.GhiChu,
-                        LoaiHoSo = maintenanceDraft.LoaiHoSo,
-                        NgayTao = DateTime.Now,
-                        NguoiTao = User.Identity?.Name
-                    };
+                        var maintenanceImageUrls = new List<string>();
+                        foreach (var cachedFile in maintenanceDraftFiles)
+                        {
+                            var cachedFormFile = cachedFile.ToFormFile();
+                            var maintenanceImageUrl = await _imageUploadService.UploadFileAsync(
+                                cachedFormFile, bienSo, $"BaoDuong_{maintenanceDraft.NgayBaoDuong:yyyyMMdd}");
+                            maintenanceImageUrls.Add(maintenanceImageUrl);
+                        }
 
-                    model.NgayTao = DateTime.Now;
-                    model.NguoiTao = User.Identity?.Name;
+                        maintenanceDraft.HinhAnhChungTu = JsonSerializer.Serialize(maintenanceImageUrls);
+                    }
 
+                    // Sử dụng transaction để đảm bảo tính toàn vẹn dữ liệu khi lưu cả 2 record
                     await using var tx = await _context.Database.BeginTransactionAsync();
 
-                    _context.MaintenanceRecords.Add(newMaintenance);
+                    _context.MaintenanceRecords.Add(maintenanceDraft);
                     _context.TireRecords.Add(model);
 
                     var settingAutoOdoMaintenance = await _context.SystemSettings
                         .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Maintenance);
-                    if (settingAutoOdoMaintenance != null && settingAutoOdoMaintenance.Value == "true" && newMaintenance.SoKmBaoDuong > car.OdoXe)
+                    if (settingAutoOdoMaintenance != null && settingAutoOdoMaintenance.Value == "true" && maintenanceDraft.SoKmBaoDuong > car.OdoXe)
                     {
-                        car.OdoXe = newMaintenance.SoKmBaoDuong;
+                        car.OdoXe = maintenanceDraft.SoKmBaoDuong;
                         car.NgayCapNhat = DateTime.Now;
                     }
 
@@ -300,13 +311,13 @@ namespace ChargePoint.CarManagement.Controllers
 
                     _memoryCache.Remove(maintenanceDraftKey);
 
-                    TempData["SuccessMessage"] = "Hoan tat: da luu ho so bao duong va ho so lop thanh cong!";
+                    TempData["SuccessMessage"] = "Hoàn tất: đã lưu hồ sơ bảo dưỡng và hồ sơ lốp thành công!";
                     return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Loi khi hoan tat draft Bao duong + Lop");
-                    ModelState.AddModelError("", $"Co loi xay ra khi hoan tat: {ex.Message}");
+                    _logger.LogError(ex, "Lỗi khi hoàn tất draft Bảo dưỡng + Lốp");
+                    ModelState.AddModelError("", $"Có lỗi xảy ra khi hoàn tất: {ex.Message}");
                     return View(vm);
                 }
             }
