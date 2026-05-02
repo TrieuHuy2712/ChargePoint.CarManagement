@@ -533,6 +533,16 @@
                                             Thiết lập hệ thống
                                         </a>
                                     </li>
+                                    @if (User.IsInRole("RootAdmin"))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Logs" ? "active" : "")"
+                                               asp-controller="Logs" asp-action="Index">
+                                                <i class="fas fa-scroll"></i>
+                                                System logs
+                                            </a>
+                                        </li>
+                                    }
                                     <li>
                                         <a class="dropdown-item" href="#">
                                             <i class="fas fa-bell"></i>

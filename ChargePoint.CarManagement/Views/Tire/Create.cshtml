@@ -42,6 +42,7 @@
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
                 <input type="hidden" asp-for="TireRecord.CarId" />
                 <input type="hidden" name="fromDraft" value="@(fromDraft.ToString().ToLower())" />
+                <input type="hidden" name="positionDraftsJson" id="positionDraftsJson" />
 
                 <div class="row">
                     <!-- Vị trí lốp -->
@@ -267,6 +268,109 @@
         const multiTireChecks = document.querySelectorAll('.multi-tire-check');
         const tirePositionRadios = document.querySelectorAll('input[name="TireRecord.ViTriLop"]');
 
+        const draftFieldSelectors = [
+            '[name="TireRecord.LoaiThaoTac"]',
+            '[name="TireRecord.NgayThucHien"]',
+            '[name="TireRecord.OdoThayLop"]',
+            '[name="TireRecord.HangLop"]',
+            '[name="TireRecord.ModelLop"]',
+            '[name="TireRecord.KichThuocLop"]',
+            '[name="TireRecord.OdoThayTiepTheo"]',
+            '[name="TireRecord.ChiPhi"]',
+            '[name="TireRecord.NoiThucHien"]',
+            '[name="TireRecord.GhiChu"]'
+        ];
+
+        const positionDrafts = {};
+        let activePosition = getCurrentPositionValue();
+        const createDraftStorageKey = `tire-create-drafts-${document.querySelector('[name="TireRecord.CarId"]')?.value ?? 'unknown'}`;
+
+        function loadDraftsFromStorage() {
+            try {
+                const raw = sessionStorage.getItem(createDraftStorageKey);
+                if (!raw) return;
+                const saved = JSON.parse(raw);
+                if (saved && typeof saved === 'object') {
+                    Object.assign(positionDrafts, saved);
+                }
+            } catch {
+                // ignore invalid storage
+            }
+        }
+
+        function persistDraftsToStorage() {
+            try {
+                sessionStorage.setItem(createDraftStorageKey, JSON.stringify(positionDrafts));
+            } catch {
+                // ignore storage errors
+            }
+        }
+
+        function buildSubmitDraftPayload() {
+            const payload = {};
+            Object.keys(positionDrafts).forEach(position => {
+                const values = positionDrafts[position] ?? {};
+                payload[position] = {
+                    loaiThaoTac: parseInt(values['[name="TireRecord.LoaiThaoTac"]'] ?? '1') || 1,
+                    ngayThucHien: values['[name="TireRecord.NgayThucHien"]'] || new Date().toISOString().substring(0, 10),
+                    odoThayLop: parseInt(values['[name="TireRecord.OdoThayLop"]'] ?? '0') || 0,
+                    hangLop: values['[name="TireRecord.HangLop"]'] || null,
+                    modelLop: values['[name="TireRecord.ModelLop"]'] || null,
+                    kichThuocLop: values['[name="TireRecord.KichThuocLop"]'] || null,
+                    odoThayTiepTheo: values['[name="TireRecord.OdoThayTiepTheo"]'] ? parseInt(values['[name="TireRecord.OdoThayTiepTheo"]']) : null,
+                    chiPhi: parseFloat(values['[name="TireRecord.ChiPhi"]'] ?? '0') || 0,
+                    noiThucHien: values['[name="TireRecord.NoiThucHien"]'] || null,
+                    ghiChu: values['[name="TireRecord.GhiChu"]'] || null
+                };
+            });
+            return payload;
+        }
+
+        function getCurrentPositionValue() {
+            return document.querySelector('input[name="TireRecord.ViTriLop"]:checked')?.value;
+        }
+
+        function captureFormValues() {
+            const values = {};
+            draftFieldSelectors.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    values[selector] = el.value;
+                }
+            });
+            return values;
+        }
+
+        function applyFormValues(values) {
+            if (!values) return;
+            draftFieldSelectors.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el && Object.prototype.hasOwnProperty.call(values, selector)) {
+                    el.value = values[selector] ?? '';
+                }
+            });
+        }
+
+        function saveDraftForPosition(positionValue) {
+            if (!positionValue) return;
+            positionDrafts[positionValue] = captureFormValues();
+            persistDraftsToStorage();
+        }
+
+        function saveDraftForCurrentPosition() {
+            saveDraftForPosition(activePosition);
+        }
+
+        function restoreDraftForPosition(positionValue) {
+            if (!positionValue) return;
+            if (!positionDrafts[positionValue]) {
+                // Lần đầu chuyển sang vị trí này: lấy snapshot hiện tại làm mốc khởi tạo.
+                positionDrafts[positionValue] = captureFormValues();
+                persistDraftsToStorage();
+            }
+            applyFormValues(positionDrafts[positionValue]);
+        }
+
         function syncPrimaryPositionToMultiChecks() {
             const selectedRadio = document.querySelector('input[name="TireRecord.ViTriLop"]:checked');
             if (!selectedRadio) return;
@@ -290,18 +394,69 @@
                         cb.checked = false;
                     }
                 });
+
+                // Khi tắt chế độ áp dụng nhiều lốp, chụp trạng thái hiện tại để lưu theo vị trí.
+                if (!this.checked) {
+                    saveDraftForCurrentPosition();
+                }
+
                 syncPrimaryPositionToMultiChecks();
             });
 
             tirePositionRadios.forEach(radio => {
-                radio.addEventListener('change', syncPrimaryPositionToMultiChecks);
+                radio.addEventListener('change', function() {
+                    // Chỉ dùng cơ chế giữ dữ liệu theo vị trí khi KHÔNG bật apply nhiều lốp.
+                    if (!applyForMultiTiresCheckbox.checked) {
+                        saveDraftForPosition(activePosition);
+                        activePosition = this.value;
+                        restoreDraftForPosition(activePosition);
+                    }
+                    else {
+                        activePosition = this.value;
+                    }
+
+                    syncPrimaryPositionToMultiChecks();
+                });
             });
 
+            loadDraftsFromStorage();
+
+            // Khởi tạo snapshot cho vị trí mặc định lúc load trang.
+            restoreDraftForPosition(activePosition);
+            saveDraftForCurrentPosition();
             syncPrimaryPositionToMultiChecks();
         }
 
+        // Khi người dùng nhập liệu và chưa bật apply nhiều lốp, luôn cập nhật draft của vị trí hiện tại.
+        draftFieldSelectors.forEach(selector => {
+            const el = document.querySelector(selector);
+            if (el) {
+                el.addEventListener('input', () => {
+                    if (!applyForMultiTiresCheckbox?.checked) {
+                        saveDraftForCurrentPosition();
+                    }
+                });
+                el.addEventListener('change', () => {
+                    if (!applyForMultiTiresCheckbox?.checked) {
+                        saveDraftForCurrentPosition();
+                    }
+                });
+            }
+        });
+
         // Submit button loading state
         document.getElementById('tireForm').addEventListener('submit', function() {
+            saveDraftForCurrentPosition();
+            const hiddenDraftInput = document.getElementById('positionDraftsJson');
+            if (hiddenDraftInput) {
+                hiddenDraftInput.value = JSON.stringify(buildSubmitDraftPayload());
+            }
+
+            try {
+                sessionStorage.removeItem(createDraftStorageKey);
+            } catch {
+                // ignore storage errors
+            }
             const btn = document.getElementById('btnSubmit');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';

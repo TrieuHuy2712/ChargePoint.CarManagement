@@ -2,6 +2,7 @@
 
 using ChargePoint.CarManagement.Application.Interfaces;
 using ChargePoint.CarManagement.Application.Interfaces.Common;
+using ChargePoint.CarManagement.Application.Tire.Models;
 using ChargePoint.CarManagement.Domain.Entities;
 using ChargePoint.CarManagement.Domain.Mapping;
 using ChargePoint.CarManagement.Domain.Models;
@@ -20,6 +21,7 @@ namespace ChargePoint.CarManagement.Application.Tire.Commands
         public List<IFormFile>? HinhAnhChungTuFiles { get; set; }
         public List<IFormFile>? HinhAnhDOTFiles { get; set; }
         public List<ViTriLop>? SelectedViTriLops { get; set; }
+        public Dictionary<ViTriLop, TirePositionDraft>? PositionDrafts { get; set; }
         public bool FromDraft { get; set; } = false;
     }
 
@@ -100,6 +102,7 @@ namespace ChargePoint.CarManagement.Application.Tire.Commands
                          chungTuImagesByPosition: chungTuImagesByPosition, 
                          dotImagesByPosition: dotImagesByPosition, 
                          targetPositions: targetPositions,
+                         positionDrafts: cmd.PositionDrafts,
                          car: cmd.Model.Car,
                          cancellationToken: cancellationToken);
                     return Result.Ok();
@@ -154,6 +157,7 @@ namespace ChargePoint.CarManagement.Application.Tire.Commands
                                                     pos => cmd.Model.HinhAnhDOT) 
                                                 : new(),
                      targetPositions: cmd.SelectedViTriLops,
+                     positionDrafts: cmd.PositionDrafts,
                      car: cmd.Model.Car,
                      cancellationToken: cancellationToken);
 
@@ -206,6 +210,7 @@ namespace ChargePoint.CarManagement.Application.Tire.Commands
             Dictionary<ViTriLop, string> chungTuImagesByPosition,
             Dictionary<ViTriLop, string> dotImagesByPosition,
             List<ViTriLop> targetPositions,
+            Dictionary<ViTriLop, TirePositionDraft>? positionDrafts,
             Domain.Entities.Car car,
             CancellationToken cancellationToken = default)
         {
@@ -226,7 +231,8 @@ namespace ChargePoint.CarManagement.Application.Tire.Commands
 
                 var tireRecords = targetPositions
                     .Select(position => {
-                        var record = TireMapping.CloneTireRecordForPosition(tireRecord, position);
+                        var source = BuildRecordSourceForPosition(tireRecord, position, positionDrafts);
+                        var record = TireMapping.CloneTireRecordForPosition(source, position);
                         if (chungTuImagesByPosition.TryGetValue(position, out var chungTuJson))
                             record.HinhAnhChungTu = chungTuJson;
                         if (dotImagesByPosition.TryGetValue(position, out var dotJson))
@@ -273,6 +279,30 @@ namespace ChargePoint.CarManagement.Application.Tire.Commands
                 throw;
             }
             
+        }
+
+        private static TireRecord BuildRecordSourceForPosition(
+            TireRecord fallback,
+            ViTriLop position,
+            Dictionary<ViTriLop, TirePositionDraft>? positionDrafts)
+        {
+            if (positionDrafts == null || !positionDrafts.TryGetValue(position, out var draft) || draft == null)
+            {
+                return fallback;
+            }
+
+            var clone = TireMapping.CloneTireRecordForPosition(fallback, position);
+            clone.LoaiThaoTac = draft.LoaiThaoTac;
+            clone.NgayThucHien = draft.NgayThucHien;
+            clone.OdoThayLop = draft.OdoThayLop;
+            clone.HangLop = draft.HangLop;
+            clone.ModelLop = draft.ModelLop;
+            clone.KichThuocLop = draft.KichThuocLop;
+            clone.OdoThayTiepTheo = draft.OdoThayTiepTheo;
+            clone.ChiPhi = draft.ChiPhi;
+            clone.NoiThucHien = draft.NoiThucHien;
+            clone.GhiChu = draft.GhiChu;
+            return clone;
         }
     }
 }

@@ -1,14 +1,17 @@
 using ChargePoint.CarManagement.Application.Car.Queries;
 using ChargePoint.CarManagement.Application.Tire.Commands;
+using ChargePoint.CarManagement.Application.Tire.Models;
 using ChargePoint.CarManagement.Application.Tire.Queries;
 using ChargePoint.CarManagement.Domain.Constants;
 using ChargePoint.CarManagement.Domain.Entities;
 using ChargePoint.CarManagement.Domain.Enums;
+using ChargePoint.CarManagement.Domain.Mapping;
 using ChargePoint.CarManagement.Domain.Models;
 using ChargePoint.CarManagement.Domain.ViewModels.TireViewModels;
 using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace ChargePoint.CarManagement.Controllers
 {
@@ -88,6 +91,7 @@ namespace ChargePoint.CarManagement.Controllers
             List<IFormFile>? HinhAnhChungTuFiles,
             List<IFormFile>? HinhAnhDOTFiles,
             List<ViTriLop>? selectedViTriLops,
+            string? positionDraftsJson,
             bool fromDraft = false, CancellationToken cancellationToken = default)
         {
             var car = await _mediator.Send(new GetCarByIdQuery { CarId = model.CarId }, cancellationToken);
@@ -103,10 +107,20 @@ namespace ChargePoint.CarManagement.Controllers
             
             if (!ModelState.IsValid) return View(vm);
 
+            var positionDrafts = TireMapping.ParsePositionDrafts(positionDraftsJson);
+
             var targetPositions = (selectedViTriLops ?? [])
                 .Append(model.ViTriLop)
                 .Distinct()
                 .ToList();
+
+            if ((selectedViTriLops == null || selectedViTriLops.Count == 0) && positionDrafts.Count > 0)
+            {
+                targetPositions = positionDrafts.Keys
+                    .Append(model.ViTriLop)
+                    .Distinct()
+                    .ToList();
+            }
 
             model.Car = car;
             var result = await _mediator.Send(new CreateTireCommand
@@ -115,6 +129,7 @@ namespace ChargePoint.CarManagement.Controllers
                 HinhAnhChungTuFiles = HinhAnhChungTuFiles,
                 HinhAnhDOTFiles = HinhAnhDOTFiles,
                 SelectedViTriLops = targetPositions,
+                PositionDrafts = positionDrafts,
                 FromDraft = fromDraft,
             }, cancellationToken: cancellationToken);
             if (result.Success)
@@ -151,6 +166,7 @@ namespace ChargePoint.CarManagement.Controllers
             List<IFormFile>? HinhAnhChungTuFiles,
             List<IFormFile>? HinhAnhDOTFiles,
             List<ViTriLop>? selectedViTriLops,
+            string? positionDraftsJson,
             bool fromDraft = false,
             CancellationToken cancellationToken = default)
         {
@@ -172,19 +188,23 @@ namespace ChargePoint.CarManagement.Controllers
 
             if (!ModelState.IsValid) return View(vm);
 
+            var positionDrafts = TireMapping.ParsePositionDrafts(positionDraftsJson);
+            var targetPositions = selectedViTriLops ?? positionDrafts.Keys.Append(model.ViTriLop).Distinct().ToList();
+
             model.Car = existingRecord.Car;
             var result = await _mediator.Send(new EditTireCommand
             {
                 Model = model,
                 HinhAnhChungTuFiles = HinhAnhChungTuFiles,
                 HinhAnhDOTFiles = HinhAnhDOTFiles,
-                SelectedViTriLops = selectedViTriLops ?? [model.ViTriLop],
+                SelectedViTriLops = targetPositions,
+                PositionDrafts = positionDrafts,
                 FromDraft = fromDraft
             }, cancellationToken);
             if (result.Success)
             {
-                TempData[nameof(Messages.SuccessMessage)] = (selectedViTriLops?.Count ?? 0) > 1
-                        ? $"Hoàn tất: đã lưu hồ sơ bảo dưỡng và {selectedViTriLops.Count} vị trí lốp thành công!"
+                TempData[nameof(Messages.SuccessMessage)] = targetPositions.Count > 1
+                        ? $"Hoàn tất: đã lưu hồ sơ bảo dưỡng và {targetPositions.Count} vị trí lốp thành công!"
                         : "Hoàn tất: đã lưu hồ sơ bảo dưỡng và hồ sơ lốp thành công!";
                 return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
             }
@@ -194,6 +214,8 @@ namespace ChargePoint.CarManagement.Controllers
                 return View(vm);
             }
         }
+
+        
 
         // GET: Tire/Details/5
         public async Task<IActionResult> Details(int? id, CancellationToken cancellationToken = default)

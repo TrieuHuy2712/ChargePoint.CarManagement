@@ -5,8 +5,16 @@ using OfficeOpenXml;
 using ChargePoint.CarManagement.Application;
 using ChargePoint.CarManagement.Infrastructure.Persistence.Data;
 using ZiggyCreatures.Caching.Fusion;
+using ChargePoint.CarManagement.Middleware;
+using ChargePoint.CarManagement.Services.Logging;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var logDirectory = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "Logs");
+Directory.CreateDirectory(logDirectory);
+var logFilePath = Path.Combine(logDirectory, "system-log.jsonl");
+builder.Logging.AddProvider(new SystemFileLoggerProvider(logFilePath));
 
 ExcelPackage.License.SetNonCommercialPersonal("Your Name or Organization's Name");
 
@@ -22,6 +30,7 @@ builder.Services.AddApplication();
 
 // Add HttpContextAccessor for audit fields
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<ILogStore, FileLogStore>();
 
 // Add Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -50,6 +59,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<ChargePoint.CarManagement.Middleware.MaintenanceMiddleware>();
 
 app.MapControllerRoute(

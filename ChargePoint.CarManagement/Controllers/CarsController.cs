@@ -182,7 +182,7 @@ namespace ChargePoint.CarManagement.Controllers
         // POST: Cars/DeleteMultiple
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteMultiple([FromForm] int[] ids)
+        public async Task<IActionResult> DeleteMultiple([FromForm] int[] ids, CancellationToken cancellationToken = default)
         {
             if (ids == null || ids.Length == 0)
             {
@@ -190,7 +190,7 @@ namespace ChargePoint.CarManagement.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var handler = await _mediator.Send(new DeleteMultipleCarCommand { Ids = ids }, CancellationToken.None);
+            var handler = await _mediator.Send(new DeleteMultipleCarCommand { Ids = ids }, cancellationToken);
 
             if(handler.Success)
             {
