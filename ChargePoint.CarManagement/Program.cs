@@ -1,9 +1,10 @@
-using ChargePoint.CarManagement.Data;
-using ChargePoint.CarManagement.Models;
-using ChargePoint.CarManagement.Services;
+using ChargePoint.CarManagement.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
+using ChargePoint.CarManagement.Application;
+using ChargePoint.CarManagement.Infrastructure.Persistence.Data;
+using ZiggyCreatures.Caching.Fusion;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,24 +12,16 @@ ExcelPackage.License.SetNonCommercialPersonal("Your Name or Organization's Name"
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddMemoryCache();
+builder.Services.AddFusionCache();
 
-// Add DbContext
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") 
-        ?? "Data Source=CarManagement.db"));
+// Add infrastructure services (DbContext, Cloudinary, Traffic Violation Service, etc.)
+builder.Services.AddInfrastructure(builder.Configuration);
 
-// Add Cloudinary Service
-builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
-builder.Services.AddScoped<IImageUploadService, CloudinaryService>();
+// Add application services (CQRS handlers, etc.)
+builder.Services.AddApplication();
 
-// Add Traffic Violation Service
-builder.Services.Configure<TrafficViolationSettings>(builder.Configuration.GetSection("TrafficViolation"));
-builder.Services.AddHttpClient<ITrafficViolationService, TrafficViolationService>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(30);
-    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-});
+// Add HttpContextAccessor for audit fields
+builder.Services.AddHttpContextAccessor();
 
 // Add Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

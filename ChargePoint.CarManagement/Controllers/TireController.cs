@@ -1,166 +1,66 @@
-using ChargePoint.CarManagement.Data;
-using ChargePoint.CarManagement.Models;
-using ChargePoint.CarManagement.Models.ViewModels.TireViewModels;
-using ChargePoint.CarManagement.Models.ViewModels;
-using ChargePoint.CarManagement.Services;
+using ChargePoint.CarManagement.Application.Car.Queries;
+using ChargePoint.CarManagement.Application.Tire.Commands;
+using ChargePoint.CarManagement.Application.Tire.Queries;
+using ChargePoint.CarManagement.Domain.Constants;
+using ChargePoint.CarManagement.Domain.Entities;
+using ChargePoint.CarManagement.Domain.Enums;
+using ChargePoint.CarManagement.Domain.Models;
+using ChargePoint.CarManagement.Domain.ViewModels.TireViewModels;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
-using Microsoft.Extensions.Caching.Memory;
-using ChargePoint.CarManagement.Models.Enums;
 
 namespace ChargePoint.CarManagement.Controllers
 {
     [Authorize]
     public class TireController(
-        ApplicationDbContext context,
-        IImageUploadService imageUploadService,
-        ILogger<TireController> logger,
-        IMemoryCache memoryCache) : Controller
+        IMediator mediator) : Controller
     {
-        private readonly ApplicationDbContext _context = context;
-        private readonly IImageUploadService _imageUploadService = imageUploadService;
-        private readonly ILogger<TireController> _logger = logger;
-        private readonly IMemoryCache _memoryCache= memoryCache;
+        private readonly IMediator _mediator = mediator;
 
         // GET: Tire
         public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
         {
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 10;
-
-            // Base query for cars
-            var carQuery = _context.Cars.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(q))
+            var result = await _mediator.Send(new GetTireIndexQuery
             {
-                var key = q.Trim();
-                var keyLower = key.ToLower();
-                var keyNormalized = keyLower.Replace("-", "").Replace(".", "");
+                Q = q,
+                Page = page,
+                PageSize = pageSize
+            });
 
-                carQuery = carQuery.Where(c =>
-                    (c.BienSo != null && (c.BienSo.ToLower().Contains(keyLower) || 
-                                          c.BienSo.Replace("-", "").Replace(".", "").ToLower().Contains(keyNormalized))) ||
-                    (c.TenXe != null && c.TenXe.ToLower().Contains(keyLower)) ||
-                    (c.TenKhachHang != null && c.TenKhachHang.ToLower().Contains(keyLower)) ||
-                    (c.SoVIN != null && c.SoVIN.ToLower().Contains(keyLower)) ||
-                    (c.MauXe != null && c.MauXe.ToLower().Contains(keyLower))
-                );
-            }
+            return View(result);
 
-            var totalCount = await carQuery.CountAsync();
-            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-            if (page > totalPages && totalPages > 0) page = totalPages;
-
-            var pagedCars = await carQuery
-                .OrderBy(c => c.Stt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var carIds = pagedCars.Select(c => c.Id).ToList();
-
-            // Load tire records only for paged cars
-            var tireRecords = await _context.TireRecords
-                .Where(t => carIds.Contains(t.CarId))
-                .ToListAsync();
-
-            // Compose view models
-            var items = pagedCars.Select(car => new TireIndexViewModel
-            {
-                Car = car,
-                TireRecords = tireRecords
-                    .Where(t => t.CarId == car.Id)
-                    .GroupBy(t => t.ViTriLop)
-                    .Select(g => new TireRecordDetailIndexVM
-                    {
-                        ViTri = g.Key,
-                        LastRecord = g.OrderByDescending(t => t.NgayThucHien).FirstOrDefault()
-                    })
-                    .ToList(),
-                TotalRecords = tireRecords.Count(t => t.CarId == car.Id)
-            }).ToList();
-
-            var viewModel = new PagedResult<TireIndexViewModel>
-            {
-                Items = items,
-                PageNumber = page,
-                PageSize = pageSize,
-                TotalCount = totalCount,
-                SearchQuery = q ?? string.Empty
-            };
-
-            return View(viewModel);
         }
 
         // GET: Tire/CarDetail/5
-        public async Task<IActionResult> CarDetail(int? id)
+        public async Task<IActionResult> CarDetail(int? id, CancellationToken cancellationToken)
         {
-            if (id == null)
-                return NotFound();
-
-            var car = await _context.Cars.FindAsync(id);
-            if (car == null)
-                return NotFound();
-
-            // Lấy tất cả tire records của xe này
-            var tireRecords = await _context.TireRecords
-                .Where(t => t.CarId == id)
-                .ToListAsync();
-
-            // Xử lý trong memory
-            var tiresByPosition = tireRecords
-                .GroupBy(t => t.ViTriLop)
-                .Select(g => new TireRecordDetailIndexVM
-                {
-                    ViTri = g.Key,
-                    LastRecord = g.OrderByDescending(t => t.NgayThucHien).FirstOrDefault()
-                })
-                .ToList();
-
-            return View(new TireCareDetailVM
-            {
-                Car = car,
-                TireRecordsPosition = tiresByPosition
-            });
+            if (id == null) return NotFound();
+            var vm = await _mediator.Send(new GetTireCarDetailQuery { CarId = id }, cancellationToken);
+            if (vm == null) return NotFound();
+            return View(vm);
         }
 
         // GET: Tire/History/5 (CarId)
-        public async Task<IActionResult> History(int? id, ViTriLop? viTri = null)
+        public async Task<IActionResult> History(int? id, ViTriLop? viTri = null, CancellationToken cancellationToken = default)
         {
             if (id == null) return NotFound();
 
-
-            var car = await _context.Cars.FindAsync(id);
-            if (car == null) return NotFound();
-
-            var query = _context.TireRecords.Where(t => t.CarId == id);
-
-            if (viTri.HasValue) query = query.Where(t => t.ViTriLop == viTri.Value);
-
-            var records = await query
-                .OrderByDescending(t => t.NgayThucHien) // Sắp xếp giảm dần (mới nhất lên trên)
-                .ToListAsync();
-
-            return View(new TireHistoryVM
-            {
-                Car = car,
-                ViTriLop = viTri,
-                Records = records
-            });
+            var vm = await _mediator.Send(new GetTireHistoryQuery { CarId = id,  ViTri = viTri }, cancellationToken);
+            if (vm == null) return NotFound();
+            return View(vm);
         }
 
-        private string GetMaintenanceDraftCacheKey(int carId)
-            => $"MaintenanceCreate_{carId}_{User.Identity?.Name}";
-
         // GET: Tire/Create/5 (CarId)
-        public async Task<IActionResult> Create(int? id, ViTriLop? viTri = null, bool fromDraft = false)
+        public async Task<IActionResult> Create(int? id, ViTriLop? viTri = null, bool fromDraft = false, CancellationToken cancellationToken = default)
         {
-            if (id == null) return NotFound();
+            if (!id.HasValue) return NotFound();
 
-            var car = await _context.Cars.FindAsync(id);
-            if (car == null) return NotFound();
+            var car = await _mediator.Send(new GetCarByIdQuery { CarId = id.Value }, cancellationToken);
+
+            if (car is null) return NotFound();
 
             var model = new TireRecord
             {
@@ -168,7 +68,7 @@ namespace ChargePoint.CarManagement.Controllers
                 NgayThucHien = DateTime.Now,
                 OdoThayLop = car.OdoXe,
                 NguoiTao = User.Identity?.Name,
-                ViTriLop = viTri ?? ViTriLop.TruocTrai
+                ViTriLop = viTri ?? ViTriLop.TruocTrai,
             };
 
             ViewBag.FromDraft = fromDraft;
@@ -188,10 +88,9 @@ namespace ChargePoint.CarManagement.Controllers
             List<IFormFile>? HinhAnhChungTuFiles,
             List<IFormFile>? HinhAnhDOTFiles,
             List<ViTriLop>? selectedViTriLops,
-            string action,
-            bool fromDraft = false)
+            bool fromDraft = false, CancellationToken cancellationToken = default)
         {
-            var car = await _context.Cars.FindAsync(model.CarId);
+            var car = await _mediator.Send(new GetCarByIdQuery { CarId = model.CarId }, cancellationToken);
             if (car == null) return NotFound();
 
             var vm = new TireCreateVM
@@ -201,7 +100,7 @@ namespace ChargePoint.CarManagement.Controllers
             };
 
             ViewBag.FromDraft = fromDraft;
-
+            
             if (!ModelState.IsValid) return View(vm);
 
             var targetPositions = (selectedViTriLops ?? [])
@@ -209,246 +108,37 @@ namespace ChargePoint.CarManagement.Controllers
                 .Distinct()
                 .ToList();
 
-            var maintenanceDraftKey = GetMaintenanceDraftCacheKey(model.CarId);
-            if (fromDraft && action == ButtonAction.Save.ToString())
+            model.Car = car;
+            var result = await _mediator.Send(new CreateTireCommand
             {
-                action = ButtonAction.Complete.ToString();
-            }
-
-            if (fromDraft || action == ButtonAction.Complete.ToString())
+                Model = model,
+                HinhAnhChungTuFiles = HinhAnhChungTuFiles,
+                HinhAnhDOTFiles = HinhAnhDOTFiles,
+                SelectedViTriLops = targetPositions,
+                FromDraft = fromDraft,
+            }, cancellationToken: cancellationToken);
+            if (result.Success)
             {
-                MaintenanceRecord? maintenanceDraft = null;
-                List<CachedFileData> maintenanceDraftFiles = [];
-
-                if (_memoryCache.TryGetValue(maintenanceDraftKey, out MaintenanceDraftCache? maintenanceDraftCache) &&
-                    maintenanceDraftCache?.MaintenanceRecord != null)
-                {
-                    maintenanceDraft = maintenanceDraftCache.MaintenanceRecord;
-                    maintenanceDraftFiles = maintenanceDraftCache.HinhAnhChungTuFiles ?? [];
-                }
-                else if (_memoryCache.TryGetValue(maintenanceDraftKey, out MaintenanceRecord? legacyMaintenanceDraft))
-                {
-                    maintenanceDraft = legacyMaintenanceDraft;
-                }
-
-                if (maintenanceDraft == null)
-                {
-                    _memoryCache.Remove(maintenanceDraftKey);
-                    TempData["ErrorMessage"] = "Khong tim thay du lieu bao duong tam. Vui long tao lai thong tin bao duong.";
-                    return RedirectToAction("Create", "Maintenance", new { id = model.CarId });
-                }
-
-                var validationResults = new List<System.ComponentModel.DataAnnotations.ValidationResult>();
-                var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(maintenanceDraft);
-                if (!System.ComponentModel.DataAnnotations.Validator.TryValidateObject(maintenanceDraft, validationContext, validationResults, true))
-                {
-                    _memoryCache.Remove(maintenanceDraftKey);
-                    TempData["ErrorMessage"] = "Dữ liệu bảo dưỡng tạm không hợp lệ. Vui lòng quay lại Maintenance để lưu lại.";
-                    return RedirectToAction("Create", "Maintenance", new { id = model.CarId });
-                }
-
-                try
-                {
-                    var bienSo = car.BienSo ?? "NoPlate";
-                    var chungTuImagesByPosition = await UploadImagesByPositionAsync(
-                        HinhAnhChungTuFiles, targetPositions, bienSo, "Lop", model.NgayThucHien);
-                    var dotImagesByPosition = await UploadImagesByPositionAsync(
-                        HinhAnhDOTFiles, targetPositions, bienSo, "DOT", model.NgayThucHien);
-
-                    // Upload hình ảnh chứng từ bảo dưỡng từ draft nếu có
-                    if (maintenanceDraftFiles.Count > 0)
-                    {
-                        var maintenanceImageUrls = new List<string>();
-                        foreach (var cachedFile in maintenanceDraftFiles)
-                        {
-                            var cachedFormFile = cachedFile.ToFormFile();
-                            var maintenanceImageUrl = await _imageUploadService.UploadFileAsync(
-                                cachedFormFile, bienSo, $"BaoDuong_{maintenanceDraft.NgayBaoDuong:yyyyMMdd}");
-                            maintenanceImageUrls.Add(maintenanceImageUrl);
-                        }
-
-                        maintenanceDraft.HinhAnhChungTu = JsonSerializer.Serialize(maintenanceImageUrls);
-                    }
-
-                    // Sử dụng transaction để đảm bảo tính toàn vẹn dữ liệu khi lưu cả 2 record
-                    await using var tx = await _context.Database.BeginTransactionAsync();
-
-                    _context.MaintenanceRecords.Add(maintenanceDraft);
-
-                    var tireRecords = targetPositions
-                        .Select(position =>
-                        {
-                            var record = CloneTireRecordForPosition(model, position);
-                            if (chungTuImagesByPosition.TryGetValue(position, out var chungTuJson))
-                            {
-                                record.HinhAnhChungTu = chungTuJson;
-                            }
-                            if (dotImagesByPosition.TryGetValue(position, out var dotJson))
-                            {
-                                record.HinhAnhDOT = dotJson;
-                            }
-                            return record;
-                        })
-                        .ToList();
-                    _context.TireRecords.AddRange(tireRecords);
-
-                    var settingAutoOdoMaintenance = await _context.SystemSettings
-                        .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Maintenance);
-                    if (settingAutoOdoMaintenance != null && settingAutoOdoMaintenance.Value == "true" && maintenanceDraft.SoKmBaoDuong > car.OdoXe)
-                    {
-                        car.OdoXe = maintenanceDraft.SoKmBaoDuong;
-                        car.NgayCapNhat = DateTime.Now;
-                    }
-
-                    var settingAutoOdoTire = await _context.SystemSettings
-                        .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Tire);
-                    if (settingAutoOdoTire != null && settingAutoOdoTire.Value == "true" && model.OdoThayLop > car.OdoXe)
-                    {
-                        car.OdoXe = model.OdoThayLop;
-                        car.NgayCapNhat = DateTime.Now;
-                    }
-
-                    await _context.SaveChangesAsync();
-                    await tx.CommitAsync();
-
-                    _memoryCache.Remove(maintenanceDraftKey);
-
-                    TempData["SuccessMessage"] = targetPositions.Count > 1
+                TempData["SuccessMessage"] = targetPositions.Count > 1
                         ? $"Hoàn tất: đã lưu hồ sơ bảo dưỡng và {targetPositions.Count} vị trí lốp thành công!"
                         : "Hoàn tất: đã lưu hồ sơ bảo dưỡng và hồ sơ lốp thành công!";
-                    return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Lỗi khi hoàn tất draft Bảo dưỡng + Lốp");
-                    ModelState.AddModelError("", $"Có lỗi xảy ra khi hoàn tất: {ex.Message}");
-                    return View(vm);
-                }
-            }
-
-            try
-            {
-                var bienSo = car.BienSo ?? "NoPlate";
-                var chungTuImagesByPosition = await UploadImagesByPositionAsync(
-                    HinhAnhChungTuFiles, targetPositions, bienSo, "Lop", model.NgayThucHien);
-                var dotImagesByPosition = await UploadImagesByPositionAsync(
-                    HinhAnhDOTFiles, targetPositions, bienSo, "DOT", model.NgayThucHien);
-
-                model.NgayTao = DateTime.Now;
-                model.NguoiTao = User.Identity?.Name;
-
-                var settingAutoOdo = await _context.SystemSettings
-                    .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Tire);
-                if (settingAutoOdo != null && settingAutoOdo.Value == "true" && model.OdoThayLop > car.OdoXe)
-                {
-                    car.OdoXe = model.OdoThayLop;
-                    car.NgayCapNhat = DateTime.Now;
-                }
-
-                var tireRecords = targetPositions
-                    .Select(position =>
-                    {
-                        var record = CloneTireRecordForPosition(model, position);
-                        if (chungTuImagesByPosition.TryGetValue(position, out var chungTuJson))
-                        {
-                            record.HinhAnhChungTu = chungTuJson;
-                        }
-                        if (dotImagesByPosition.TryGetValue(position, out var dotJson))
-                        {
-                            record.HinhAnhDOT = dotJson;
-                        }
-                        return record;
-                    })
-                    .ToList();
-                _context.TireRecords.AddRange(tireRecords);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = targetPositions.Count > 1
-                    ? $"Thêm hồ sơ lốp đồng thời cho {targetPositions.Count} vị trí thành công!"
-                    : $"Thêm hồ sơ lốp ({model.TenViTriLop}) thành công!";
                 return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Lỗi khi tạo hồ sơ lốp");
-                ModelState.AddModelError("", $"Co loi xay ra: {ex.Message}");
+                ModelState.AddModelError("", result.Error!);
+                return View(vm);
             }
-
-            return View(vm);
         }
 
-        private static TireRecord CloneTireRecordForPosition(TireRecord source, ViTriLop position)
-        {
-            return new TireRecord
-            {
-                CarId = source.CarId,
-                ViTriLop = position,
-                LoaiThaoTac = source.LoaiThaoTac,
-                NgayThucHien = source.NgayThucHien,
-                OdoThayLop = source.OdoThayLop,
-                HangLop = source.HangLop,
-                ModelLop = source.ModelLop,
-                KichThuocLop = source.KichThuocLop,
-                OdoThayTiepTheo = source.OdoThayTiepTheo,
-                ChiPhi = source.ChiPhi,
-                NoiThucHien = source.NoiThucHien,
-                GhiChu = source.GhiChu,
-                HinhAnhChungTu = source.HinhAnhChungTu,
-                HinhAnhDOT = source.HinhAnhDOT,
-                NgayTao = source.NgayTao,
-                NguoiTao = source.NguoiTao
-            };
-        }
-
-        private async Task<Dictionary<ViTriLop, string>> UploadImagesByPositionAsync(
-            List<IFormFile>? files,
-            IEnumerable<ViTriLop> positions,
-            string bienSo,
-            string prefix,
-            DateTime ngayThucHien)
-        {
-            var result = new Dictionary<ViTriLop, string>();
-            if (files == null || files.Count == 0)
-            {
-                return result;
-            }
-
-            var validFiles = files.Where(f => f != null && f.Length > 0).ToList();
-            if (validFiles.Count == 0)
-            {
-                return result;
-            }
-
-            foreach (var position in positions)
-            {
-                var urls = new List<string>();
-                foreach (var file in validFiles)
-                {
-                    var url = await _imageUploadService.UploadFileAsync(
-                        file, bienSo, $"{prefix}_{position}_{ngayThucHien:yyyyMMdd}");
-                    urls.Add(url);
-                }
-                result[position] = JsonSerializer.Serialize(urls);
-            }
-
-            return result;
-        }
         // GET: Tire/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int? id, CancellationToken cancellationToken = default)
         {
             if (id == null) return NotFound();
 
-            var record = await _context.TireRecords
-                .Include(t => t.Car)
-                .FirstOrDefaultAsync(t => t.Id == id);
-
-            if (record == null || record.Car == null) return NotFound();
-
-            return View(new TireEditVM
-            {
-                Car = record.Car,
-                Record = record
-            });
+            var result = await _mediator.Send(new GetTireCarDetailEditViewQuery { TireId = id.Value }, cancellationToken);
+            if (result == null) return NotFound();
+            return View(result);
         }
 
         // POST: Tire/Edit/5
@@ -459,227 +149,104 @@ namespace ChargePoint.CarManagement.Controllers
             int id,
             [Bind(Prefix = "Record")] TireRecord model,
             List<IFormFile>? HinhAnhChungTuFiles,
-            List<IFormFile>? HinhAnhDOTFiles)
+            List<IFormFile>? HinhAnhDOTFiles,
+            List<ViTriLop>? selectedViTriLops,
+            bool fromDraft = false,
+            CancellationToken cancellationToken = default)
         {
             if (id != model.Id)
                 return NotFound();
 
             // Load existing record first to get CarId
-            var existingRecord = await _context.TireRecords.FindAsync(id);
+            var existingRecord = await _mediator.Send(new GetTireCarDetailEditViewQuery { TireId = id }, cancellationToken);
             if (existingRecord == null)
                 return NotFound();
-
-            // Load car information
-            var car = await _context.Cars.FindAsync(existingRecord.CarId);
-            if (car == null)
-            {
-                return NotFound();
-            }
 
             // Create view model for potential return
             var vm = new TireEditVM
             {
-                Car = car,
+                Car = existingRecord.Car,
                 Record = model
             };
 
-            if (!ModelState.IsValid)
+
+            if (!ModelState.IsValid) return View(vm);
+
+            model.Car = existingRecord.Car;
+            var result = await _mediator.Send(new EditTireCommand
             {
+                Model = model,
+                HinhAnhChungTuFiles = HinhAnhChungTuFiles,
+                HinhAnhDOTFiles = HinhAnhDOTFiles,
+                SelectedViTriLops = selectedViTriLops ?? [model.ViTriLop],
+                FromDraft = fromDraft
+            }, cancellationToken);
+            if (result.Success)
+            {
+                TempData[nameof(Messages.SuccessMessage)] = (selectedViTriLops?.Count ?? 0) > 1
+                        ? $"Hoàn tất: đã lưu hồ sơ bảo dưỡng và {selectedViTriLops.Count} vị trí lốp thành công!"
+                        : "Hoàn tất: đã lưu hồ sơ bảo dưỡng và hồ sơ lốp thành công!";
+                return RedirectToAction(nameof(CarDetail), new { id = model.CarId });
+            }
+            else
+            {
+                ModelState.AddModelError("", result.Error!);
                 return View(vm);
             }
-
-            try
-            {
-                // Cập nhật thông tin (không update CarId, NgayTao, NguoiTao)
-                existingRecord.ViTriLop = model.ViTriLop;
-                existingRecord.LoaiThaoTac = model.LoaiThaoTac;
-                existingRecord.NgayThucHien = model.NgayThucHien;
-                existingRecord.OdoThayLop = model.OdoThayLop;
-                existingRecord.HangLop = model.HangLop;
-                existingRecord.ModelLop = model.ModelLop;
-                existingRecord.KichThuocLop = model.KichThuocLop;
-                existingRecord.OdoThayTiepTheo = model.OdoThayTiepTheo;
-                existingRecord.ChiPhi = model.ChiPhi;
-                existingRecord.NoiThucHien = model.NoiThucHien;
-                existingRecord.GhiChu = model.GhiChu;
-                existingRecord.NgayCapNhat = DateTime.Now;
-                existingRecord.NguoiCapNhat = User.Identity?.Name;
-
-                var bienSo = car.BienSo ?? "NoPlate";
-
-                // Upload hình ảnh chứng từ mới
-                if (HinhAnhChungTuFiles != null && HinhAnhChungTuFiles.Count > 0)
-                {
-                    var existingImages = existingRecord.DanhSachHinhAnh;
-
-                    foreach (var file in HinhAnhChungTuFiles)
-                    {
-                        if (file.Length > 0)
-                        {
-                            var url = await _imageUploadService.UploadFileAsync(
-                                file, bienSo, $"Lop_{existingRecord.ViTriLop}_{existingRecord.NgayThucHien:yyyyMMdd}");
-                            existingImages.Add(url);
-                        }
-                    }
-
-                    existingRecord.HinhAnhChungTu = JsonSerializer.Serialize(existingImages);
-                }
-
-                // Upload hình ảnh DOT mới
-                if (HinhAnhDOTFiles != null && HinhAnhDOTFiles.Count > 0)
-                {
-                    var existingDOTImages = existingRecord.DanhSachHinhAnhDOT;
-
-                    foreach (var file in HinhAnhDOTFiles)
-                    {
-                        if (file.Length > 0)
-                        {
-                            var url = await _imageUploadService.UploadFileAsync(
-                                file, bienSo, $"DOT_{existingRecord.ViTriLop}_{existingRecord.NgayThucHien:yyyyMMdd}");
-                            existingDOTImages.Add(url);
-                        }
-                    }
-
-                    existingRecord.HinhAnhDOT = JsonSerializer.Serialize(existingDOTImages);
-                }
-
-                // Kiểm tra setting trước khi ghi đè ODO
-                var settingAutoOdo = await _context.SystemSettings
-                    .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.AutoUpdateOdo_Tire);
-
-                if (settingAutoOdo != null && settingAutoOdo.Value == "true")
-                {
-                    if (existingRecord.OdoThayLop > car.OdoXe)
-                    {
-                        car.OdoXe = existingRecord.OdoThayLop;
-                        car.NgayCapNhat = DateTime.Now;
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = "Cập nhật hồ sơ lốp thành công!";
-                return RedirectToAction(nameof(CarDetail), new { id = existingRecord.CarId });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi khi cập nhật hồ sơ lốp");
-                ModelState.AddModelError("", $"Có lỗi xảy ra: {ex.Message}");
-            }
-
-            // Return view with populated data on error
-            return View(vm);
         }
 
         // GET: Tire/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int? id, CancellationToken cancellationToken = default)
         {
-            if (id == null)
-                return NotFound();
+            if (id == null) return NotFound();
+            var result = await _mediator.Send(new GetTireDetailByIdQuery { Id = id.Value }, cancellationToken);
 
-            var record = await _context.TireRecords
-                .Include(t => t.Car)
-                .FirstOrDefaultAsync(t => t.Id == id);
-
-            if (record == null)
-                return NotFound();
-
-            return View(record);
+            if (result == null) return NotFound();
+            return View(result);
         }
 
         // POST: Tire/Delete/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(
+            int id, CancellationToken cancellationToken = default)
         {
-            var record = await _context.TireRecords.FindAsync(id);
-            if (record != null)
+            var result = await _mediator.Send(new DeleteTireCommand { Id = id }, cancellationToken);
+            if (result.Success)
             {
-                var carId = record.CarId;
-
-                // Xóa hình ảnh chứng từ
-                foreach (var imageUrl in record.DanhSachHinhAnh)
-                {
-                    await _imageUploadService.DeleteFileAsync(imageUrl);
-                }
-
-                // Xóa hình ảnh DOT
-                foreach (var imageUrl in record.DanhSachHinhAnhDOT)
-                {
-                    await _imageUploadService.DeleteFileAsync(imageUrl);
-                }
-
-                _context.TireRecords.Remove(record);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = "Đã xóa hồ sơ lốp!";
-                return RedirectToAction(nameof(CarDetail), new { id = carId });
+                TempData[nameof(Messages.SuccessMessage)] = "Đã xóa hồ sơ lốp!";
+                return RedirectToAction(nameof(History), new {id = result.Value});
             }
-
-            return RedirectToAction(nameof(Index));
+            else
+            {
+                TempData[nameof(Messages.ErrorMessage)] = $"Có lỗi xảy ra: {result.Error}";
+                return RedirectToAction(nameof(History));
+            }
         }
 
         // POST: Tire/DeleteImage
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteImage([FromBody] DeleteImageRequest request)
+        public async Task<IActionResult> DeleteImage([FromBody] DeleteImageRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null || string.IsNullOrEmpty(request.ImageUrl))
                 return Json(new { success = false, message = "Thông tin không hợp lệ" });
 
-            var record = await _context.TireRecords.FindAsync(request.RecordId);
-            if (record == null)
-                return Json(new { success = false, message = "Không tìm thấy hồ sơ" });
-
-            try
+            var result = await _mediator.Send(new DeleteTireImageCommand
             {
-                bool imageFound = false;
+                RecordId = request.RecordId,
+                ImageUrl = request.ImageUrl,
+                ImageType = request.ImageType
+            }, cancellationToken);
 
-                // Xóa ảnh chứng từ hoặc ảnh DOT tùy theo imageType
-                if (request.ImageType == "DOT")
-                {
-                    var dotImages = record.DanhSachHinhAnhDOT;
-                    if (dotImages.Contains(request.ImageUrl))
-                    {
-                        await _imageUploadService.DeleteFileAsync(request.ImageUrl);
-                        dotImages.Remove(request.ImageUrl);
-                        record.HinhAnhDOT = JsonSerializer.Serialize(dotImages);
-                        imageFound = true;
-                    }
-                }
-                else
-                {
-                    var images = record.DanhSachHinhAnh;
-                    if (images.Contains(request.ImageUrl))
-                    {
-                        await _imageUploadService.DeleteFileAsync(request.ImageUrl);
-                        images.Remove(request.ImageUrl);
-                        record.HinhAnhChungTu = JsonSerializer.Serialize(images);
-                        imageFound = true;
-                    }
-                }
-
-                if (imageFound)
-                {
-                    await _context.SaveChangesAsync();
-                    return Json(new { success = true, message = "Đã xóa hình ảnh" });
-                }
-
-                return Json(new { success = false, message = "Không tìm thấy hình ảnh" });
-            }
-            catch (Exception ex)
+            if (result.Success)
             {
-                _logger.LogError(ex, "Lỗi khi xóa hình ảnh");
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = true, message = "Đã xóa hình ảnh" });
             }
-        }
-
-        // Helper class for DeleteImage request
-        public class DeleteImageRequest
-        {
-            public int RecordId { get; set; }
-            public string ImageUrl { get; set; } = string.Empty;
-            public string ImageType { get; set; } = "ChungTu"; // "ChungTu" or "DOT"
+            else
+            {
+                return Json(new { success = false, message = result.Error });
+            }
         }
     }
 }

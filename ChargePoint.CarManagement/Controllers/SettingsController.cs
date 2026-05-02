@@ -1,83 +1,35 @@
-using ChargePoint.CarManagement.Data;
-using ChargePoint.CarManagement.Models;
-using ChargePoint.CarManagement.Models.ViewModels;
+using ChargePoint.CarManagement.Application.SystemSetting.Commands;
+using ChargePoint.CarManagement.Application.SystemSetting.Queries;
+using ChargePoint.CarManagement.Domain.Constants;
+using Mediator;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace ChargePoint.CarManagement.Controllers
 {
     [Authorize]
-    public class SettingsController : Controller
+    public class SettingsController(
+        IMediator mediator) : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IMediator _mediator = mediator;
 
-        public SettingsController(ApplicationDbContext context)
+        public async Task<IActionResult> Index(CancellationToken cancellationToken = default)
         {
-            _context = context;
-        }
-
-        public async Task<IActionResult> Index()
-        {
-            var settings = await _context.SystemSettings.ToListAsync();
-            bool isRoot = User.IsInRole(AppRoles.RootAdmin);
-
-            var vm = new SystemSettingIndexVM
-            {
-                IsRootUser = isRoot,
-                Settings = settings.Select(s => new SystemSettingItemVM
-                {
-                    Key = s.Key,
-                    Value = s.Value,
-                    Description = s.Description,
-                    Type = s.Type,
-                    IsDisabled = (s.Key == SystemSettingKeys.MaintenanceMode && !isRoot),
-                    DisabledReason = (s.Key == SystemSettingKeys.MaintenanceMode && !isRoot) ? "Chỉ root mới được thay đổi" : ""
-                }).ToList()
-            };
-
+            var vm = await _mediator.Send(new GetSystemSettingIndexQuery(), cancellationToken);
             return View(vm);
         }
 
-        public async Task<IActionResult> Save(IFormCollection form)
+        public async Task<IActionResult> Save(IFormCollection form, CancellationToken cancellationToken = default)
         {
-            var dbSettings = await _context.SystemSettings.ToListAsync();
-            bool isRoot = User.IsInRole(AppRoles.RootAdmin);
-
-            foreach (var setting in dbSettings)
+            var handleResult = await _mediator.Send(new SaveSystemSettingCommand { Form = form }, cancellationToken);
+            if (handleResult.Success)
             {
-                // Root validation constraint
-                if (setting.Key == SystemSettingKeys.MaintenanceMode && !isRoot)
-                {
-                    continue; // Bỏ qua, không cho phép lưu thay đổi cấu hình này nếu không phải root
-                }
-
-                var inputName = $"settings[{setting.Key}]";
-
-                if (form.ContainsKey(inputName))
-                {
-                    var values = form[inputName]; // Lấy danh sách các value trùng tên
-                    if (setting.Type == "boolean")
-                    {
-                        // Nếu checkbox được tick, sẽ có "true" trong list values.
-                        setting.Value = values.Contains("true") ? "true" : "false";
-                    }
-                    else
-                    {
-                        setting.Value = values.ToString();
-                    }
-                }
-                else if (setting.Type == "boolean")
-                {
-                    // Nếu unchecked, và cả hidden field không truyền lên thì mặc định là false
-                    setting.Value = "false";
-                }
+                TempData[nameof(Messages.SuccessMessage)] = "Lưu thiết lập thành công!";
             }
-
-            _context.UpdateRange(dbSettings);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Lưu thiết lập thành công!";
+            else
+            {
+                TempData[nameof(Messages.ErrorMessage)] = handleResult.Error;
+            }
             return RedirectToAction(nameof(Index));
         }
     }

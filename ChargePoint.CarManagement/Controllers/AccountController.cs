@@ -1,3 +1,4 @@
+using ChargePoint.CarManagement.Domain.Models;
 using ChargePoint.CarManagement.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;

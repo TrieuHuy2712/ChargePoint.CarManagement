@@ -1,6 +1,8 @@
-﻿@model ChargePoint.CarManagement.Models.Car
-@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
-@using ChargePoint.CarManagement.Models
+﻿@using ChargePoint.CarManagement.Domain.Entities
+@using ChargePoint.CarManagement.Domain.Models
+@model ChargePoint.CarManagement.Domain.Entities.Car
+@inject IOptions<ChargePoint.CarManagement.Domain.Models.FileUploadSettings> FileUploadSettings
+
 
 @{
     ViewData["Title"] = "Thêm xe mới";

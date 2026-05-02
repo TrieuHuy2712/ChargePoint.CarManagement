@@ -1,6 +1,6 @@
-﻿@using ChargePoint.CarManagement.Models.Enums
-@using ChargePoint.CarManagement.Models.ViewModels
-@model PagedResult<ChargePoint.CarManagement.Models.Car>
+﻿@using ChargePoint.CarManagement.Domain.Entities
+@using ChargePoint.CarManagement.Domain.ViewModels
+@model PagedResult<ChargePoint.CarManagement.Domain.Entities.Car>
 @{
     ViewData["Title"] = "Tra cứu hàng loạt";
     var searchQuery = Model.SearchQuery ?? "";
@@ -451,42 +451,43 @@
                     });
 
                     const responseData = await response.json();
-                    if (!(responseData && responseData.success && Array.isArray(responseData.results) && responseData.results.length > 0)) {
-                        throw new Error('Invalid response format');
+
+                    const resultArray = responseData.results || responseData.data;
+
+                    if (!(responseData && responseData.success && Array.isArray(resultArray) && resultArray.length > 0)) {
+                        throw new Error(responseData.message || 'Invalid response format');
                     }
 
-                    const data = responseData.results[0];
+                    const data = resultArray[0];
 
-                    // Build full violation details
-                    let trangThai = null;
-                    let fullViPham = null;
-                    if (data.danhSachViPham && data.danhSachViPham.length > 0) {
-                        trangThai = data.danhSachViPham[0].trangThai;
-                        fullViPham = data.danhSachViPham.map((vp, i) =>
+                    // Chuẩn hóa - tất cả đều camelCase theo backend
+                    const trangThai = data.danhSachViPham?.length > 0 ? data.danhSachViPham[0].trangThai : null;
+                    const fullViPham = data.danhSachViPham?.length > 0
+                        ? data.danhSachViPham.map((vp, i) =>
                             `[Lỗi ${i+1}] Thời gian: ${vp.ngayViPham} | Địa điểm: ${vp.diaDiem} | Hành vi: ${vp.hanhVi} | Trạng thái: ${vp.trangThai} | Đơn vị: ${vp.donViPhatHien}`
-                        ).join('\n');
-                    }
+                        ).join('\n')
+                        : null;
 
                     const overwriteMessage = isOverwriteMessage(data.message);
                     const isError = !data.success && !overwriteMessage;
 
-                    // Store result
                     checkResults.set(id, {
-                        carId: id,
-                        bienSo: data.bienSo,
+                        carId: id,                          // ✅ camelCase nhất quán
+                        bienSo: data.bienSo || bienSo,
                         soLuongViPham: data.soLuongViPham || 0,
-                        ngayGioViPham: data.danhSachViPham && data.danhSachViPham.length > 0
+                        coViPham: data.coViPham || false,
+                        ngayGioViPham: data.danhSachViPham?.length > 0
                             ? parseVietnameseDate(data.danhSachViPham[0].ngayViPham)
                             : null,
-                        noiDungViPham: data.danhSachViPham && data.danhSachViPham.length > 0
+                        noiDungViPham: data.danhSachViPham?.length > 0
                             ? data.danhSachViPham[0].hanhVi
                             : null,
-                        diaDiemViPham: data.danhSachViPham && data.danhSachViPham.length > 0
+                        diaDiemViPham: data.danhSachViPham?.length > 0
                             ? data.danhSachViPham[0].diaDiem
                             : null,
                         trangThaiCSGT: trangThai,
                         fullViPhamData: fullViPham,
-                        danhSachViPham: data.danhSachViPham,
+                        danhSachViPham: data.danhSachViPham || [],
                         ghiChu: data.success
                             ? `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}`
                             : (data.message || `Tra cứu tự động lúc ${new Date().toLocaleString('vi-VN')}`),

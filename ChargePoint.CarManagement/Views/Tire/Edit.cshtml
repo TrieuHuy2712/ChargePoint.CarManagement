@@ -1,6 +1,8 @@
-﻿@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
+﻿@using ChargePoint.CarManagement.Domain.Entities
+@using ChargePoint.CarManagement.Domain.Models
+@using ChargePoint.CarManagement.Domain.ViewModels.TireViewModels
 @model TireEditVM
-@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+@inject IOptions<FileUploadSettings> FileUploadSettings
 
 @{
     ViewData["Title"] = "Sửa hồ sơ lốp";
@@ -84,6 +86,44 @@
                                 }
                             </div>
                             <span asp-validation-for="Record.ViTriLop" class="text-danger"></span>
+
+                            <div class="mt-3 p-3 border rounded bg-light">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="applyForMultiTires" />
+                                    <label class="form-check-label fw-semibold" for="applyForMultiTires">
+                                        Áp dụng cùng thông tin cho nhiều lốp
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mb-2">
+                                    Ví dụ: nhập ở lốp trái và tick thêm các lốp khác để lưu cùng lúc.
+                                </small>
+                                <div class="row g-2 multi-tire-options d-none" id="multiTireOptions">
+                                    @foreach (ViTriLop viTri in Enum.GetValues(typeof(ViTriLop)))
+                                    {
+                                        var multiLabel = viTri switch
+                                        {
+                                            ViTriLop.TruocTrai => "Trước trái",
+                                            ViTriLop.TruocPhai => "Trước phải",
+                                            ViTriLop.SauTrai => "Sau trái",
+                                            ViTriLop.SauPhai => "Sau phải",
+                                            _ => ""
+                                        };
+                                        <div class="col-6">
+                                            <div class="form-check">
+                                                <input class="form-check-input multi-tire-check"
+                                                       type="checkbox"
+                                                       name="selectedViTriLops"
+                                                       id="multiViTri@((int)viTri)"
+                                                       value="@((int)viTri)"
+                                                       @(tireRecord.ViTriLop == viTri ? "checked" : "") />
+                                                <label class="form-check-label" for="multiViTri@((int)viTri)">
+                                                    @multiLabel
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -237,10 +277,23 @@
                 </h5>
                 @await Html.PartialAsync("_TireSharedImage")
 
-                <div class="form-group mt-4">
-                    <button type="submit" class="btn btn-primary" id="btnSubmit">
-                        <i class="fas fa-save"></i> Cập nhật
-                    </button>
+
+                <div class="form-group mt-4 d-flex gap-2">
+                    @if (ViewBag.FromDraft == true)
+                    {
+                        <button type="submit" name="action" value="Complete" class="btn btn-success" id="btnSubmit">
+                            <i class="fas fa-save"></i> Lưu hồ sơ lốp + bảo dưỡng
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" name="action" value="Save" class="btn btn-primary" id="btnSubmit">
+                            <i class="fas fa-save"></i> Cập nhật
+                        </button>
+                        @* <button type="submit" name="action" value="Complete" class="btn btn-success">
+                            <i class="fas fa-check"></i> Lưu & Áp dụng cho nhiều vị trí
+                        </button> *@
+                    }
                     <a asp-action="CarDetail" asp-route-id="@tireRecord.CarId" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Quay lại
                     </a>
@@ -268,12 +321,10 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-
     <script>
         // Tự động tính ODO thay tiếp theo = ODO thay lốp + 60,000
         const odoThayLopInput = document.getElementById('odoThayLop');
         const odoThayTiepTheoInput = document.getElementById('odoThayTiepTheo');
-
         if (odoThayLopInput && odoThayTiepTheoInput) {
             odoThayLopInput.addEventListener('input', function() {
                 const odoThayLop = parseInt(this.value) || 0;
@@ -282,7 +333,39 @@
                 }
             });
         }
-
+        // Multi-tire logic
+        const applyForMultiTiresCheckbox = document.getElementById('applyForMultiTires');
+        const multiTireOptions = document.getElementById('multiTireOptions');
+        const multiTireChecks = document.querySelectorAll('.multi-tire-check');
+        const tirePositionRadios = document.querySelectorAll('input[name="Record.ViTriLop"]');
+        function syncPrimaryPositionToMultiChecks() {
+            const selectedRadio = document.querySelector('input[name="Record.ViTriLop"]:checked');
+            if (!selectedRadio) return;
+            const selectedValue = selectedRadio.value;
+            multiTireChecks.forEach(cb => {
+                if (cb.value === selectedValue) {
+                    cb.checked = true;
+                    cb.disabled = true;
+                } else {
+                    cb.disabled = !applyForMultiTiresCheckbox?.checked;
+                }
+            });
+        }
+        if (applyForMultiTiresCheckbox && multiTireOptions) {
+            applyForMultiTiresCheckbox.addEventListener('change', function() {
+                multiTireOptions.classList.toggle('d-none', !this.checked);
+                multiTireChecks.forEach(cb => {
+                    if (!this.checked) {
+                        cb.checked = false;
+                    }
+                });
+                syncPrimaryPositionToMultiChecks();
+            });
+            tirePositionRadios.forEach(radio => {
+                radio.addEventListener('change', syncPrimaryPositionToMultiChecks);
+            });
+            syncPrimaryPositionToMultiChecks();
+        }
         // Delete existing image (chứng từ)
         document.querySelectorAll('.delete-image-btn').forEach(btn => {
             btn.addEventListener('click', async function(e) {

@@ -1,4 +1,6 @@
-﻿@model ChargePoint.CarManagement.Models.MaintenanceRecord
+﻿@using ChargePoint.CarManagement.Domain.Entities
+@using ChargePoint.CarManagement.Domain.Enums
+@model ChargePoint.CarManagement.Domain.Entities.MaintenanceRecord
 
 @{
     ViewData["Title"] = "Chi tiết bảo dưỡng";
@@ -64,9 +66,9 @@
                         @{
                             var badgeClass = Model.CapBaoDuong switch
                             {
-                                CapBaoDuong.Cap1 => "bg-info",
-                                CapBaoDuong.Cap2 => "bg-primary",
-                                CapBaoDuong.Cap3 => "bg-success",
+                                MaintenanceLevel.Cap1 => "bg-info",
+                                MaintenanceLevel.Cap2 => "bg-primary",
+                                MaintenanceLevel.Cap3 => "bg-success",
                                 _ => "bg-secondary"
                             };
                         }

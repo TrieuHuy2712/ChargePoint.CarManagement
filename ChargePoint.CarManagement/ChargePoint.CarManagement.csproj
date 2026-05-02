@@ -9,15 +9,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CloudinaryDotNet" Version="1.28.0" />
-    <PackageReference Include="EPPlus" Version="8.5.1" />
-    <PackageReference Include="Google.Apis.Drive.v3" Version="1.73.0.4081" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.25">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.22.1-Preview.1" />
+    <PackageReference Include="ZiggyCreatures.FusionCache" Version="2.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChargePoint.CarManagement.Domain\ChargePoint.CarManagement.Domain.csproj" />
+    <ProjectReference Include="..\ChargePoint.CarManagement.Infrastructure\ChargePoint.CarManagement.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

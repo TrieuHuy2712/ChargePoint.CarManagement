@@ -1,7 +1,10 @@
 ﻿@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
-@using ChargePoint.CarManagement.Models.ViewModels
+@using ChargePoint.CarManagement.Domain.Entities
+@using ChargePoint.CarManagement.Domain.Enums
+@using ChargePoint.CarManagement.Domain.Models
+@using ChargePoint.CarManagement.Domain.ViewModels
 @using Microsoft.Extensions.Options
-@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+@inject IOptions<FileUploadSettings> FileUploadSettings
 @model CarViewModel
 
 @{

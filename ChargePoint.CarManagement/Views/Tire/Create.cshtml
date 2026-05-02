@@ -1,7 +1,8 @@
-﻿@using ChargePoint.CarManagement.Models.ViewModels.TireViewModels
-@using ChargePoint.CarManagement.Models.Enums
+﻿@using ChargePoint.CarManagement.Domain.Entities
+@using ChargePoint.CarManagement.Domain.Models
+@using ChargePoint.CarManagement.Domain.ViewModels.TireViewModels
 @model TireCreateVM
-@inject Microsoft.Extensions.Options.IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+@inject Microsoft.Extensions.Options.IOptions<FileUploadSettings> FileUploadSettings
 
 @{
     ViewData["Title"] = "Thêm hồ sơ lốp";
@@ -259,44 +260,6 @@
                     odoThayTiepTheoInput.value = odoThayLop + 60000;
                 }
             });
-        }
-
-        const applyForMultiTiresCheckbox = document.getElementById('applyForMultiTires');
-        const multiTireOptions = document.getElementById('multiTireOptions');
-        const multiTireChecks = document.querySelectorAll('.multi-tire-check');
-        const tirePositionRadios = document.querySelectorAll('input[name="TireRecord.ViTriLop"]');
-
-        function syncPrimaryPositionToMultiChecks() {
-            const selectedRadio = document.querySelector('input[name="TireRecord.ViTriLop"]:checked');
-            if (!selectedRadio) return;
-
-            const selectedValue = selectedRadio.value;
-            multiTireChecks.forEach(cb => {
-                if (cb.value === selectedValue) {
-                    cb.checked = true;
-                    cb.disabled = true;
-                } else {
-                    cb.disabled = !applyForMultiTiresCheckbox?.checked;
-                }
-            });
-        }
-
-        if (applyForMultiTiresCheckbox && multiTireOptions) {
-            applyForMultiTiresCheckbox.addEventListener('change', function() {
-                multiTireOptions.classList.toggle('d-none', !this.checked);
-                multiTireChecks.forEach(cb => {
-                    if (!this.checked) {
-                        cb.checked = false;
-                    }
-                });
-                syncPrimaryPositionToMultiChecks();
-            });
-
-            tirePositionRadios.forEach(radio => {
-                radio.addEventListener('change', syncPrimaryPositionToMultiChecks);
-            });
-
-            syncPrimaryPositionToMultiChecks();
         }
 
         const applyForMultiTiresCheckbox = document.getElementById('applyForMultiTires');

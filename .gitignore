@@ -372,6 +372,7 @@ FodyWeavers.xsd
 
 # Environment & sensitive config
 .env
+.env.*
 **/appsettings.json		
 **/appsettings.*.json
 ChargePoint.CarManagement/appsettings.json

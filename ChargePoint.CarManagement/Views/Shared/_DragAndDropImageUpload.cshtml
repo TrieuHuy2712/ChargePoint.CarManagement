@@ -1,11 +1,13 @@
-﻿@*
+﻿@using ChargePoint.CarManagement.Domain.Enums
+@using ChargePoint.CarManagement.Domain.Models
+@*
     Reusable Drag & Drop Image Upload Component
     Parameters:
     - Model: The MediaType for this uploader instance.
     - ViewData["Settings"]: The FileUploadSettings object.
 *@
-@model ChargePoint.CarManagement.Models.MediaType
-@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+@model MediaType
+@inject IOptions<FileUploadSettings> FileUploadSettings
 
 @{
     var settings = FileUploadSettings.Value;

@@ -1,4 +1,4 @@
-﻿@model ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels.TrafficViolationCheckVM
+﻿@model ChargePoint.CarManagement.Domain.ViewModels.TrafficViolationViewModels.TrafficViolationCheckVM
 @{
     ViewData["Title"] = "Ghi nhận kết quả kiểm tra";
     var car = Model.Car;
@@ -100,7 +100,7 @@
 
                         <div class="mb-3">
                             <label asp-for="TrafficViolationCheck.TrangThaiXuLy" class="form-label"></label>
-                            <select asp-for="TrafficViolationCheck.TrangThaiXuLy" class="form-select" asp-items="Html.GetEnumSelectList<ChargePoint.CarManagement.Models.Enums.ViolationStatus>()">
+                            <select asp-for="TrafficViolationCheck.TrangThaiXuLy" class="form-select" asp-items="Html.GetEnumSelectList<ChargePoint.CarManagement.Domain.Enums.ViolationStatus>()">
                             </select>
                             <span asp-validation-for="TrafficViolationCheck.TrangThaiXuLy" class="text-danger"></span>
                         </div>

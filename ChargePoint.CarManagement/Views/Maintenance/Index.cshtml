@@ -1,5 +1,7 @@
-﻿@using ChargePoint.CarManagement.Models.ViewModels
-@using ChargePoint.CarManagement.Models.ViewModels.MaintenanceViewModels
+﻿@using ChargePoint.CarManagement.Domain.Entities
+@using ChargePoint.CarManagement.Domain.Enums
+@using ChargePoint.CarManagement.Domain.ViewModels
+@using ChargePoint.CarManagement.Domain.ViewModels.MaintenanceViewModels
 @model PagedResult<MaintenanceIndexViewModel>
 @{
     ViewData["Title"] = "Quản lý bảo dưỡng";
@@ -130,12 +132,12 @@
                                 <td>
                                     @if (lastMaintenance != null && lastMaintenance.CapBaoDuong.HasValue)
                                     {
-                                        var cap = (CapBaoDuong)lastMaintenance.CapBaoDuong;
+                                        var cap = (MaintenanceLevel)lastMaintenance.CapBaoDuong;
                                         var badgeClass = cap switch
                                         {
-                                            CapBaoDuong.Cap1 => "bg-info",
-                                            CapBaoDuong.Cap2 => "bg-primary",
-                                            CapBaoDuong.Cap3 => "bg-success",
+                                            MaintenanceLevel.Cap1 => "bg-info",
+                                            MaintenanceLevel.Cap2 => "bg-primary",
+                                            MaintenanceLevel.Cap3 => "bg-success",
                                             _ => "bg-secondary"
                                         };
                                         <span class="badge @badgeClass">Cấp @((int)cap)</span>

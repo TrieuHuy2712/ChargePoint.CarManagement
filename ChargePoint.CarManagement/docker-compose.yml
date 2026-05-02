@@ -7,8 +7,10 @@ services:
       dockerfile: Dockerfile
     image: chargepoint-car:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
-      - .env
+      - ${ENV_FILE:-.env.local}
     environment:
       # Basic runtime
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}

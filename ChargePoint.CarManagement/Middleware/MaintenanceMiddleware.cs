@@ -1,4 +1,6 @@
-using ChargePoint.CarManagement.Data;
+using ChargePoint.CarManagement.Domain.Entities;
+using ChargePoint.CarManagement.Domain.Models;
+using ChargePoint.CarManagement.Infrastructure.Persistence.Data;
 using ChargePoint.CarManagement.Models;
 using Microsoft.EntityFrameworkCore;
 

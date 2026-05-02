@@ -1,7 +1,10 @@
 ﻿@model CarViewModel
-@using ChargePoint.CarManagement.Models.ViewModels
+@using ChargePoint.CarManagement.Domain.Entities
+@using ChargePoint.CarManagement.Domain.Enums
+@using ChargePoint.CarManagement.Domain.Models
+@using ChargePoint.CarManagement.Domain.ViewModels
 @using ChargePoint.CarManagement.Models
-@inject Microsoft.Extensions.Options.IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+@inject Microsoft.Extensions.Options.IOptions<FileUploadSettings> FileUploadSettings
 
 @{
     ViewData["Title"] = "Chi tiết xe";

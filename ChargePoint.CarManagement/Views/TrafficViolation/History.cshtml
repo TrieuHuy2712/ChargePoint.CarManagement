@@ -1,5 +1,5 @@
 ﻿@using ChargePoint.CarManagement.Extensions
-@model ChargePoint.CarManagement.Models.ViewModels.TrafficViolationViewModels.TrafficViolationHistoryVM
+@model ChargePoint.CarManagement.Domain.ViewModels.TrafficViolationViewModels.TrafficViolationHistoryVM
 @{
     ViewData["Title"] = "Lịch sử kiểm tra phạt nguội";
     var car = Model.Car;
@@ -99,10 +99,10 @@
                                         @{
                                             var statusClass = item.TrangThaiXuLy switch
                                             {
-                                                ChargePoint.CarManagement.Models.Enums.ViolationStatus.DaBao => "bg-info",
-                                                ChargePoint.CarManagement.Models.Enums.ViolationStatus.DangChoXuLy => "bg-warning",
-                                                ChargePoint.CarManagement.Models.Enums.ViolationStatus.DangXuLy => "bg-primary",
-                                                ChargePoint.CarManagement.Models.Enums.ViolationStatus.DaXuLy => "bg-success",
+                                                ChargePoint.CarManagement.Domain.Enums.ViolationStatus.DaBao => "bg-info",
+                                                ChargePoint.CarManagement.Domain.Enums.ViolationStatus.DangChoXuLy => "bg-warning",
+                                                ChargePoint.CarManagement.Domain.Enums.ViolationStatus.DangXuLy => "bg-primary",
+                                                ChargePoint.CarManagement.Domain.Enums.ViolationStatus.DaXuLy => "bg-success",
                                                 _ => "bg-secondary"
                                             };
                                         }
@@ -148,7 +148,7 @@
                                                title="Sửa chi tiết">
                                                 <i class="fas fa-pen"></i>
                                             </a>
-                                            @if (item.TrangThaiXuLy != ChargePoint.CarManagement.Models.Enums.ViolationStatus.DaXuLy)
+                                            @if (item.TrangThaiXuLy != ChargePoint.CarManagement.Domain.Enums.ViolationStatus.DaXuLy)
                                             {
                                                 <button type="button" class="btn btn-primary btn-sm" 
                                                         data-bs-toggle="modal" 

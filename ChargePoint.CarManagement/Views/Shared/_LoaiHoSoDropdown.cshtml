@@ -1,4 +1,4 @@
-﻿@model ChargePoint.CarManagement.Models.LoaiHoSo
+﻿@model ChargePoint.CarManagement.Domain.Enums.DocumentType
 @{
     var dropdownId = ViewData["DropdownId"] as string ?? "LoaiHoSo";
     var dropdownName = ViewData["DropdownName"] as string ?? "LoaiHoSo";
@@ -71,9 +71,9 @@
     <span id="@iconId" class="custom-dropdown-icon"></span>
     <select class="form-select form-select-lg fw-bold custom-dropdown-select"
             id="@dropdownId" name="@dropdownName">
-        <option value="BaoDuong" selected="@(Model == ChargePoint.CarManagement.Models.LoaiHoSo.BaoDuong ? "selected" : null)">🛠️ Bảo dưỡng</option>
-        <option value="SuaChua" selected="@(Model == ChargePoint.CarManagement.Models.LoaiHoSo.SuaChua ? "selected" : null)">🔧 Sửa chữa</option>
-        <option value="SuaChuaBaoDuong" selected="@(Model == ChargePoint.CarManagement.Models.LoaiHoSo.SuaChuaBaoDuong ? "selected" : null)">🧰 Sửa chữa - Bảo dưỡng</option>
+        <option value="BaoDuong" selected="@(Model == ChargePoint.CarManagement.Domain.Enums.DocumentType.BaoDuong ? "selected" : null)">🛠️ Bảo dưỡng</option>
+        <option value="SuaChua" selected="@(Model == ChargePoint.CarManagement.Domain.Enums.DocumentType.SuaChua ? "selected" : null)">🔧 Sửa chữa</option>
+        <option value="SuaChuaBaoDuong" selected="@(Model == ChargePoint.CarManagement.Domain.Enums.DocumentType.SuaChuaBaoDuong ? "selected" : null)">🧰 Sửa chữa - Bảo dưỡng</option>
     </select>
 </div>
 <script>

@@ -1,15 +1,17 @@
-﻿@model ChargePoint.CarManagement.Models.ViewModels.MaintenanceViewModels.MaintenanceHistoryViewModel
+﻿@using ChargePoint.CarManagement.Domain.Enums
+@using ChargePoint.CarManagement.Domain.Entities
+@model ChargePoint.CarManagement.Domain.ViewModels.MaintenanceViewModels.MaintenanceHistoryViewModel
 
 @{
     ViewData["Title"] = "Lịch sử bảo dưỡng";
     var car = Model.Car as Car;
-    string GetLoaiHoSoBadge(ChargePoint.CarManagement.Models.LoaiHoSo loai)
+    string GetLoaiHoSoBadge(DocumentType loai)
     {
         return loai switch
         {
-            ChargePoint.CarManagement.Models.LoaiHoSo.BaoDuong => "<span class='badge bg-success ms-1'>Bảo dưỡng</span>",
-            ChargePoint.CarManagement.Models.LoaiHoSo.SuaChua => "<span class='badge bg-danger ms-1'>Sửa chữa</span>",
-            ChargePoint.CarManagement.Models.LoaiHoSo.SuaChuaBaoDuong => "<span class='badge bg-warning text-dark ms-1'>Sửa chữa - Bảo dưỡng</span>",
+            DocumentType.BaoDuong => "<span class='badge bg-success ms-1'>Bảo dưỡng</span>",
+            DocumentType.SuaChua => "<span class='badge bg-danger ms-1'>Sửa chữa</span>",
+            DocumentType.SuaChuaBaoDuong => "<span class='badge bg-warning text-dark ms-1'>Sửa chữa - Bảo dưỡng</span>",
             _ => ""
         };
     }
@@ -64,9 +66,9 @@
             {
                 var badgeClass = record.CapBaoDuong switch
                 {
-                    CapBaoDuong.Cap1 => "bg-info",
-                    CapBaoDuong.Cap2 => "bg-primary",
-                    CapBaoDuong.Cap3 => "bg-success",
+                    MaintenanceLevel.Cap1 => "bg-info",
+                    MaintenanceLevel.Cap2 => "bg-primary",
+                    MaintenanceLevel.Cap3 => "bg-success",
                     _ => "bg-secondary"
                 };
 

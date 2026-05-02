@@ -1,5 +1,6 @@
-﻿@model dynamic
-@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+﻿@using ChargePoint.CarManagement.Domain.Models
+@model dynamic
+@inject IOptions<FileUploadSettings> FileUploadSettings
 
 @{
     var settings = FileUploadSettings.Value;

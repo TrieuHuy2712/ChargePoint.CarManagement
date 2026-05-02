@@ -1,5 +1,8 @@
-﻿@model ChargePoint.CarManagement.Models.ViewModels.MaintenanceViewModels.MaintenanceEditVM
-@inject IOptions<ChargePoint.CarManagement.Models.FileUploadSettings> FileUploadSettings
+﻿@using ChargePoint.CarManagement.Domain.Entities
+@using ChargePoint.CarManagement.Domain.Enums
+@using ChargePoint.CarManagement.Domain.Models
+@model ChargePoint.CarManagement.Domain.ViewModels.MaintenanceViewModels.MaintenanceEditVM
+@inject IOptions<FileUploadSettings> FileUploadSettings
 
 @{
     ViewData["Title"] = "Chỉnh sửa hồ sơ bảo dưỡng";
@@ -41,12 +44,13 @@
                 <input type="hidden" asp-for="@maintenance.NgayTao" />
                 <input type="hidden" asp-for="@maintenance.NguoiTao" />
                 <input type="hidden" asp-for="@maintenance.HinhAnhChungTu" />
+                <input type="hidden" name="buttonAction" id="buttonActionEditInput" value="save" />
 
                  <!-- Dropdown chọn loại hồ sơ: label, icon, select ngang hàng đẹp -->
                 @await Html.PartialAsync("_LoaiHoSoDropdown", Model.Record.LoaiHoSo
                 , new ViewDataDictionary(ViewData) {
                     { "DropdownId", "LoaiHoSoEdit" },
-                                { "DropdownName", "maintenance.LoaiHoSo" },
+                    { "DropdownName", "maintenance.LoaiHoSo" },
                     { "IconId", "LoaiHoSoIconEdit" }
                 })
 
@@ -71,13 +75,13 @@
                     <div class="col-md-6 mb-3">
                         <label asp-for="@maintenance.CapBaoDuong" class="form-label" id="labelCapBaoDuong"></label>
                         <div class="d-flex gap-3 mt-2">
-                            @foreach (CapBaoDuong cap in Enum.GetValues(typeof(CapBaoDuong)))
+                            @foreach (MaintenanceLevel cap in Enum.GetValues(typeof(MaintenanceLevel)))
                             {
                                 var badgeClass = cap switch
                                 {
-                                    CapBaoDuong.Cap1 => "bg-info",
-                                    CapBaoDuong.Cap2 => "bg-primary",
-                                    CapBaoDuong.Cap3 => "bg-success",
+                                    MaintenanceLevel.Cap1 => "bg-info",
+                                    MaintenanceLevel.Cap2 => "bg-primary",
+                                    MaintenanceLevel.Cap3 => "bg-success",
                                     _ => "bg-secondary"
                                 };
                                 <div class="form-check">
@@ -139,13 +143,19 @@
                 <!-- Shared Image Upload Partial -->
                 <partial name="_MaintenanceImagePartial" model='new { Record = Model.Record }' />
 
-                <div class="d-flex justify-content-between mt-4">
+                <div class="d-flex justify-content-between align-items-center mt-4">
                     <a asp-action="History" asp-route-id="@maintenance.CarId" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Quay lại
                     </a>
-                    <button type="submit" class="btn btn-success" id="btnSubmit">
-                        <i class="fas fa-save"></i> Lưu thay đổi
-                    </button>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" value="save" class="btn btn-success" id="btnSubmit">
+                            <i class="fas fa-save"></i> Lưu thay đổi
+                        </button>
+                        <button type="submit" value="next" class="btn btn-primary" id="btnNext">
+                            <i class="fas fa-arrow-right"></i> Lưu & Tiếp theo (thông tin lốp)
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -158,10 +168,18 @@
     }
     <script>
         // Submit button loading state
-        document.getElementById('maintenanceEditForm').addEventListener('submit', function() {
-            const btn = document.getElementById('btnSubmit');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+        document.getElementById('maintenanceEditForm').addEventListener('submit', function (e) {
+            const submitter = e.submitter;
+            const buttonActionInput = document.getElementById('buttonActionEditInput');
+
+            if (submitter && buttonActionInput) {
+                buttonActionInput.value = submitter.value || 'save';
+            }
+
+            if (submitter && submitter.id === 'btnSubmit') {
+                submitter.disabled = true;
+                submitter.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+            }
         });
     </script>
 }
