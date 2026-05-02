@@ -30,13 +30,13 @@ public class LogsController(ILogStore logStore) : Controller
 
         if (!string.IsNullOrWhiteSpace(level))
         {
-            filtered = filtered.Where(x => x.Level.Equals(level, StringComparison.OrdinalIgnoreCase));
+            filtered = filtered.Where(x => string.Equals(x.Level, level, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(q))
         {
             filtered = filtered.Where(x =>
-                x.Message.Contains(q, StringComparison.OrdinalIgnoreCase)
+                (x.Message?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
                 || (x.Detail?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
                 || (x.UserName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
                 || (x.Source?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false));
