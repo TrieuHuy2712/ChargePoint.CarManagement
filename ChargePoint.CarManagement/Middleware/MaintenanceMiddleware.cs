@@ -40,7 +40,9 @@ namespace ChargePoint.CarManagement.Middleware
             var dbContext = context.RequestServices.GetService<ApplicationDbContext>();
             if (dbContext != null)
             {
-                var setting = await dbContext.SystemSettings.FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.MaintenanceMode);
+                var setting = await dbContext.SystemSettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.Key == SystemSettingKeys.MaintenanceMode);
                 isMaintenanceMode = setting?.Value == "true";
             }
 
