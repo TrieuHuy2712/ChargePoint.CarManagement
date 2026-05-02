@@ -1,10 +1,8 @@
-version: "3.8"
-
 services:
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: ChargePoint.CarManagement/Dockerfile
     image: chargepoint-car:${IMAGE_TAG:-latest}
     restart: unless-stopped
     extra_hosts:
